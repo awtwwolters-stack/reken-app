@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Reken App</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main class="card">
+    <section id="screen-start" class="screen">
+      <h1>Hoi! Klaar om te rekenen?</h1>
+      <button id="start-button" class="big-button">Start mijn oefeningen</button>
+    </section>
+
+    <section id="screen-session" class="screen hidden">
+      <p id="progress-label" class="progress-label"></p>
+      <h2 id="exercise-prompt" class="prompt"></h2>
+
+      <div id="answer-area">
+        <div id="answer-fields" class="answer-fields"></div>
+        <button id="submit-button" class="big-button">Controleer</button>
+      </div>
+
+      <p id="feedback" class="feedback"></p>
+
+      <button id="next-button" class="big-button hidden">Volgende</button>
+    </section>
+
+    <section id="screen-summary" class="screen hidden">
+      <h1>Goed gedaan!</h1>
+      <p id="summary-count" class="summary-count"></p>
+      <p id="summary-score" class="summary-score"></p>
+
+      <div class="summary-columns">
+        <div>
+          <h3>Sterk</h3>
+          <ul id="summary-strong"></ul>
+        </div>
+        <div>
+          <h3>Nog even oefenen</h3>
+          <ul id="summary-practice"></ul>
+        </div>
+      </div>
+
+      <button id="play-again-button" class="big-button">Nog een keer</button>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <a href="parent.html">Ouder overzicht</a>
+  </footer>
+
+  <script src="js/utils.js"></script>
+  <script src="js/storage.js"></script>
+  <script src="js/mastery.js"></script>
+  <script src="js/hints.js"></script>
+  <script src="curriculum/group-6.js"></script>
+  <script src="js/exercises/optellen.js"></script>
+  <script src="js/exercises/aftrekken.js"></script>
+  <script src="js/exercises/tafel.js"></script>
+  <script src="js/exercises/vermenigvuldigen_groot.js"></script>
+  <script src="js/exercises/delen_zonder_rest.js"></script>
+  <script src="js/exercises/delen_met_rest.js"></script>
+  <script src="js/exercises/getalbegrip.js"></script>
+  <script src="js/exercises/verhaalsom.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
