@@ -23,7 +23,7 @@
   </style>
 </head>
 <body>
-  <p><a href="index.html">&larr; Terug naar de app</a></p>
+  <p><a href="index.html">&larr; Terug naar de app</a> &middot; <span id="app-version"></span></p>
   <h1>Ouder overzicht — waarom kiest de app wat het kiest</h1>
 
   <section class="backup">
@@ -31,6 +31,14 @@
     <button id="backup-button" type="button">Maak back-up</button>
     <label>Zet back-up terug <input id="restore-input" type="file" hidden></label>
     <p id="backup-message"></p>
+    <details>
+      <summary>Werken deze knoppen niet? Gebruik kopi&euml;ren en plakken</summary>
+      <p>1. Tik op <strong>Kopieer back-up</strong> en plak de tekst in Notities of mail hem naar jezelf.<br>
+         2. Terugzetten: plak die tekst in het vak hieronder en tik op <strong>Zet geplakte back-up terug</strong>.</p>
+      <button id="copy-backup-button" type="button">Kopieer back-up</button>
+      <button id="paste-restore-button" type="button">Zet geplakte back-up terug</button>
+      <textarea id="backup-text" rows="6" style="width: 100%; margin-top: 8px;" placeholder="Plak hier een back-up om terug te zetten"></textarea>
+    </details>
   </section>
 
   <h2>Sessies</h2>

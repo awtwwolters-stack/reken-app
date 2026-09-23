@@ -1,5 +1,8 @@
 // Small shared helpers used by the exercise generators.
 
+// Shown in the parent view so a stale cached copy on the iPad is easy to spot. Bump on every publish.
+const APP_VERSION = '2026-09-23.4';
+
 function randomInt(min, max) {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }

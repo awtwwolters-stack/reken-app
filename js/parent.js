@@ -194,14 +194,45 @@ async function makeBackup() {
   renderBackupStatus(state);
 }
 
+// Works without any file or share support: the backup travels as plain text (Notities, mail).
+async function copyBackup() {
+  const state = loadState();
+  state.lastBackupAt = Date.now();
+  const contents = backupFileContents(state);
+  try {
+    await navigator.clipboard.writeText(contents);
+    saveState(state);
+    renderBackupStatus(state);
+    showBackupMessage('Back-up gekopieerd. Plak hem nu in Notities of mail hem naar jezelf.');
+  } catch (e) {
+    const box = document.getElementById('backup-text');
+    box.value = contents;
+    box.focus();
+    box.select();
+    showBackupMessage('Automatisch kopiëren lukte niet. De back-up staat in het vak hieronder: selecteer alles en kopieer.', true);
+  }
+}
+
+function restoreFromPaste() {
+  const text = document.getElementById('backup-text').value.trim();
+  if (!text) {
+    showBackupMessage('Plak eerst een back-up in het vak.', true);
+    return;
+  }
+  restoreFromText(text);
+}
+
 async function restoreBackup(event) {
   const file = event.target.files[0];
   event.target.value = '';
   if (!file) return;
+  restoreFromText(await file.text());
+}
 
+function restoreFromText(text) {
   let imported;
   try {
-    imported = parseBackupFile(await file.text());
+    imported = parseBackupFile(text);
   } catch (e) {
     showBackupMessage('Dit is geen geldige Reken App back-up. Er is niets veranderd.', true);
     return;
@@ -217,5 +248,8 @@ async function restoreBackup(event) {
 window.addEventListener('DOMContentLoaded', () => {
   document.getElementById('backup-button').addEventListener('click', makeBackup);
   document.getElementById('restore-input').addEventListener('change', restoreBackup);
+  document.getElementById('copy-backup-button').addEventListener('click', copyBackup);
+  document.getElementById('paste-restore-button').addEventListener('click', restoreFromPaste);
+  document.getElementById('app-version').textContent = `versie ${APP_VERSION}`;
   renderParentView();
 });
