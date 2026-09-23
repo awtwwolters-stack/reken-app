@@ -209,14 +209,44 @@ const CURRICULUM = {
       ]
     },
     {
-      "id": "breuken_basis",
-      "name": "Breuken herkennen en vergelijken",
+      "id": "breuken_herkennen",
+      "name": "Breuken herkennen",
       "category": "Breuken",
       "domain": "breuken",
-      "description": "Helften, derde, kwarten, vijfde en tiende delen; vergelijken en vereenvoudigen.",
+      "description": "Welk deel van een strook is gekleurd? Groep-5-herhaling; zesden/tienden pas als de klas zover is.",
+      "exerciseType": "breuk_herkennen",
+      "implemented": true,
+      "prerequisites": [],
+      "startTier": 1,
+      "tiers": [
+        { "tier": 1, "denominators": [2, 4] },
+        { "tier": 2, "denominators": [2, 3, 4, 5, 8] }
+      ]
+    },
+    {
+      "id": "breuken_deel_van",
+      "name": "Deel van een hoeveelheid",
+      "category": "Breuken",
+      "domain": "breuken",
+      "description": "Een stambreuk van een getal, zoals ¼ van 20. Niet-stambreuken (¾ van 20) pas als de klas zover is.",
+      "exerciseType": "breuk_deel_van",
+      "implemented": true,
+      "prerequisites": ["delen_zonder_rest"],
+      "startTier": 1,
+      "tiers": [
+        { "tier": 1, "denominators": [2, 4], "quotientMax": 10 },
+        { "tier": 2, "denominators": [2, 3, 4, 5, 10], "quotientMax": 10 }
+      ]
+    },
+    {
+      "id": "breuken_vergelijken_gelijkwaardig",
+      "name": "Breuken vergelijken en gelijkwaardige breuken",
+      "category": "Breuken",
+      "domain": "breuken",
+      "description": "3/8 of 5/8? 1/3 = 2/6. Bouwen zodra de klas zover is (B-04).",
       "exerciseType": null,
       "implemented": false,
-      "prerequisites": ["getalbegrip_tot_100000"],
+      "prerequisites": ["breuken_herkennen"],
       "tiers": []
     },
     {
@@ -227,7 +257,7 @@ const CURRICULUM = {
       "description": "Kommagetallen lezen, plaatsen op de getallenlijn.",
       "exerciseType": null,
       "implemented": false,
-      "prerequisites": ["breuken_basis"],
+      "prerequisites": ["breuken_herkennen"],
       "tiers": []
     },
     {

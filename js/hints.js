@@ -184,6 +184,22 @@ Hints.verhaalsom = function (level, ctx) {
   return 'Reken de som die bij het verhaal hoort stap voor stap uit.';
 };
 
+Hints.breuk_herkennen = function (level, ctx) {
+  const { teller, noemer } = ctx;
+  if (level === 1) return 'Tel in hoeveel gelijke stukken de strook verdeeld is. Dat getal komt onder de streep: de noemer.';
+  if (level === 2) return `De strook heeft ${noemer} gelijke stukken, dus de noemer is ${noemer}. Hoeveel stukken zijn er gekleurd? Dat komt boven de streep.`;
+  return `${teller} van de ${noemer} stukken zijn gekleurd: ${teller}/${noemer}.`;
+};
+
+Hints.breuk_deel_van = function (level, ctx) {
+  const { noemer, amount } = ctx;
+  const fraction = unitFractionText(noemer);
+  const part = amount / noemer;
+  if (level === 1) return `Om ${fraction} van ${formatNumberNL(amount)} te vinden, verdeel je ${formatNumberNL(amount)} in ${noemer} gelijke stukken.`;
+  if (level === 2) return `Reken ${formatNumberNL(amount)} : ${noemer}. Hoe groot is één stuk?`;
+  return `${formatNumberNL(amount)} : ${noemer} = ${formatNumberNL(part)}, dus ${fraction} van ${formatNumberNL(amount)} = ${formatNumberNL(part)}.`;
+};
+
 function getHint(exerciseType, level, hintContext) {
   const fn = Hints[exerciseType];
   if (!fn) return 'Denk rustig na en probeer het nog eens.';

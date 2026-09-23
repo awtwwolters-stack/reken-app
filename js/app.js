@@ -12,6 +12,7 @@ const SUMMARY_STRONG_RATE = 0.8;
 const PRAISE_FIRST_TRY = ['Goed!', 'Netjes!', 'Yes, die heb je!', 'Knap gedaan!', 'Precies!'];
 const PRAISE_WITH_HELP = ['Goed, dat lukte!', 'Mooi, je hebt hem nu!', 'Zo is hij goed!'];
 const INVALID_NUMBER_MESSAGE = 'Typ alleen een getal, bijvoorbeeld 4520 of 4.520.';
+const INVALID_FRACTION_MESSAGE = 'Typ boven de streep een getal en onder de streep een getal.';
 
 let appState = null;
 let curriculumById = {};
@@ -102,13 +103,17 @@ function renderExercise(pick) {
   session.hadMistake = false;
   session.exerciseStartedAt = Date.now();
 
-  el('exercise-prompt').textContent = currentExercise.prompt;
+  renderPrompt(currentExercise);
+  renderVisual(currentExercise.visual);
   el('feedback').textContent = '';
   el('feedback').className = 'feedback';
 
   const fieldsContainer = el('answer-fields');
   fieldsContainer.innerHTML = '';
-  currentExercise.answerFields.forEach((field) => {
+  const isFraction = currentExercise.answerLayout === 'fraction';
+  fieldsContainer.classList.toggle('fraction', isFraction);
+  currentExercise.answerFields.forEach((field, index) => {
+    if (isFraction && index === 1) fieldsContainer.appendChild(Object.assign(document.createElement('div'), { className: 'breukstreep' }));
     const wrapper = document.createElement('label');
     wrapper.className = 'answer-field';
     if (field.label) {
@@ -124,11 +129,19 @@ function renderExercise(pick) {
     input.spellcheck = false;
     input.dataset.key = field.key;
     input.className = 'answer-input-field';
+    if (isFraction) input.setAttribute('aria-label', field.key); // teller / noemer
     input.addEventListener('keydown', (e) => {
       if (e.key !== 'Enter') return;
       // Without this, the same Enter press also "clicks" the Volgende button that
       // receives focus on submit, skipping the feedback entirely.
       e.preventDefault();
+      // In a two-field answer, Enter in the first field moves on to the empty second one.
+      const inputs = [...fieldsContainer.querySelectorAll('input')];
+      const next = inputs[inputs.indexOf(input) + 1];
+      if (next && next.value.trim() === '' && !input.value.includes('/')) {
+        next.focus();
+        return;
+      }
       onSubmit();
     });
     wrapper.appendChild(input);
@@ -140,8 +153,68 @@ function renderExercise(pick) {
   fieldsContainer.querySelector('input').focus();
 }
 
+// A question may come in parts so fractions show stacked (like in the rekenschrift):
+// ['text', { fraction: [1, 4] }, 'more text'].
+function renderPrompt(exercise) {
+  const promptEl = el('exercise-prompt');
+  if (!exercise.promptParts) {
+    promptEl.textContent = exercise.prompt;
+    return;
+  }
+  promptEl.textContent = '';
+  exercise.promptParts.forEach((part) => {
+    if (typeof part === 'string') {
+      promptEl.appendChild(document.createTextNode(part));
+      return;
+    }
+    const [teller, noemer] = part.fraction;
+    const fraction = document.createElement('span');
+    fraction.className = 'fraction';
+    fraction.setAttribute('aria-label', `${teller}/${noemer}`);
+    fraction.appendChild(Object.assign(document.createElement('span'), { className: 'teller', textContent: String(teller) }));
+    fraction.appendChild(Object.assign(document.createElement('span'), { className: 'noemer', textContent: String(noemer) }));
+    promptEl.appendChild(fraction);
+  });
+}
+
+const SVG_NS = 'http://www.w3.org/2000/svg';
+
+// A strook (bar) split into equal parts, the first `coloured` parts filled - the classroom breukenkast.
+function renderVisual(visual) {
+  const container = el('exercise-visual');
+  container.innerHTML = '';
+  container.classList.toggle('hidden', !visual);
+  if (!visual || visual.type !== 'strook') return;
+
+  const width = 320;
+  const height = 56;
+  const svg = document.createElementNS(SVG_NS, 'svg');
+  svg.setAttribute('viewBox', `-2 -2 ${width + 4} ${height + 4}`);
+  svg.setAttribute('class', 'strook');
+  svg.setAttribute('role', 'img');
+  svg.setAttribute('aria-label', `Strook in ${visual.parts} gelijke stukken, ${visual.coloured} gekleurd`);
+  const partWidth = width / visual.parts;
+  for (let i = 0; i < visual.parts; i++) {
+    const rect = document.createElementNS(SVG_NS, 'rect');
+    rect.setAttribute('x', i * partWidth);
+    rect.setAttribute('y', 0);
+    rect.setAttribute('width', partWidth);
+    rect.setAttribute('height', height);
+    rect.setAttribute('class', i < visual.coloured ? 'strook-part coloured' : 'strook-part');
+    svg.appendChild(rect);
+  }
+  container.appendChild(svg);
+}
+
 function readAnswer() {
   const inputs = el('answer-fields').querySelectorAll('input');
+  // A child used to writing "5/8" may type the whole fraction in the teller box.
+  const typedFraction = currentExercise.answerLayout === 'fraction'
+    && inputs[1].value.trim() === ''
+    && inputs[0].value.match(/^\s*(\d+)\s*\/\s*(\d+)\s*$/);
+  if (typedFraction) {
+    return { values: { teller: Number(typedFraction[1]), noemer: Number(typedFraction[2]) }, complete: true, valid: true };
+  }
   const values = {};
   let complete = true;
   let valid = true;
@@ -159,12 +232,15 @@ function readAnswer() {
 
 // "7 rest 5" for two-field answers, "1.459" for one field.
 function formatAnswer(values) {
+  if (currentExercise.answerLayout === 'fraction') return `${values.teller}/${values.noemer}`;
   return currentExercise.answerFields
     .map((field, i) => `${i > 0 && field.label ? field.label + ' ' : ''}${formatNumberNL(values[field.key])}`)
     .join(' ');
 }
 
 function isCorrect(values) {
+  // An exercise can bring its own check, e.g. fractions where 1/2 and 2/4 are both right.
+  if (currentExercise.checkAnswer) return currentExercise.checkAnswer(values);
   return Object.keys(currentExercise.correctAnswer).every(
     (key) => values[key] === currentExercise.correctAnswer[key]
   );
@@ -175,7 +251,7 @@ function onSubmit() {
   // An empty field or something that isn't a number is not a wrong answer - it shouldn't count against mastery.
   if (!complete) return;
   if (!valid) {
-    el('feedback').textContent = INVALID_NUMBER_MESSAGE;
+    el('feedback').textContent = currentExercise.answerLayout === 'fraction' ? INVALID_FRACTION_MESSAGE : INVALID_NUMBER_MESSAGE;
     el('feedback').className = 'feedback feedback-hint';
     clearAnswerFields();
     return;

@@ -1,6 +1,6 @@
 # Reken App — Backlog
 
-_Last updated: 2026-09-23 · Status: Phase 0 done except the real-iPad check (R-01); R-10 deferred (parent tooling, user priority); next: T-01 test + breuken_
+_Last updated: 2026-09-23 · Status: Phase 0 done except the real-iPad check (R-01); breuken step 1 live (B-01, B-02 strook, B-03a); next: T-01 test; B-03b waits for B-04_
 
 Size: **S** = small change · **M** = one focused build session · **L** = several sessions
 
@@ -69,9 +69,10 @@ These must be done before daily use. Without them the test won't tell us whether
 |---|---|---|---|
 | T-01 | **Test period:** 1–2 weeks of real use on the iPad (this is not a build task). Watch for: does your child start on their own? Is the success rate 75–85%? Which hints don't help? Is the session length right? | Reprioritise everything after this based on what we see | — |
 | ~~Q-03~~ ✅ | Progress backup: export/import from the parent view. _Moved up from Phase 2 because of D1_ | Safari can clear stored data for pages that haven't been opened for a while. An export file also lets you share real usage data with Claude for analysis | S |
-| B-01 | Fraction answers: teller/noemer input (reuses the two-field answer from "delen met rest"). Accept equivalent fractions except when the task is to vereenvoudigen | Checking answers is the tricky part of fractions | M |
-| B-02 | Fraction pictures drawn by the app (strook, getallenlijn, cirkel) | This is the first time the app needs visuals, and the biggest new capability breuken requires | M–L |
-| B-03 | Breuken skills: herkennen, vergelijken, gelijkwaardig/vereenvoudigen, op de getallenlijn, deel van een hoeveelheid (¼ van 20) | The agreed next priority | M |
+| ~~B-01~~ ✅ | Fraction answers: stacked teller/noemer input; equivalent fractions accepted (2/4 = ½); "5/8" typed in one box understood | Checking answers is the tricky part of fractions | M |
+| B-02 ◐ | Fraction pictures: **strook done** (the classroom breukenkast model); getallenlijn later with B-03b | This is the first time the app needs visuals, and the biggest new capability breuken requires | M–L |
+| B-03a ✅ | Breuken step 1 (groep-5 revision only, class hasn't started breuken): herkennen (halven/kwarten → derden/vijfden/achtsten) and deel van een hoeveelheid (½, ¼ → ⅓, ⅕, ⅒) | The agreed next priority | M |
+| B-03b | Breuken step 2, **when B-04 confirms the class has reached it**: vergelijken (3/8 vs 5/8), gelijkwaardig (1/3 = 2/6), niet-stambreuken (¾ van 20), zesden/tienden, getallenlijn. Reuses step 1's strook, stacked input and equivalence check | Don't run ahead of school | M |
 | B-04 | Find out when the class starts breuken this year (ask the teacher or check the weektaak) | Don't run ahead of school | — |
 | B-05 | Kommagetallen (after B-01 to B-03; needs R-02) | Completes the breuken domain | M |
 
