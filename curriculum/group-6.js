@@ -33,7 +33,7 @@ const CURRICULUM = {
       "exerciseType": "optellen",
       "implemented": true,
       "prerequisites": ["getalbegrip_tot_100000"],
-      "startTier": 3,
+      "startTier": 2,
       "tiers": [
         { "tier": 1, "min": 1, "max": 50 },
         { "tier": 2, "min": 10, "max": 500 },
@@ -50,7 +50,7 @@ const CURRICULUM = {
       "exerciseType": "aftrekken",
       "implemented": true,
       "prerequisites": ["getalbegrip_tot_100000"],
-      "startTier": 3,
+      "startTier": 2,
       "tiers": [
         { "tier": 1, "min": 1, "max": 100 },
         { "tier": 2, "min": 10, "max": 1000 },

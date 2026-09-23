@@ -11,24 +11,111 @@ function splitTens(n) {
   return { tens, units };
 }
 
+// Adding and subtracting follow the hoofdreken-strategies groep 5-6 uses in De Wereld in
+// Getallen (rijgen, aanvullen, rijgen met te veel), chosen from the numbers the way a teacher
+// would, so the app never teaches a competing method.
+
+// 3.749 -> [3000, 700, 40, 9]: the pieces to "rijgen" with, largest first.
+function placeValueParts(n) {
+  const digits = String(n).split('');
+  return digits
+    .map((d, i) => Number(d) * 10 ** (digits.length - 1 - i))
+    .filter((part) => part > 0);
+}
+
+// 299 -> { round: 300, over: 1 }: numbers just under a round hundred, for "rijgen met te veel".
+function justUnderRoundHundred(n) {
+  const over = (100 - (n % 100)) % 100;
+  return n >= 95 && over >= 1 && over <= 5 ? { round: n + over, over } : null;
+}
+
+// Steps of rijgen: 3.208 - 1.749 -> "3.208 - 1.000 = 2.208", "2.208 - 700 = 1.508", ...
+function rijgenSteps(a, b, sign) {
+  let running = a;
+  return placeValueParts(b).map((part) => {
+    const next = sign === '+' ? running + part : running - part;
+    const step = `${formatNumberNL(running)} ${sign} ${formatNumberNL(part)} = ${formatNumberNL(next)}`;
+    running = next;
+    return step;
+  });
+}
+
+// Aanvullen for 405 - 397: count up via a round number: 397 + 3 = 400, 400 + 5 = 405,
+// so the jumps are [3, 5].
+function aanvullenSteps(a, b) {
+  for (const unit of [1000, 100, 10]) {
+    const round = Math.ceil(b / unit) * unit;
+    if (round > b && round < a) {
+      return {
+        steps: [
+          `${formatNumberNL(b)} + ${formatNumberNL(round - b)} = ${formatNumberNL(round)}`,
+          `${formatNumberNL(round)} + ${formatNumberNL(a - round)} = ${formatNumberNL(a)}`
+        ],
+        jumps: [round - b, a - round]
+      };
+    }
+  }
+  return { steps: [`${formatNumberNL(b)} + ${formatNumberNL(a - b)} = ${formatNumberNL(a)}`], jumps: [a - b] };
+}
+
+// Aanvullen fits numbers that are close relative to their size (405 - 397), not 45 - 32.
+function isAanvullenCase(a, b) {
+  const difference = a - b;
+  return difference > 0 && difference < 20 && difference * 10 <= a;
+}
+
+function subtractionStrategy(a, b) {
+  if (isAanvullenCase(a, b)) return 'aanvullen';
+  const near = justUnderRoundHundred(b);
+  if (near && a >= near.round) return 'teVeel';
+  return 'rijgen';
+}
+
 Hints.optellen = function (level, ctx) {
   const { a, b } = ctx;
-  if (level === 1) return 'Probeer het in stappen: eerst de ronde getallen, dan de rest.';
-  if (level === 2) {
-    const bSplit = splitTens(b);
-    return `Reken zo: ${formatNumberNL(a)} + ${formatNumberNL(bSplit.tens)} = ${formatNumberNL(a + bSplit.tens)}, en dan nog + ${bSplit.units}.`;
+  const sum = formatNumberNL(a + b);
+  const near = justUnderRoundHundred(b);
+
+  if (near) {
+    const round = formatNumberNL(near.round);
+    const between = formatNumberNL(a + near.round);
+    if (level === 1) return `${formatNumberNL(b)} is bijna ${round}. Probeer rijgen met te veel.`;
+    if (level === 2) return `Doe eerst + ${round}, en haal er dan ${near.over} weer af.`;
+    return `${formatNumberNL(a)} + ${round} = ${between}, en ${between} - ${near.over} = ${sum}.`;
   }
-  return `${formatNumberNL(a)} + ${formatNumberNL(b)} = ${formatNumberNL(a + b)}`;
+
+  const steps = rijgenSteps(a, b, '+');
+  if (level === 1) return 'Probeer te rijgen: tel het tweede getal er in stukjes bij, eerst het grootste stuk.';
+  if (level === 2) return `Begin zo: ${steps[0]}. Tel daarna de rest erbij.`;
+  return `${steps.join(', ')}. Dus ${formatNumberNL(a)} + ${formatNumberNL(b)} = ${sum}.`;
 };
 
 Hints.aftrekken = function (level, ctx) {
   const { a, b } = ctx;
-  if (level === 1) return 'Splits de aftreksom in tientallen en eenheden.';
-  if (level === 2) {
-    const bSplit = splitTens(b);
-    return `Reken zo: ${formatNumberNL(a)} - ${formatNumberNL(bSplit.tens)} = ${formatNumberNL(a - bSplit.tens)}, en dan nog - ${bSplit.units}.`;
+  const answer = formatNumberNL(a - b);
+  const strategy = subtractionStrategy(a, b);
+
+  if (strategy === 'aanvullen') {
+    const { steps, jumps } = aanvullenSteps(a, b);
+    if (level === 1) return `De getallen liggen dicht bij elkaar. Probeer aanvullen: tel op van ${formatNumberNL(b)} naar ${formatNumberNL(a)}.`;
+    if (level === 2) return `Begin zo: ${steps[0]}. Hoeveel is het dan nog tot ${formatNumberNL(a)}?`;
+    const together = jumps.length > 1 ? `Samen: ${jumps.map(formatNumberNL).join(' + ')} = ${answer}` : `Dat is ${answer}`;
+    return `${steps.join(', ')}. ${together}, dus ${formatNumberNL(a)} - ${formatNumberNL(b)} = ${answer}.`;
   }
-  return `${formatNumberNL(a)} - ${formatNumberNL(b)} = ${formatNumberNL(a - b)}`;
+
+  if (strategy === 'teVeel') {
+    const near = justUnderRoundHundred(b);
+    const round = formatNumberNL(near.round);
+    const between = formatNumberNL(a - near.round);
+    if (level === 1) return `${formatNumberNL(b)} is bijna ${round}. Probeer rijgen met te veel.`;
+    if (level === 2) return `Doe eerst - ${round}. Dan heb je er ${near.over} te veel afgehaald: tel die er weer bij.`;
+    return `${formatNumberNL(a)} - ${round} = ${between}, en ${between} + ${near.over} = ${answer}.`;
+  }
+
+  const steps = rijgenSteps(a, b, '-');
+  if (level === 1) return 'Probeer te rijgen: haal het tweede getal er in stukjes af, eerst het grootste stuk.';
+  if (level === 2) return `Begin zo: ${steps[0]}. Haal daarna de rest eraf.`;
+  return `${steps.join(', ')}. Dus ${formatNumberNL(a)} - ${formatNumberNL(b)} = ${answer}.`;
 };
 
 Hints.tafel = function (level, ctx) {
@@ -73,11 +160,11 @@ Hints.getalbegrip = function (level, ctx) {
   if (ctx.variant === 'vergelijken') {
     const { a, b } = ctx;
     if (level === 1) return 'Vergelijk cijfer voor cijfer, van links naar rechts.';
-    if (level === 2) return `Kijk eerst naar het aantal cijfers, en dan naar het eerste cijfer van ${formatNumberNL(a)} en ${formatNumberNL(b)}.`;
+    if (level === 2) return `Beide getallen hebben evenveel cijfers. Zoek van links af het eerste cijfer dat anders is in ${formatNumberNL(a)} en ${formatNumberNL(b)}.`;
     return `Het grootste getal is ${formatNumberNL(Math.max(a, b))}.`;
   }
   const { n, unit } = ctx;
-  if (level === 1) return `Kijk tussen welke twee ${formatNumberNL(unit)}tallen ${formatNumberNL(n)} in ligt.`;
+  if (level === 1) return `Kijk tussen welke twee ${ROUNDING_WORDS[unit]} ${formatNumberNL(n)} in ligt.`;
   if (level === 2) return 'Is het dichter bij het ronde getal ervoor, of erna?';
   return `${formatNumberNL(n)} rond je af op ${formatNumberNL(Math.round(n / unit) * unit)}.`;
 };

@@ -6,6 +6,8 @@ const MAX_HINT_LEVEL = 3;
 const SESSION_TARGET_MS = 10 * 60 * 1000;
 // Time on one exercise counts for at most this long, so walking away doesn't use up the session.
 const MAX_COUNTED_MS_PER_EXERCISE = 90 * 1000;
+// A category counts as "Sterk" in the summary when at least this share was right the first time.
+const SUMMARY_STRONG_RATE = 0.8;
 
 const PRAISE_FIRST_TRY = ['Goed!', 'Netjes!', 'Yes, die heb je!', 'Knap gedaan!', 'Precies!'];
 const PRAISE_WITH_HELP = ['Goed, dat lukte!', 'Mooi, je hebt hem nu!', 'Zo is hij goed!'];
@@ -277,22 +279,22 @@ function onNext() {
 }
 
 function showSummary() {
-  const skillIds = Object.keys(session.results);
   let totalAttempts = 0;
   let totalCorrect = 0;
-  const strong = [];
-  const needsPractice = [];
-
-  skillIds.forEach((skillId) => {
-    const r = session.results[skillId];
+  const byCategory = {}; // "Tafels" -> { attempts, correctFirstTry }, instead of one line per times table
+  Object.entries(session.results).forEach(([skillId, r]) => {
     totalAttempts += r.attempts;
     totalCorrect += r.correctFirstTry;
-    const name = curriculumById[skillId].name;
-    if (r.correctFirstTry === r.attempts) {
-      strong.push(name);
-    } else {
-      needsPractice.push(name);
-    }
+    const category = curriculumById[skillId].category;
+    if (!byCategory[category]) byCategory[category] = { attempts: 0, correctFirstTry: 0 };
+    byCategory[category].attempts += r.attempts;
+    byCategory[category].correctFirstTry += r.correctFirstTry;
+  });
+
+  const strong = [];
+  const needsPractice = [];
+  Object.entries(byCategory).forEach(([category, r]) => {
+    (r.correctFirstTry / r.attempts >= SUMMARY_STRONG_RATE ? strong : needsPractice).push(category);
   });
 
   session.record.completed = true;
