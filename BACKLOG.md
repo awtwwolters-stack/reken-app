@@ -1,6 +1,6 @@
 # Reken App — Backlog
 
-_Last updated: 2026-09-22 · Status: all decisions made (D1–D5)_
+_Last updated: 2026-09-23 · Status: R-02 … R-06 done; R-01 partly (hosted, real-iPad check pending); R-07 next_
 
 Size: **S** = small change · **M** = one focused build session · **L** = several sessions
 
@@ -18,17 +18,17 @@ It starts with one child (groep 6) and one domain (core arithmetic). Over time i
 |---|---|---|
 | Curriculum as data | ✅ | `curriculum/group-6.js`, so it runs without a server |
 | Exercise generation (core arithmetic) | ✅ | 12 skills; wording/quality issues → R-08 |
-| Answer checking | ⚠️ | Typing `45.230` (Dutch notation) is read as 45,23 and marked wrong → R-02 |
+| Answer checking | ✅ | Dutch notation accepted (`45.230`); `45.23` or letters get a friendly message and don't count as a mistake (R-02) |
 | Hint ladder + later re-check | ✅ | Hints don't suit large numbers → R-09 |
-| Mastery per skill | ⚠️ | Every skill starts at the lowest level; first adjustment only in **session 5** → R-03, R-04 |
-| Adaptive selection | ⚠️ | A skill the child fails every time still gets 1 of 12 exercises, the same as everything else → R-05 |
-| 10–15 minute session | ❌ | 12 exercises ≈ 3–5 minutes → R-06 |
+| Mastery per skill | ✅ | Starts at early-groep-6 level; right level reached within 2 practised sessions for 92–96% of skills in simulation (R-03, R-04) |
+| Adaptive selection | ✅ | Focused sessions of 4–6 skills; weak skills get ~1.7–1.9× the practice of review skills (R-05) |
+| 10–15 minute session | ✅ | ~10 min of active practice (~25 exercises), progress bar, no clock (R-06) |
 | Session summary | ✅ | Lists each times table separately (cluttered) → R-08 |
 | Local progress | ✅ | One device only, no backup → Q-03 |
 | Parent/debug view | ⚠️ | Shows current state but no history: no answers, no selection reasons, no level changes → R-07 |
-| **Success criterion:** "next session slightly better targeted" | ❌ | Not until about session 5; reaches real groep-6 number ranges around session 9 |
+| **Success criterion:** "next session slightly better targeted" | ✅ in simulation | To be confirmed with real use (T-01) |
 
-**Bottom line:** the structure is solid (data model, flows, hint ladder, parent view). The adaptive part, which is the core promise, is not yet tuned to deliver in practice. Most fixes are tuning and small changes, not rewrites.
+**Bottom line (2026-09-23):** the adaptive core now delivers in simulation: it starts at the right level, adapts within 1–2 sessions, and sessions last ~10 minutes. What's left before daily use: the history in the parent view (R-07), wording (R-08), hints for large numbers (R-09), and a check on the real iPad (R-01).
 
 ---
 
@@ -46,18 +46,20 @@ It starts with one child (groep 6) and one domain (core arithmetic). Over time i
 
 ## NOW — Phase 0: make the first real test meaningful
 
+**How the level rules were tuned (R-04, 2026-09-23):** simulated children (typical, one level stronger, one level weaker than the start estimate), 300 runs each. Key lessons: a symmetric rule ("2 right → up, 2 wrong → down") settles at ~50% success, so the rules are asymmetric (calibration: 3 right in a row → up, 2 of last 3 wrong → down; afterwards: ≥90% of 8 → up, <50% of 6 → down). Result: success ~75–85% for typical/stronger children; a weaker child's first session is still hard (~54%) and settles around 65–70%, which is the first thing to watch in T-01. The simulation's child model is an assumption; real use decides.
+
 These must be done before daily use. Without them the test won't tell us whether the idea works.
 
 | ID | Item | Why it matters | Size |
 |---|---|---|---|
 | R-01 | Hosted so it runs on the iPad, and still works on the MacBook (D1, D5). Check it on a real iPad: touch keyboard, screen rotation, Safari | No device, no test | S–M |
-| R-02 | Accept Dutch number notation (`45.230` and `45230`); prepare for the decimal comma | Correct answers must never be marked wrong. Also needed later for kommagetallen | S |
-| R-03 | Start at early-groep-6 level, not the bottom (numbers to 10.000, full tafels 1–10) | Today's first session asks things like "8 of 356?" and "6 × 1", which are too easy and risk boredom | S |
-| R-04 | Adapt within 1–2 sessions (quicker level changes while the app is still learning a skill) | This is the success criterion: the next session should be better targeted | S–M |
-| R-05 | Focused sessions of 4–6 skills, where weak skills get extra repetitions (D3) | Makes "practise what you're weak at" actually happen | M |
-| R-06 | Time-based session of about 10 minutes that ends after the current exercise, with a progress bar and no clock (D2) | Spec requirement; sessions are currently about a third of that | S |
+| ~~R-02~~ ✅ | Accept Dutch number notation (`45.230` and `45230`); prepare for the decimal comma | Correct answers must never be marked wrong. Also needed later for kommagetallen | S |
+| ~~R-03~~ ✅ | Start at early-groep-6 level, not the bottom (numbers to 10.000, full tafels 1–10) | Today's first session asks things like "8 of 356?" and "6 × 1", which are too easy and risk boredom | S |
+| ~~R-04~~ ✅ | Adapt within 1–2 sessions (quicker level changes while the app is still learning a skill) | This is the success criterion: the next session should be better targeted | S–M |
+| ~~R-05~~ ✅ | Focused sessions of 4–6 skills, where weak skills get extra repetitions (D3) | Makes "practise what you're weak at" actually happen | M |
+| ~~R-06~~ ✅ | Time-based session of about 10 minutes that ends after the current exercise, with a progress bar and no clock (D2) | Spec requirement; sessions are currently about a third of that | S |
 | R-07 | Log every exercise (question, answer given, hints used, time taken). Parent view shows the last session, level changes, and why each skill was picked | V1's purpose is learning from real use. Without a log you can only learn by watching over your child's shoulder | M |
-| R-08 | Dutch wording and curriculum fixes: "tientallen/duizendtallen" instead of "10tallen"; tafels to × 10 only (Dutch curriculum, not × 12); compare numbers of equal length (45.230 vs 45.320); summary grouped as Tafels / Optellen / … | Terminology has to match school | S |
+| R-08 | Dutch wording and curriculum fixes: "tientallen/duizendtallen" instead of "10tallen"; ~~tafels to × 10 only~~ (done with R-03); compare numbers of equal length (45.230 vs 45.320); summary grouped as Tafels / Optellen / … | Terminology has to match school | S |
 | R-09 | Hints that suit large numbers (kolomsgewijs/cijferend framing, as taught at school) | Today's "split into tens and units" hint makes sense for 45 + 23 but not for 45.678 + 23.456 | M |
 | R-10 | Content preview page: every skill × level on one page, with sample exercises and hints | Lets you check wording and didactics in 10 minutes instead of playing through sessions | S |
 

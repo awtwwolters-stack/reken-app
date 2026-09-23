@@ -11,3 +11,13 @@ function pickRandom(arr) {
 function formatNumberNL(n) {
   return n.toLocaleString('nl-NL');
 }
+
+// Whole numbers as Dutch children write them: 45230, 45.230, 1.000.000 or 45 230.
+// A dot is only a thousands separator when followed by exactly 3 digits, so 45.23 is
+// rejected (NaN) rather than silently misread.
+function parseDutchInteger(text) {
+  const compact = text.trim().replace(/\s+/g, '');
+  if (/^\d+$/.test(compact)) return Number(compact);
+  if (/^\d{1,3}(\.\d{3})+$/.test(compact)) return Number(compact.replace(/\./g, ''));
+  return NaN;
+}

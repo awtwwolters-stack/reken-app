@@ -2,15 +2,19 @@
 // uses mastery.js for selection/tracking, exercises/*.js + hints.js for content.
 
 const PROFILE_ID = DEFAULT_PROFILE_ID; // from storage.js
-const SESSION_SIZE = 12;
 const MAX_HINT_LEVEL = 3;
+const SESSION_TARGET_MS = 10 * 60 * 1000;
+// Time on one exercise counts for at most this long, so walking away doesn't use up the session.
+const MAX_COUNTED_MS_PER_EXERCISE = 90 * 1000;
 
 const PRAISE_FIRST_TRY = ['Goed!', 'Netjes!', 'Yes, die heb je!', 'Knap gedaan!', 'Precies!'];
 const PRAISE_WITH_HELP = ['Goed, dat lukte!', 'Mooi, je hebt hem nu!', 'Zo is hij goed!'];
+const INVALID_NUMBER_MESSAGE = 'Typ alleen een getal, bijvoorbeeld 4520 of 4.520.';
 
 let appState = null;
 let curriculumById = {};
-let session = null; // { plan: [{skillId, reason}], index, hintLevel, hadMistake, followUpQueued: Set, results: {} }
+let session = null;
+let currentExercise = null;
 
 function el(id) {
   return document.getElementById(id);
@@ -33,42 +37,64 @@ function init() {
   showScreen('start');
 }
 
-function tierConfigFor(skill, tier) {
-  return skill.tiers.find((t) => t.tier === tier) || skill.tiers[0];
+function profileSkillStates() {
+  return (appState.profiles[PROFILE_ID] && appState.profiles[PROFILE_ID].skills) || {};
 }
 
-function currentSkillState(skillId) {
-  return getSkillState(appState, PROFILE_ID, skillId);
+function currentSkillState(skill) {
+  const startTier = personalStartTier(skill, profileSkillStates(), curriculumById);
+  return getSkillState(appState, PROFILE_ID, skill, startTier);
+}
+
+function tierConfigFor(skill, tier) {
+  return skill.tiers.find((t) => t.tier === tier) || skill.tiers[skill.tiers.length - 1];
 }
 
 function startSession() {
-  const profileSkills = (appState.profiles[PROFILE_ID] && appState.profiles[PROFILE_ID].skills) || {};
-  const plan = selectSession(CURRICULUM.skills, profileSkills, SESSION_SIZE);
+  const selection = selectSessionSkills(CURRICULUM.skills, profileSkillStates());
   session = {
-    plan,
-    index: 0,
+    selection, // [{ skillId, bucket, reason }] - why each skill is in this session
+    skillIds: selection.map((s) => s.skillId),
+    activeMs: 0,
+    exerciseCount: 0,
+    exerciseStartedAt: null,
+    previousSkillId: null,
+    followUps: [], // [{ skillId, dueAt }] fresh exercise to check understanding after a shown solution
+    followUpQueued: new Set(),
     hintLevel: 0,
     hadMistake: false,
-    followUpQueued: new Set(),
     results: {} // skillId -> { attempts, correctFirstTry }
   };
   showScreen('session');
-  renderExercise();
+  updateProgress();
+  nextExercise();
 }
 
-let currentExercise = null;
+function nextExercise() {
+  const dueIndex = session.followUps.findIndex(
+    (f) => f.dueAt <= session.exerciseCount && f.skillId !== session.previousSkillId
+  );
+  let pick;
+  if (dueIndex >= 0) {
+    const [followUp] = session.followUps.splice(dueIndex, 1);
+    pick = { skillId: followUp.skillId, reason: 'controle na uitleg' };
+  } else {
+    pick = pickNextSkill(session.skillIds, curriculumById, profileSkillStates(), session.previousSkillId);
+  }
+  renderExercise(pick);
+}
 
-function renderExercise() {
-  const item = session.plan[session.index];
-  const skill = curriculumById[item.skillId];
-  const skillState = currentSkillState(item.skillId);
+function renderExercise(pick) {
+  const skill = curriculumById[pick.skillId];
+  const skillState = currentSkillState(skill);
   const tierConfig = tierConfigFor(skill, skillState.tier);
 
   currentExercise = Exercises[skill.exerciseType](tierConfig, skill);
+  currentExercise.pickReason = pick.reason;
   session.hintLevel = 0;
   session.hadMistake = false;
+  session.exerciseStartedAt = Date.now();
 
-  el('progress-label').textContent = `Vraag ${session.index + 1} van ${session.plan.length}`;
   el('exercise-prompt').textContent = currentExercise.prompt;
   el('feedback').textContent = '';
   el('feedback').className = 'feedback';
@@ -83,13 +109,20 @@ function renderExercise() {
       span.textContent = field.label;
       wrapper.appendChild(span);
     }
+    // A text field (not type="number") so Dutch notation like 45.230 reaches our own parser.
     const input = document.createElement('input');
-    input.type = 'number';
+    input.type = 'text';
     input.inputMode = 'numeric';
+    input.autocomplete = 'off';
+    input.spellcheck = false;
     input.dataset.key = field.key;
     input.className = 'answer-input-field';
     input.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') onSubmit();
+      if (e.key !== 'Enter') return;
+      // Without this, the same Enter press also "clicks" the Volgende button that
+      // receives focus on submit, skipping the feedback entirely.
+      e.preventDefault();
+      onSubmit();
     });
     wrapper.appendChild(input);
     fieldsContainer.appendChild(wrapper);
@@ -104,11 +137,17 @@ function readAnswer() {
   const inputs = el('answer-fields').querySelectorAll('input');
   const values = {};
   let complete = true;
+  let valid = true;
   inputs.forEach((input) => {
-    if (input.value.trim() === '') complete = false;
-    values[input.dataset.key] = Number(input.value);
+    if (input.value.trim() === '') {
+      complete = false;
+      return;
+    }
+    const n = parseDutchInteger(input.value);
+    if (Number.isNaN(n)) valid = false;
+    values[input.dataset.key] = n;
   });
-  return { values, complete };
+  return { values, complete, valid };
 }
 
 function isCorrect(values) {
@@ -118,9 +157,15 @@ function isCorrect(values) {
 }
 
 function onSubmit() {
-  const { values, complete } = readAnswer();
-  // An empty field is not a wrong answer - it shouldn't count against mastery.
-  if (!complete || Object.values(values).some((v) => Number.isNaN(v))) return;
+  const { values, complete, valid } = readAnswer();
+  // An empty field or something that isn't a number is not a wrong answer - it shouldn't count against mastery.
+  if (!complete) return;
+  if (!valid) {
+    el('feedback').textContent = INVALID_NUMBER_MESSAGE;
+    el('feedback').className = 'feedback feedback-hint';
+    clearAnswerFields();
+    return;
+  }
 
   if (isCorrect(values)) {
     concludeExercise(true);
@@ -139,27 +184,34 @@ function showHint() {
   const hintText = getHint(currentExercise.exerciseType, session.hintLevel, currentExercise.hintContext);
   el('feedback').textContent = hintText;
   el('feedback').className = 'feedback feedback-hint';
+  clearAnswerFields();
+}
+
+function clearAnswerFields() {
   el('answer-fields').querySelectorAll('input').forEach((i) => { i.value = ''; });
   el('answer-fields').querySelector('input').focus();
 }
 
 function concludeExercise(solved) {
   const skillId = currentExercise.skillId;
+  const skill = curriculumById[skillId];
   const recordedCorrect = solved && !session.hadMistake;
 
-  const skillState = currentSkillState(skillId);
-  const { reason } = recordAnswer(skillState, recordedCorrect);
+  session.activeMs += Math.min(Date.now() - session.exerciseStartedAt, MAX_COUNTED_MS_PER_EXERCISE);
+  session.exerciseCount += 1;
+  session.previousSkillId = skillId;
+
+  recordAnswer(skill, currentSkillState(skill), recordedCorrect);
   saveState(appState);
 
   if (!session.results[skillId]) session.results[skillId] = { attempts: 0, correctFirstTry: 0 };
   session.results[skillId].attempts += 1;
   if (recordedCorrect) session.results[skillId].correctFirstTry += 1;
 
-  if (!recordedCorrect && !solved && !session.followUpQueued.has(skillId)) {
+  if (!solved && !session.followUpQueued.has(skillId)) {
     // Never got it right, even with hints: check understanding again later with a fresh exercise.
     session.followUpQueued.add(skillId);
-    const insertAt = Math.min(session.index + 1 + randomInt(2, 4), session.plan.length);
-    session.plan.splice(insertAt, 0, { skillId, reason: 'controle na uitleg' });
+    session.followUps.push({ skillId, dueAt: session.exerciseCount + randomInt(2, 4) });
   }
 
   const feedbackEl = el('feedback');
@@ -172,21 +224,27 @@ function concludeExercise(solved) {
     feedbackEl.className = 'feedback feedback-solution';
   }
 
+  updateProgress();
+  el('next-button').textContent = sessionTimeReached() ? 'Klaar!' : 'Volgende';
   el('answer-area').classList.add('hidden');
   el('next-button').classList.remove('hidden');
   el('next-button').focus();
+}
 
-  if (reason) {
-    // Tier changed - not shown to the child, but useful for the parent view via storage.
-  }
+function sessionTimeReached() {
+  return session.activeMs >= SESSION_TARGET_MS;
+}
+
+function updateProgress() {
+  const pct = Math.min(100, (session.activeMs / SESSION_TARGET_MS) * 100);
+  el('progress-fill').style.width = `${pct}%`;
 }
 
 function onNext() {
-  session.index += 1;
-  if (session.index >= session.plan.length) {
+  if (sessionTimeReached()) {
     showSummary();
   } else {
-    renderExercise();
+    nextExercise();
   }
 }
 
@@ -209,7 +267,12 @@ function showSummary() {
     }
   });
 
-  recordSession(appState, PROFILE_ID, { totalAttempts, totalCorrect });
+  recordSession(appState, PROFILE_ID, {
+    totalAttempts,
+    totalCorrect,
+    activeMinutes: Math.round(session.activeMs / 60000),
+    skills: session.selection
+  });
   saveState(appState);
 
   el('summary-score').textContent = `${totalCorrect} van de ${totalAttempts} goed`;

@@ -1,15 +1,18 @@
 // Persists progress in the browser (localStorage). No accounts, no server.
 // State is keyed by profile so adding siblings later doesn't require a new storage format.
 
-const STORAGE_KEY = 'reken-app-state-v1';
+// v2: skills start at their curriculum startTier; v1 data was test-only and is not migrated.
+const STORAGE_KEY = 'reken-app-state-v2';
 const DEFAULT_PROFILE_ID = 'default';
 
-function emptySkillState() {
+function emptySkillState(skill, startTier = skill.startTier || 1) {
   return {
-    tier: 1,
+    tier: startTier,
     recentResults: [],
     totalAttempts: 0,
-    lastPracticed: null
+    lastPracticed: null,
+    calibrationDone: false,
+    lastTierChange: null
   };
 }
 
@@ -38,14 +41,14 @@ function saveState(state) {
   }
 }
 
-function getSkillState(state, profileId, skillId) {
+function getSkillState(state, profileId, skill, startTier) {
   if (!state.profiles[profileId]) {
     state.profiles[profileId] = { skills: {} };
   }
-  if (!state.profiles[profileId].skills[skillId]) {
-    state.profiles[profileId].skills[skillId] = emptySkillState();
+  if (!state.profiles[profileId].skills[skill.id]) {
+    state.profiles[profileId].skills[skill.id] = emptySkillState(skill, startTier);
   }
-  return state.profiles[profileId].skills[skillId];
+  return state.profiles[profileId].skills[skill.id];
 }
 
 function recordSession(state, profileId, summary) {
