@@ -1,6 +1,6 @@
 # Reken App — Backlog
 
-_Last updated: 2026-09-23 · Status: Phase 0 done except the real-iPad check (R-01); breuken step 1 live (B-01, B-02 strook, B-03a); next: T-01 test; B-03b waits for B-04_
+_Last updated: 2026-09-23 · Status: V1 + Phase 0 + breuken step 1 live; now: T-01 test (no new features). See Roadmap._
 
 Size: **S** = small change · **M** = one focused build session · **L** = several sessions
 
@@ -41,6 +41,22 @@ It starts with one child (groep 6) and one domain (core arithmetic). Over time i
 | D3 | **Session shape:** focused, 4–6 skills | Several exercises per skill; weak skills get extra repetitions → R-05 |
 | D4 | **Breuken:** built in parallel with the test period | Breuken work starts right after Phase 0 |
 | D5 | **Hosting:** GitHub Pages, public repository (free) | No login needed on the iPad, so the child never uses a parent's account. The code is backed up online. Family details stay out of the repo |
+| D6 | **Winter focus (2026-09-23):** complete groep 6 before bringing a second child on board | Phase 3 before Phase 5; siblings from spring 2027 |
+
+## Roadmap (confirmed 2026-09-23)
+
+Driven by **triggers, not dates**: several steps depend on what the test shows or on when school reaches a topic.
+
+| When | What | Trigger |
+|---|---|---|
+| **Now, ~2 weeks** | **T-01 test.** No new features; only fix what the test reveals | Child uses the app on the iPad (Chrome) |
+| After T-01 | Decision moment: tune difficulty / light progress feeling (M-01) / move on | What was observed |
+| When school reaches it | Breuken step 2 (B-03b), then kommagetallen (B-05); cijferend hints | Teacher, weektaak or rekenschrift (B-04) |
+| Before any new domain | **Q-02** permanent automatic correctness checks (pulled forward) | Start of Phase 3 |
+| Winter 2026–27 | **Phase 3:** rest of groep 6, in the school's order (D6) | After T-01 + quality |
+| Only with evidence | Phase 4 motivation (story/character) | T-01 shows motivation is the bottleneck |
+| Spring 2027 | Phase 5: profile picker + second child's curriculum (S-01, S-02) | Groep 6 solid |
+| **By summer 2027** | Groep 7 curriculum (S-03) | New school year: the one real deadline |
 
 ---
 
