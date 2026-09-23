@@ -1,6 +1,6 @@
 # Reken App — Backlog
 
-_Last updated: 2026-09-23 · Status: V1 + Phase 0 + breuken step 1 live; now: T-01 test (no new features). See Roadmap._
+_Last updated: 2026-09-23 · Status: V1 + Phase 0 + breuken step 1 + profiles/motivation (D7) live; now: T-01 test (no new features). See Roadmap._
 
 Size: **S** = small change · **M** = one focused build session · **L** = several sessions
 
@@ -42,6 +42,7 @@ It starts with one child (groep 6) and one domain (core arithmetic). Over time i
 | D4 | **Breuken:** built in parallel with the test period | Breuken work starts right after Phase 0 |
 | D5 | **Hosting:** GitHub Pages, public repository (free) | No login needed on the iPad, so the child never uses a parent's account. The code is backed up online. Family details stay out of the repo |
 | D6 | **Winter focus (2026-09-23):** complete groep 6 before bringing a second child on board | Phase 3 before Phase 5; siblings from spring 2027 |
+| D7 | **Motivation + profiles before the test (2026-09-23):** name picker; groep from birth date (parent confirms); a younger sibling may practise groep-6 content for now with a banner, an easier start and separate progress; stars for every sum finished correctly (also with a hint) + bonuses; **weekdoel (default 4 days) instead of a daily streak** (research: streak loss causes anxiety in children) | M-01 and S-01 done early; T-01 now also tests the motivation, so we can't separate 'comes back for the maths' from 'comes back for the stars' |
 
 ## Roadmap (confirmed 2026-09-23)
 
@@ -115,14 +116,14 @@ These must be done before daily use. Without them the test won't tell us whether
 
 | ID | Item | Size |
 |---|---|---|
-| M-01 | A light sense of progress ("3 tafels onder de knie"). Pull this forward if T-01 shows motivation is the bottleneck | S |
-| M-02 | Story/character progression (your stated preference) | L |
+| ~~M-01~~ ✅ | Light motivation (D7): stars (never lost), level-up celebrations, milestones, weekdoel week dots, weeks-in-a-row shown only as good news, effort praise | S |
+| M-02 | Story/character progression (your stated preference) — also where stars become spendable | L |
 
 ## LATER — Phase 5: siblings and moving up a year
 
 | ID | Item | Size |
 |---|---|---|
-| S-01 | Profile picker on the shared device (the data model is already ready for this) | S–M |
+| ~~S-01~~ ✅ | Profile picker + parent setup (name, birth date → groep, weekdoel), done early with D7 | S–M |
 | S-02 | Curricula for groep 3–5. Mostly new data and lower levels; the exercise generators are largely reusable | M per group |
 | S-03 | **Groep 7 curriculum, needed by the start of the next school year** (the only real deadline) | L |
 | S-04 | **Kleuters (groep 1–2):** can't read yet, so this needs spoken instructions, counting with pictures, and tapping instead of typing. That makes it a different experience, not "just another profile" | L |

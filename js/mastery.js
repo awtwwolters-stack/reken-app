@@ -137,13 +137,14 @@ function classifySkill(skill, skillState, allSkillStates) {
 
 // Where a not-yet-practised skill starts for this child: the curriculum's estimate, shifted
 // by how this child does elsewhere (one level below the estimate on average -> start one lower).
-function personalStartTier(skill, profileSkillStates, skillsById) {
+// Until then, `groepOffset` (negative for a child below groep 6) gives a first estimate.
+function personalStartTier(skill, profileSkillStates, skillsById, groepOffset = 0) {
   const offsets = Object.entries(profileSkillStates)
     .filter(([id, state]) => skillsById[id] && state.totalAttempts > 0 && !isCalibrating(state))
     .map(([id, state]) => state.tier - skillsById[id].startTier);
   // One skill that dropped after two slips must not lower every new skill: wait for a few.
   if (offsets.length < MIN_SETTLED_SKILLS_FOR_PERSONAL_START) {
-    return Math.min(maxTier(skill), Math.max(MIN_TIER, skill.startTier));
+    return Math.min(maxTier(skill), Math.max(MIN_TIER, skill.startTier + groepOffset));
   }
   // Truncate, not round: only shift when the child is a full level off on average. An uneven
   // child (+1 here, 0 there) should start new skills at the plain estimate.
@@ -151,9 +152,9 @@ function personalStartTier(skill, profileSkillStates, skillsById) {
   return Math.min(maxTier(skill), Math.max(MIN_TIER, skill.startTier + offset));
 }
 
-function stateOrNew(skill, profileSkillStates, skillsById) {
+function stateOrNew(skill, profileSkillStates, skillsById, groepOffset = 0) {
   return profileSkillStates[skill.id]
-    || emptySkillState(skill, personalStartTier(skill, profileSkillStates, skillsById));
+    || emptySkillState(skill, personalStartTier(skill, profileSkillStates, skillsById, groepOffset));
 }
 
 function classifyAll(curriculumSkills, profileSkillStates) {

@@ -31,10 +31,10 @@ function helpText(ex) {
   return ex.solutionShown ? `${hints} + uitleg getoond` : `${hints}, toen goed`;
 }
 
-function renderSessions(state, skillsById) {
+function renderSessions(state, skillsById, profileId) {
   const container = document.getElementById('parent-sessions');
   container.innerHTML = '';
-  const sessions = (state.sessions || []).slice().reverse();
+  const sessions = (state.sessions || []).filter((s) => s.profileId === profileId).reverse();
   if (sessions.length === 0) {
     container.appendChild(node('p', 'Nog geen sessies gedaan.'));
     return;
@@ -81,8 +81,9 @@ function renderSessions(state, skillsById) {
   });
 }
 
-function renderSkills(state, skillsById) {
-  const profileSkills = (state.profiles[DEFAULT_PROFILE_ID] && state.profiles[DEFAULT_PROFILE_ID].skills) || {};
+function renderSkills(state, skillsById, profileId) {
+  const profile = state.profiles[profileId];
+  const profileSkills = (profile && profile.skills) || {};
   const tbody = document.getElementById('parent-table-body');
   tbody.innerHTML = '';
 
@@ -96,7 +97,7 @@ function renderSkills(state, skillsById) {
       return;
     }
 
-    const skillState = stateOrNew(skill, profileSkills, skillsById);
+    const skillState = stateOrNew(skill, profileSkills, skillsById, groepOffset(profile));
     const rate = successRate(skillState);
     const { bucket, reason } = classifySkill(skill, skillState, profileSkills);
     const change = skillState.lastTierChange;
@@ -127,9 +128,22 @@ function renderBackupStatus(state) {
 function renderParentView() {
   const state = loadState();
   const skillsById = Object.fromEntries(CURRICULUM.skills.map((s) => [s.id, s]));
+  const profileId = renderChildSelect(state);
   renderBackupStatus(state);
-  renderSessions(state, skillsById);
-  renderSkills(state, skillsById);
+  renderSessions(state, skillsById, profileId);
+  renderSkills(state, skillsById, profileId);
+}
+
+// Keeps the current choice; otherwise the child who practised last. Returns the chosen profile id.
+function renderChildSelect(state) {
+  const select = document.getElementById('child-select');
+  const previous = select.value;
+  const profiles = listProfiles(state);
+  select.innerHTML = '';
+  profiles.forEach(({ id, profile }) => select.appendChild(Object.assign(document.createElement('option'), { value: id, textContent: profile.name })));
+  const ids = profiles.map((p) => p.id);
+  select.value = [previous, state.lastProfileId, ids[0]].find((id) => id && ids.includes(id)) || '';
+  return select.value;
 }
 
 function showBackupMessage(text, isError = false) {
@@ -248,6 +262,7 @@ function restoreFromText(text) {
 window.addEventListener('DOMContentLoaded', () => {
   document.getElementById('backup-button').addEventListener('click', makeBackup);
   document.getElementById('restore-input').addEventListener('change', restoreBackup);
+  document.getElementById('child-select').addEventListener('change', renderParentView);
   document.getElementById('copy-backup-button').addEventListener('click', copyBackup);
   document.getElementById('paste-restore-button').addEventListener('click', restoreFromPaste);
   document.getElementById('app-version').textContent = `versie ${APP_VERSION}`;

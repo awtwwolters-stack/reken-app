@@ -103,6 +103,55 @@ h3 { font-size: 1.1rem; color: var(--primary-dark); margin-bottom: 8px; }
   outline-color: var(--accent);
 }
 
+.muted { color: #789; font-size: 0.9rem; }
+
+.link-button {
+  background: none;
+  border: none;
+  color: var(--accent);
+  font-size: 1rem;
+  margin-top: 16px;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.profile-buttons { display: flex; flex-direction: column; gap: 12px; }
+.profile-button { font-size: 1.6rem; margin-top: 0; }
+
+.banner {
+  background: #eaf1fd;
+  color: #2c4f8a;
+  border-radius: 12px;
+  padding: 10px 14px;
+  font-size: 0.95rem;
+}
+
+/* Week dots ma-zo: a day with a finished session is filled. Never shows a "lost" state. */
+.week { margin: 16px 0; }
+.week-dots { display: flex; justify-content: center; gap: 10px; }
+.week-dot { display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 0.8rem; color: #789; }
+.week-dot .dot { width: 26px; height: 26px; border-radius: 50%; border: 2px solid var(--border); background: #fff; }
+.week-dot.done .dot { background: var(--primary); border-color: var(--primary); }
+.week-dot.today .day { font-weight: 700; color: var(--text); }
+.week-message { margin: 8px 0 0; font-weight: 600; color: var(--primary-dark); }
+
+.star-total, .summary-stars { font-size: 1.3rem; font-weight: 700; color: #b8860b; margin: 8px 0; }
+.weeks-in-row { color: var(--primary-dark); font-weight: 600; }
+
+.celebrations { list-style: none; padding: 0; margin: 8px 0 16px; }
+.celebrations li { background: var(--correct-bg); color: var(--correct-text); border-radius: 10px; padding: 8px 12px; margin: 6px 0; font-weight: 600; }
+
+.setup-list { text-align: left; padding-left: 18px; }
+.setup-list .link-button { margin: 0 0 0 6px; font-size: 0.95rem; }
+.profile-form { text-align: left; display: flex; flex-direction: column; gap: 12px; margin-top: 8px; }
+.profile-form h2 { font-size: 1.2rem; margin: 8px 0 0; }
+.profile-form label { display: flex; flex-direction: column; gap: 4px; font-size: 1rem; }
+.profile-form label.checkbox { flex-direction: row; align-items: center; gap: 8px; }
+.profile-form input[type="text"], .profile-form input[type="date"], .profile-form select {
+  font-size: 1.1rem; padding: 10px; border: 2px solid var(--border); border-radius: 10px; background: #fff;
+}
+.form-error { color: var(--solution-text); min-height: 1em; margin: 0; }
+
 /* Fractions stacked like in the rekenschrift: teller over a breukstreep over noemer. */
 .fraction {
   display: inline-flex;

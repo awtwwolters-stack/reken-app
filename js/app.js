@@ -1,7 +1,6 @@
 // Screen flow, session orchestration. Reads CURRICULUM (curriculum/group-6.js),
 // uses mastery.js for selection/tracking, exercises/*.js + hints.js for content.
 
-const PROFILE_ID = DEFAULT_PROFILE_ID; // from storage.js
 const MAX_HINT_LEVEL = 3;
 const SESSION_TARGET_MS = 10 * 60 * 1000;
 // Time on one exercise counts for at most this long, so walking away doesn't use up the session.
@@ -18,14 +17,17 @@ let appState = null;
 let curriculumById = {};
 let session = null;
 let currentExercise = null;
+let activeProfileId = null;
+
+const SCREENS = ['profiles', 'start', 'soon', 'setup', 'session', 'summary'];
 
 function el(id) {
   return document.getElementById(id);
 }
 
 function showScreen(name) {
-  ['screen-start', 'screen-session', 'screen-summary'].forEach((id) => {
-    el(id).classList.toggle('hidden', id !== `screen-${name}`);
+  SCREENS.forEach((screen) => {
+    el(`screen-${screen}`).classList.toggle('hidden', screen !== name);
   });
 }
 
@@ -34,19 +36,143 @@ function init() {
   CURRICULUM.skills.forEach((s) => { curriculumById[s.id] = s; });
   appState = loadState();
   el('start-button').addEventListener('click', startSession);
-  el('play-again-button').addEventListener('click', () => showScreen('start'));
+  el('play-again-button').addEventListener('click', showGreeting);
   el('submit-button').addEventListener('click', onSubmit);
   el('next-button').addEventListener('click', onNext);
-  showScreen('start');
+  el('switch-profile-button').addEventListener('click', showProfiles);
+  el('summary-switch-button').addEventListener('click', showProfiles);
+  el('soon-back-button').addEventListener('click', showProfiles);
+  el('open-setup-button').addEventListener('click', () => showSetup(null));
+  el('setup-back-button').addEventListener('click', showProfiles);
+  el('profile-birthdate').addEventListener('change', onBirthdateChange);
+  el('profile-form').addEventListener('submit', onProfileFormSubmit);
+  showProfiles();
+}
+
+function activeProfile() {
+  return appState.profiles[activeProfileId];
 }
 
 function profileSkillStates() {
-  return (appState.profiles[PROFILE_ID] && appState.profiles[PROFILE_ID].skills) || {};
+  return (activeProfile() && activeProfile().skills) || {};
 }
 
 function currentSkillState(skill) {
-  const startTier = personalStartTier(skill, profileSkillStates(), curriculumById);
-  return getSkillState(appState, PROFILE_ID, skill, startTier);
+  const startTier = personalStartTier(skill, profileSkillStates(), curriculumById, groepOffset(activeProfile()));
+  return getSkillState(appState, activeProfileId, skill, startTier);
+}
+
+// "Wie gaat er rekenen?" - shown every time, so on a shared iPad nobody practises on a sibling's profile.
+function showProfiles() {
+  appState = loadState();
+  const profiles = listProfiles(appState);
+  const container = el('profile-buttons');
+  container.innerHTML = '';
+  profiles.forEach(({ id, profile }) => {
+    const button = document.createElement('button');
+    button.className = 'big-button profile-button';
+    button.type = 'button';
+    button.textContent = profile.name;
+    button.addEventListener('click', () => selectProfile(id));
+    container.appendChild(button);
+  });
+  el('no-profiles').classList.toggle('hidden', profiles.length > 0);
+  showScreen('profiles');
+}
+
+function selectProfile(id) {
+  activeProfileId = id;
+  appState.lastProfileId = id;
+  saveState(appState);
+  if (canPractise(activeProfile())) {
+    showGreeting();
+  } else {
+    el('soon-greeting').textContent = `Hoi ${activeProfile().name}!`;
+    showScreen('soon');
+  }
+}
+
+function showGreeting() {
+  const profile = activeProfile();
+  el('greeting').textContent = `Hoi ${profile.name}! Klaar om te rekenen?`;
+  el('groep-banner').classList.toggle('hidden', profile.groep === GROEP_WITH_CONTENT);
+  renderWeek(el('week-dots'), el('week-message'), profile);
+  el('star-total').textContent = `★ ${profile.stars || 0} sterren`;
+  const weeks = weeksInARow(profile);
+  el('weeks-in-row').textContent = `${weeks} weken op rij je weekdoel gehaald!`;
+  el('weeks-in-row').classList.toggle('hidden', weeks < 2);
+  showScreen('start');
+}
+
+function renderWeek(dotsEl, messageEl, profile) {
+  dotsEl.innerHTML = '';
+  weekDots(profile).forEach((day) => {
+    const dot = document.createElement('div');
+    dot.className = `week-dot${day.done ? ' done' : ''}${day.today ? ' today' : ''}`;
+    dot.appendChild(Object.assign(document.createElement('span'), { className: 'dot' }));
+    dot.appendChild(Object.assign(document.createElement('span'), { className: 'day', textContent: day.label }));
+    dotsEl.appendChild(dot);
+  });
+  messageEl.textContent = weekGoalMessage(profile);
+}
+
+// Parent setup: add or edit a child. The groep is estimated from the birth date and confirmed.
+function showSetup(profileId) {
+  const list = el('setup-list');
+  list.innerHTML = '';
+  listProfiles(appState).forEach(({ id, profile }) => {
+    const item = document.createElement('li');
+    item.appendChild(document.createTextNode(`${profile.name} (${profile.groep ? `groep ${profile.groep}` : 'nog niet op school'}) `));
+    const edit = Object.assign(document.createElement('button'), { type: 'button', className: 'link-button', textContent: 'wijzig' });
+    edit.addEventListener('click', () => showSetup(id));
+    item.appendChild(edit);
+    list.appendChild(item);
+  });
+
+  const profile = profileId ? appState.profiles[profileId] : null;
+  el('profile-form-title').textContent = profile ? `${profile.name} wijzigen` : 'Kind toevoegen';
+  el('profile-id').value = profileId || '';
+  el('profile-name').value = profile ? profile.name : '';
+  el('profile-birthdate').value = profile ? profile.birthDate : '';
+  el('profile-groep').value = String(profile ? profile.groep : GROEP_WITH_CONTENT);
+  el('profile-weekgoal').value = String(profile ? profile.weekGoal : DEFAULT_WEEK_GOAL);
+  el('profile-groep6').checked = profile ? !!profile.groep6Content : true;
+  el('groep-note').textContent = profile && isAutumnChild(profile.birthDate) ? autumnNote(profile.groep) : '';
+  el('profile-form-error').textContent = '';
+  showScreen('setup');
+}
+
+function autumnNote(groep) {
+  return `Jarig in oktober-december: dan zitten kinderen soms een groep hoger of lager. Klopt groep ${groep}?`;
+}
+
+function onBirthdateChange() {
+  const birthDate = el('profile-birthdate').value;
+  if (!birthDate) return;
+  const groep = Math.max(0, Math.min(8, estimateGroep(birthDate)));
+  el('profile-groep').value = String(groep);
+  el('groep-note').textContent = isAutumnChild(birthDate) ? autumnNote(groep) : 'Geschat op basis van de geboortedatum. Pas aan als het niet klopt.';
+  if (!el('profile-id').value) el('profile-groep6').checked = groep >= 3; // kleuters can't read the sums yet
+}
+
+function onProfileFormSubmit(e) {
+  e.preventDefault();
+  const name = el('profile-name').value.trim();
+  const birthDate = el('profile-birthdate').value;
+  if (!name || !birthDate) {
+    el('profile-form-error').textContent = 'Vul een naam en een geboortedatum in.';
+    return;
+  }
+  appState = loadState();
+  saveProfile(appState, el('profile-id').value || null, {
+    name,
+    birthDate,
+    groep: Number(el('profile-groep').value),
+    weekGoal: Number(el('profile-weekgoal').value),
+    groep6Content: el('profile-groep6').checked
+  });
+  saveState(appState);
+  showProfiles();
 }
 
 function tierConfigFor(skill, tier) {
@@ -56,10 +182,14 @@ function tierConfigFor(skill, tier) {
 function startSession() {
   appState = loadState(); // pick up a backup restored in another tab since this page loaded
   const selection = selectSessionSkills(CURRICULUM.skills, profileSkillStates());
-  const record = startSessionRecord(appState, PROFILE_ID, selection);
+  const record = startSessionRecord(appState, activeProfileId, selection);
   saveState(appState);
   session = {
     record, // the stored log for the parent view, saved after every exercise
+    starsAtStart: activeProfile().stars || 0,
+    starsEarned: 0,
+    levelUps: [], // category names, for "Niveau omhoog: Tafels!"
+    solvedWithHelp: 0,
     skillIds: selection.map((s) => s.skillId),
     activeMs: 0,
     exerciseCount: 0,
@@ -293,7 +423,15 @@ function concludeExercise(solved) {
   session.exerciseCount += 1;
   session.previousSkillId = skillId;
 
-  const levelChange = recordAnswer(skill, currentSkillState(skill), recordedCorrect);
+  const skillState = currentSkillState(skill);
+  const levelChange = recordAnswer(skill, skillState, recordedCorrect);
+  if (skillState.tier > currentExercise.tier) session.levelUps.push(skill.category);
+  // A star for every sum finished correctly, also after a hint: getting there counts.
+  if (solved) {
+    activeProfile().stars = (activeProfile().stars || 0) + 1;
+    session.starsEarned += 1;
+    if (session.hadMistake) session.solvedWithHelp += 1;
+  }
   session.record.exercises.push({
     at: new Date().toISOString(),
     skillId,
@@ -322,7 +460,8 @@ function concludeExercise(solved) {
 
   const feedbackEl = el('feedback');
   if (solved) {
-    feedbackEl.textContent = session.hadMistake ? pickRandom(PRAISE_WITH_HELP) : pickRandom(PRAISE_FIRST_TRY);
+    const praise = session.hadMistake ? pickRandom(PRAISE_WITH_HELP) : pickRandom(PRAISE_FIRST_TRY);
+    feedbackEl.textContent = `${praise}  +1 ★`;
     feedbackEl.className = 'feedback feedback-correct';
   } else {
     const solution = getHint(currentExercise.exerciseType, MAX_HINT_LEVEL, currentExercise.hintContext);
@@ -355,6 +494,8 @@ function onNext() {
 }
 
 function showSummary() {
+  // A double tap on "Klaar!" must not pay out the session bonus twice.
+  if (session.record.completed) return;
   let totalAttempts = 0;
   let totalCorrect = 0;
   const byCategory = {}; // "Tafels" -> { attempts, correctFirstTry }, instead of one line per times table
@@ -373,15 +514,41 @@ function showSummary() {
     (r.correctFirstTry / r.attempts >= SUMMARY_STRONG_RATE ? strong : needsPractice).push(category);
   });
 
+  const profile = activeProfile();
+  const celebrations = [];
+  let bonus = STAR_BONUS.sessionDone;
+  [...new Set(session.levelUps)].forEach((category) => celebrations.push(`Niveau omhoog: ${category}!`));
+  bonus += session.levelUps.length * STAR_BONUS.levelUp;
+  if (recordPracticeDay(profile)) {
+    bonus += STAR_BONUS.weekGoal;
+    celebrations.push(`Weekdoel gehaald! +${STAR_BONUS.weekGoal} ★`);
+  }
+  profile.stars = (profile.stars || 0) + bonus;
+  const milestone = milestoneReached(session.starsAtStart, profile.stars);
+  if (milestone) celebrations.push(`★ Mijlpaal: ${milestone} sterren! ★`);
+  if (session.solvedWithHelp > 0) {
+    const n = session.solvedWithHelp;
+    celebrations.push(`Je hebt ${n} ${n === 1 ? 'som' : 'sommen'} opgelost met een hint: goed doorgezet!`);
+  }
+
   session.record.completed = true;
   saveState(appState);
 
   el('summary-score').textContent = `${totalCorrect} van de ${totalAttempts} goed`;
   el('summary-count').textContent = `${totalAttempts} ${totalAttempts === 1 ? 'som' : 'sommen'} gemaakt`;
+  el('summary-stars').textContent = `+${session.starsEarned + bonus} ★ verdiend · totaal ${profile.stars} ★`;
+  renderCelebrations(celebrations);
   renderList('summary-strong', strong, 'Nog geen duidelijk sterke vaardigheden deze keer.');
   renderList('summary-practice', needsPractice, 'Niets om extra te oefenen — sterk gedaan!');
+  renderWeek(el('summary-week-dots'), el('summary-week-message'), profile);
 
   showScreen('summary');
+}
+
+function renderCelebrations(items) {
+  const list = el('summary-celebrations');
+  list.innerHTML = '';
+  items.forEach((text) => list.appendChild(Object.assign(document.createElement('li'), { textContent: text })));
 }
 
 function renderList(elementId, items, emptyText) {

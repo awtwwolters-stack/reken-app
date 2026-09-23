@@ -3,7 +3,6 @@
 
 // v2: skills start at their curriculum startTier; v1 data was test-only and is not migrated.
 const STORAGE_KEY = 'reken-app-state-v2';
-const DEFAULT_PROFILE_ID = 'default';
 
 function emptySkillState(skill, startTier = skill.startTier || 1) {
   return {

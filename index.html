@@ -4,13 +4,68 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Reken App</title>
-  <link rel="stylesheet" href="style.css?v=2026-09-23.7">
+  <link rel="stylesheet" href="style.css?v=2026-09-23.8">
 </head>
 <body>
   <main class="card">
-    <section id="screen-start" class="screen">
-      <h1>Hoi! Klaar om te rekenen?</h1>
+    <section id="screen-profiles" class="screen">
+      <h1>Wie gaat er rekenen?</h1>
+      <div id="profile-buttons" class="profile-buttons"></div>
+      <p id="no-profiles" class="muted hidden">Er is nog niemand toegevoegd.</p>
+      <button id="open-setup-button" class="link-button" type="button">Kinderen toevoegen of wijzigen</button>
+    </section>
+
+    <section id="screen-start" class="screen hidden">
+      <p id="groep-banner" class="banner hidden">Je oefent met sommen voor groep 6. De app zoekt uit wat bij jou past.</p>
+      <h1 id="greeting"></h1>
+      <div class="week">
+        <div id="week-dots" class="week-dots"></div>
+        <p id="week-message" class="week-message"></p>
+      </div>
+      <p id="star-total" class="star-total"></p>
+      <p id="weeks-in-row" class="weeks-in-row hidden"></p>
       <button id="start-button" class="big-button">Start mijn oefeningen</button>
+      <button id="switch-profile-button" class="link-button" type="button">Ik ben iemand anders</button>
+    </section>
+
+    <section id="screen-soon" class="screen hidden">
+      <h1 id="soon-greeting"></h1>
+      <p>Jouw sommen komen er binnenkort aan!</p>
+      <button id="soon-back-button" class="big-button" type="button">Terug</button>
+    </section>
+
+    <section id="screen-setup" class="screen hidden">
+      <h1>Kinderen</h1>
+      <ul id="setup-list" class="setup-list"></ul>
+      <form id="profile-form" class="profile-form">
+        <h2 id="profile-form-title">Kind toevoegen</h2>
+        <input id="profile-id" type="hidden">
+        <label>Naam <input id="profile-name" type="text" autocomplete="off" required></label>
+        <label>Geboortedatum <input id="profile-birthdate" type="date" required></label>
+        <label>Groep
+          <select id="profile-groep">
+            <option value="0">Nog niet op school</option>
+            <option value="1">Groep 1</option><option value="2">Groep 2</option>
+            <option value="3">Groep 3</option><option value="4">Groep 4</option>
+            <option value="5">Groep 5</option><option value="6">Groep 6</option>
+            <option value="7">Groep 7</option><option value="8">Groep 8</option>
+          </select>
+        </label>
+        <p id="groep-note" class="muted"></p>
+        <label>Weekdoel
+          <select id="profile-weekgoal">
+            <option value="1">1 dag per week</option><option value="2">2 dagen per week</option>
+            <option value="3">3 dagen per week</option><option value="4">4 dagen per week</option>
+            <option value="5">5 dagen per week</option><option value="6">6 dagen per week</option>
+            <option value="7">7 dagen per week</option>
+          </select>
+        </label>
+        <label class="checkbox"><input id="profile-groep6" type="checkbox"> Voorlopig groep-6-sommen oefenen</label>
+        <p id="profile-form-error" class="form-error"></p>
+        <button class="big-button" type="submit">Opslaan</button>
+      </form>
+      <button id="setup-back-button" class="link-button" type="button">Terug naar de namen</button>
+      <p class="muted">Naam en geboortedatum blijven alleen op dit apparaat.</p>
     </section>
 
     <section id="screen-session" class="screen hidden">
@@ -32,6 +87,8 @@
       <h1>Goed gedaan!</h1>
       <p id="summary-count" class="summary-count"></p>
       <p id="summary-score" class="summary-score"></p>
+      <p id="summary-stars" class="summary-stars"></p>
+      <ul id="summary-celebrations" class="celebrations"></ul>
 
       <div class="summary-columns">
         <div>
@@ -44,7 +101,13 @@
         </div>
       </div>
 
+      <div class="week">
+        <div id="summary-week-dots" class="week-dots"></div>
+        <p id="summary-week-message" class="week-message"></p>
+      </div>
+
       <button id="play-again-button" class="big-button">Nog een keer</button>
+      <button id="summary-switch-button" class="link-button" type="button">Andere naam kiezen</button>
     </section>
   </main>
 
@@ -52,20 +115,22 @@
     <a href="parent.html">Ouder overzicht</a>
   </footer>
 
-  <script src="js/utils.js?v=2026-09-23.7"></script>
-  <script src="js/storage.js?v=2026-09-23.7"></script>
-  <script src="js/mastery.js?v=2026-09-23.7"></script>
-  <script src="js/hints.js?v=2026-09-23.7"></script>
-  <script src="curriculum/group-6.js?v=2026-09-23.7"></script>
-  <script src="js/exercises/optellen.js?v=2026-09-23.7"></script>
-  <script src="js/exercises/aftrekken.js?v=2026-09-23.7"></script>
-  <script src="js/exercises/tafel.js?v=2026-09-23.7"></script>
-  <script src="js/exercises/vermenigvuldigen_groot.js?v=2026-09-23.7"></script>
-  <script src="js/exercises/delen_zonder_rest.js?v=2026-09-23.7"></script>
-  <script src="js/exercises/delen_met_rest.js?v=2026-09-23.7"></script>
-  <script src="js/exercises/getalbegrip.js?v=2026-09-23.7"></script>
-  <script src="js/exercises/verhaalsom.js?v=2026-09-23.7"></script>
-  <script src="js/exercises/breuken.js?v=2026-09-23.7"></script>
-  <script src="js/app.js?v=2026-09-23.7"></script>
+  <script src="js/utils.js?v=2026-09-23.8"></script>
+  <script src="js/storage.js?v=2026-09-23.8"></script>
+  <script src="js/profiles.js?v=2026-09-23.8"></script>
+  <script src="js/motivation.js?v=2026-09-23.8"></script>
+  <script src="js/mastery.js?v=2026-09-23.8"></script>
+  <script src="js/hints.js?v=2026-09-23.8"></script>
+  <script src="curriculum/group-6.js?v=2026-09-23.8"></script>
+  <script src="js/exercises/optellen.js?v=2026-09-23.8"></script>
+  <script src="js/exercises/aftrekken.js?v=2026-09-23.8"></script>
+  <script src="js/exercises/tafel.js?v=2026-09-23.8"></script>
+  <script src="js/exercises/vermenigvuldigen_groot.js?v=2026-09-23.8"></script>
+  <script src="js/exercises/delen_zonder_rest.js?v=2026-09-23.8"></script>
+  <script src="js/exercises/delen_met_rest.js?v=2026-09-23.8"></script>
+  <script src="js/exercises/getalbegrip.js?v=2026-09-23.8"></script>
+  <script src="js/exercises/verhaalsom.js?v=2026-09-23.8"></script>
+  <script src="js/exercises/breuken.js?v=2026-09-23.8"></script>
+  <script src="js/app.js?v=2026-09-23.8"></script>
 </body>
 </html>
