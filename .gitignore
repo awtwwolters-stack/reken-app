@@ -1,1 +1,3 @@
 .DS_Store
+# Backups contain a child's real answers; the repository is public.
+reken-app-backup-*.json

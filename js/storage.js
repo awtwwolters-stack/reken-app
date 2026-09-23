@@ -51,10 +51,40 @@ function getSkillState(state, profileId, skill, startTier) {
   return state.profiles[profileId].skills[skill.id];
 }
 
-function recordSession(state, profileId, summary) {
-  state.sessions.push({
+// ~5 KB per session; 300 sessions stays far below the browser's ~5 MB storage limit.
+const MAX_STORED_SESSIONS = 300;
+
+// Created when a session starts and saved after every exercise, so a session the child
+// stops halfway still leaves a record (completed stays false).
+function startSessionRecord(state, profileId, selection) {
+  const record = {
+    id: Date.now(),
     profileId,
-    date: new Date().toISOString(),
-    ...summary
-  });
+    startedAt: new Date().toISOString(),
+    completed: false,
+    activeSeconds: 0,
+    skills: selection,
+    exercises: []
+  };
+  state.sessions.push(record);
+  if (state.sessions.length > MAX_STORED_SESSIONS) {
+    state.sessions.splice(0, state.sessions.length - MAX_STORED_SESSIONS);
+  }
+  return record;
+}
+
+const BACKUP_FORMAT = 'reken-app-backup';
+
+function backupFileContents(state) {
+  return JSON.stringify({ format: BACKUP_FORMAT, exportedAt: new Date().toISOString(), state }, null, 1);
+}
+
+// Returns the state inside a backup file, or throws if the file isn't a Reken App backup.
+function parseBackupFile(text) {
+  const data = JSON.parse(text);
+  const state = data && data.format === BACKUP_FORMAT ? data.state : null;
+  if (!state || !state.profiles || typeof state.profiles !== 'object' || !Array.isArray(state.sessions)) {
+    throw new Error('not a Reken App backup');
+  }
+  return state;
 }

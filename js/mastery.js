@@ -16,6 +16,7 @@ const STEADY_DOWN_RATE = 0.5;
 const WEAK_MIN_ANSWERS = 5;
 const WEAK_RATE = 0.6;
 const DAYS_UNTIL_DUE_FOR_REVIEW = 2;
+const MIN_SETTLED_SKILLS_FOR_PERSONAL_START = 3;
 
 const MIN_SESSION_SKILLS = 4;
 const MAX_SESSION_SKILLS = 6;
@@ -140,9 +141,13 @@ function personalStartTier(skill, profileSkillStates, skillsById) {
   const offsets = Object.entries(profileSkillStates)
     .filter(([id, state]) => skillsById[id] && state.totalAttempts > 0 && !isCalibrating(state))
     .map(([id, state]) => state.tier - skillsById[id].startTier);
+  // One skill that dropped after two slips must not lower every new skill: wait for a few.
+  if (offsets.length < MIN_SETTLED_SKILLS_FOR_PERSONAL_START) {
+    return Math.min(maxTier(skill), Math.max(MIN_TIER, skill.startTier));
+  }
   // Truncate, not round: only shift when the child is a full level off on average. An uneven
   // child (+1 here, 0 there) should start new skills at the plain estimate.
-  const offset = offsets.length ? Math.trunc(offsets.reduce((a, b) => a + b, 0) / offsets.length) : 0;
+  const offset = Math.trunc(offsets.reduce((a, b) => a + b, 0) / offsets.length);
   return Math.min(maxTier(skill), Math.max(MIN_TIER, skill.startTier + offset));
 }
 

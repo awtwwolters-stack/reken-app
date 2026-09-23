@@ -51,9 +51,12 @@ function tierConfigFor(skill, tier) {
 }
 
 function startSession() {
+  appState = loadState(); // pick up a backup restored in another tab since this page loaded
   const selection = selectSessionSkills(CURRICULUM.skills, profileSkillStates());
+  const record = startSessionRecord(appState, PROFILE_ID, selection);
+  saveState(appState);
   session = {
-    selection, // [{ skillId, bucket, reason }] - why each skill is in this session
+    record, // the stored log for the parent view, saved after every exercise
     skillIds: selection.map((s) => s.skillId),
     activeMs: 0,
     exerciseCount: 0,
@@ -91,6 +94,8 @@ function renderExercise(pick) {
 
   currentExercise = Exercises[skill.exerciseType](tierConfig, skill);
   currentExercise.pickReason = pick.reason;
+  currentExercise.tier = skillState.tier;
+  currentExercise.answersGiven = [];
   session.hintLevel = 0;
   session.hadMistake = false;
   session.exerciseStartedAt = Date.now();
@@ -150,6 +155,13 @@ function readAnswer() {
   return { values, complete, valid };
 }
 
+// "7 rest 5" for two-field answers, "1.459" for one field.
+function formatAnswer(values) {
+  return currentExercise.answerFields
+    .map((field, i) => `${i > 0 && field.label ? field.label + ' ' : ''}${formatNumberNL(values[field.key])}`)
+    .join(' ');
+}
+
 function isCorrect(values) {
   return Object.keys(currentExercise.correctAnswer).every(
     (key) => values[key] === currentExercise.correctAnswer[key]
@@ -167,6 +179,7 @@ function onSubmit() {
     return;
   }
 
+  currentExercise.answersGiven.push(formatAnswer(values));
   if (isCorrect(values)) {
     concludeExercise(true);
   } else {
@@ -197,11 +210,26 @@ function concludeExercise(solved) {
   const skill = curriculumById[skillId];
   const recordedCorrect = solved && !session.hadMistake;
 
-  session.activeMs += Math.min(Date.now() - session.exerciseStartedAt, MAX_COUNTED_MS_PER_EXERCISE);
+  const spentMs = Date.now() - session.exerciseStartedAt;
+  session.activeMs += Math.min(spentMs, MAX_COUNTED_MS_PER_EXERCISE);
   session.exerciseCount += 1;
   session.previousSkillId = skillId;
 
-  recordAnswer(skill, currentSkillState(skill), recordedCorrect);
+  const levelChange = recordAnswer(skill, currentSkillState(skill), recordedCorrect);
+  session.record.exercises.push({
+    at: new Date().toISOString(),
+    skillId,
+    tier: currentExercise.tier,
+    prompt: currentExercise.prompt,
+    answers: currentExercise.answersGiven,
+    firstTryCorrect: recordedCorrect,
+    hintsShown: Math.min(session.hintLevel, MAX_HINT_LEVEL - 1),
+    solutionShown: !solved,
+    seconds: Math.round(spentMs / 1000),
+    reason: currentExercise.pickReason,
+    levelChange
+  });
+  session.record.activeSeconds = Math.round(session.activeMs / 1000);
   saveState(appState);
 
   if (!session.results[skillId]) session.results[skillId] = { attempts: 0, correctFirstTry: 0 };
@@ -267,16 +295,11 @@ function showSummary() {
     }
   });
 
-  recordSession(appState, PROFILE_ID, {
-    totalAttempts,
-    totalCorrect,
-    activeMinutes: Math.round(session.activeMs / 60000),
-    skills: session.selection
-  });
+  session.record.completed = true;
   saveState(appState);
 
   el('summary-score').textContent = `${totalCorrect} van de ${totalAttempts} goed`;
-  el('summary-count').textContent = `${totalAttempts} sommen gemaakt`;
+  el('summary-count').textContent = `${totalAttempts} ${totalAttempts === 1 ? 'som' : 'sommen'} gemaakt`;
   renderList('summary-strong', strong, 'Nog geen duidelijk sterke vaardigheden deze keer.');
   renderList('summary-practice', needsPractice, 'Niets om extra te oefenen — sterk gedaan!');
 
@@ -299,5 +322,17 @@ function renderList(elementId, items, emptyText) {
     container.appendChild(li);
   });
 }
+
+// Another tab (the parent view) changed the saved data, e.g. restored a backup: adopt it
+// instead of overwriting it on the next save. A running session's record is kept.
+window.addEventListener('storage', (e) => {
+  if (e.key !== STORAGE_KEY) return;
+  appState = loadState();
+  if (session) {
+    const same = appState.sessions.find((s) => s.id === session.record.id);
+    if (same) session.record = same;
+    else appState.sessions.push(session.record);
+  }
+});
 
 window.addEventListener('DOMContentLoaded', init);
