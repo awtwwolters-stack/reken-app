@@ -18,6 +18,7 @@
     .stopped { color: #a33; }
     .backup { background: white; border: 1px solid #dde; border-radius: 8px; padding: 12px 16px; }
     .backup button, .backup label { font-size: 0.95rem; padding: 8px 14px; margin-right: 8px; border-radius: 8px; border: 1px solid #2f9e83; background: white; color: #227a65; cursor: pointer; display: inline-block; }
+    #backup-message { font-weight: bold; }
     #backup-message.error { color: #a33; }
   </style>
 </head>
@@ -28,7 +29,7 @@
   <section class="backup">
     <p id="backup-status"></p>
     <button id="backup-button" type="button">Maak back-up</button>
-    <label>Zet back-up terug <input id="restore-input" type="file" accept="application/json,.json" hidden></label>
+    <label>Zet back-up terug <input id="restore-input" type="file" hidden></label>
     <p id="backup-message"></p>
   </section>
 

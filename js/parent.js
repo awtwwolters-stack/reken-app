@@ -155,24 +155,43 @@ function downloadFile(file) {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
+// The first shareable variant: some share sheets refuse application/json but accept text/plain.
+function shareableFile(contents, name) {
+  if (!navigator.share || !navigator.canShare) return null;
+  for (const type of ['application/json', 'text/plain']) {
+    const file = new File([contents], name, { type });
+    if (navigator.canShare({ files: [file] })) return file;
+  }
+  return null;
+}
+
+// Every outcome shows a message: a tap that seems to do nothing is indistinguishable from a bug.
 async function makeBackup() {
+  showBackupMessage('Back-up maken…');
   const state = loadState();
   state.lastBackupAt = Date.now();
-  const file = new File([backupFileContents(state)], backupFileName(), { type: 'application/json' });
+  const contents = backupFileContents(state);
+  const name = backupFileName();
+  const shareable = shareableFile(contents, name);
   try {
-    // On the iPad this opens the share sheet (save to Files, AirDrop, mail).
-    if (navigator.canShare && navigator.canShare({ files: [file] })) {
-      await navigator.share({ files: [file], title: 'Reken App back-up' });
+    if (shareable) {
+      // On the iPad this opens the share sheet (save to Files, AirDrop, mail).
+      await navigator.share({ files: [shareable], title: 'Reken App back-up' });
+      showBackupMessage(`Back-up gedeeld: ${name}. Kies "Bewaar in Bestanden" als je hem op de iPad wilt bewaren.`);
     } else {
-      downloadFile(file);
+      downloadFile(new File([contents], name, { type: 'application/json' }));
+      showBackupMessage(`Back-up gedownload: ${name} (kijk bij Downloads of in Bestanden).`);
     }
   } catch (e) {
-    if (e.name === 'AbortError') return; // share sheet closed without saving: no backup made
-    downloadFile(file);
+    if (e.name === 'AbortError') {
+      showBackupMessage('Opslaan geannuleerd: er is geen back-up gemaakt.', true);
+      return;
+    }
+    showBackupMessage(`Back-up mislukt (${e.name}: ${e.message}). Stuur deze melding door, dan zoeken we het uit.`, true);
+    return;
   }
   saveState(state);
-  renderParentView();
-  showBackupMessage(`Back-up gemaakt: ${file.name}`);
+  renderBackupStatus(state);
 }
 
 async function restoreBackup(event) {
