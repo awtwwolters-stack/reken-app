@@ -2,6 +2,9 @@
 // uses mastery.js for selection/tracking, exercises/*.js + hints.js for content.
 
 const MAX_HINT_LEVEL = 3;
+const MAX_TRIES_FOR_NEW_EXERCISE = 20;
+// After a correct answer the praise and star stay visible this long, then the next sum follows.
+const AUTO_NEXT_MS = 1500;
 const SESSION_TARGET_MS = 10 * 60 * 1000;
 // Time on one exercise counts for at most this long, so walking away doesn't use up the session.
 const MAX_COUNTED_MS_PER_EXERCISE = 90 * 1000;
@@ -58,7 +61,7 @@ function profileSkillStates() {
 }
 
 function currentSkillState(skill) {
-  const startTier = personalStartTier(skill, profileSkillStates(), curriculumById, groepOffset(activeProfile()));
+  const startTier = personalStartTier(skill, profileSkillStates(), curriculumById, practiceGroep(activeProfile()));
   return getSkillState(appState, activeProfileId, skill, startTier);
 }
 
@@ -97,11 +100,47 @@ function showGreeting() {
   el('greeting').textContent = `Hoi ${profile.name}! Klaar om te rekenen?`;
   el('groep-banner').classList.toggle('hidden', profile.groep === GROEP_WITH_CONTENT);
   renderWeek(el('week-dots'), el('week-message'), profile);
-  el('star-total').textContent = `★ ${profile.stars || 0} sterren`;
+  const stars = profile.stars || 0;
+  el('star-total').textContent = `★ ${stars} sterren`;
+  renderStarGoal(el('goal-fill'), el('goal-text'), stars);
+  renderCollection(stars);
+  const goal = profile.familyGoal;
+  el('family-goal').classList.toggle('hidden', !goal);
+  if (goal) {
+    el('family-goal').textContent = stars >= goal.stars
+      ? `Groot doel gehaald: ${goal.text}!`
+      : `Groot doel: ${goal.text} — nog ${goal.stars - stars} ★`;
+  }
   const weeks = weeksInARow(profile);
   el('weeks-in-row').textContent = `${weeks} weken op rij je weekdoel gehaald!`;
   el('weeks-in-row').classList.toggle('hidden', weeks < 2);
   showScreen('start');
+}
+
+function renderStarGoal(fillEl, textEl, stars) {
+  const goal = starGoal(stars);
+  fillEl.style.width = `${Math.round(goal.progress * 100)}%`;
+  if (!goal.next) {
+    textEl.textContent = 'Je hebt alle dieren verzameld!';
+    return;
+  }
+  const character = COLLECTION[STAR_MILESTONES.indexOf(goal.next)];
+  textEl.textContent = `Nog ${goal.next - stars} ★ tot ${goal.next}: dan komt er een nieuw dier bij!`;
+  fillEl.title = character.name;
+}
+
+// "Mijn verzameling": unlocked characters, then a "?" for the next one.
+function renderCollection(stars) {
+  const container = el('collection');
+  container.innerHTML = '';
+  unlockedCharacters(stars).forEach((character) => {
+    container.appendChild(Object.assign(document.createElement('span'), {
+      className: 'character', textContent: character.emoji, title: character.name
+    }));
+  });
+  if (unlockedCharacters(stars).length < COLLECTION.length) {
+    container.appendChild(Object.assign(document.createElement('span'), { className: 'character next', textContent: '?' }));
+  }
 }
 
 function renderWeek(dotsEl, messageEl, profile) {
@@ -137,6 +176,9 @@ function showSetup(profileId) {
   el('profile-groep').value = String(profile ? profile.groep : GROEP_WITH_CONTENT);
   el('profile-weekgoal').value = String(profile ? profile.weekGoal : DEFAULT_WEEK_GOAL);
   el('profile-groep6').checked = profile ? !!profile.groep6Content : true;
+  el('profile-goal-stars').value = profile && profile.familyGoal ? profile.familyGoal.stars : '';
+  el('profile-goal-text').value = profile && profile.familyGoal ? profile.familyGoal.text : '';
+  el('profile-current-stars').textContent = profile ? `${profile.name} heeft nu ${profile.stars || 0} ★.` : '';
   el('groep-note').textContent = profile && isAutumnChild(profile.birthDate) ? autumnNote(profile.groep) : '';
   el('profile-form-error').textContent = '';
   showScreen('setup');
@@ -163,13 +205,21 @@ function onProfileFormSubmit(e) {
     el('profile-form-error').textContent = 'Vul een naam en een geboortedatum in.';
     return;
   }
+  // Optional family reward: both fields filled, or both empty (no reward).
+  const goalStars = Number(el('profile-goal-stars').value);
+  const goalText = el('profile-goal-text').value.trim();
+  if ((goalText && !(Number.isInteger(goalStars) && goalStars > 0)) || (!goalText && el('profile-goal-stars').value !== '')) {
+    el('profile-form-error').textContent = 'Vul bij het groot doel allebei in: een aantal sterren en wat jullie dan doen.';
+    return;
+  }
   appState = loadState();
   saveProfile(appState, el('profile-id').value || null, {
     name,
     birthDate,
     groep: Number(el('profile-groep').value),
     weekGoal: Number(el('profile-weekgoal').value),
-    groep6Content: el('profile-groep6').checked
+    groep6Content: el('profile-groep6').checked,
+    familyGoal: goalText ? { stars: goalStars, text: goalText } : null
   });
   saveState(appState);
   showProfiles();
@@ -190,6 +240,8 @@ function startSession() {
     starsEarned: 0,
     levelUps: [], // category names, for "Niveau omhoog: Tafels!"
     solvedWithHelp: 0,
+    asked: new Set(), // exercises asked this session, to avoid repeats
+    autoNextTimer: null,
     skillIds: selection.map((s) => s.skillId),
     activeMs: 0,
     exerciseCount: 0,
@@ -225,7 +277,7 @@ function renderExercise(pick) {
   const skillState = currentSkillState(skill);
   const tierConfig = tierConfigFor(skill, skillState.tier);
 
-  currentExercise = Exercises[skill.exerciseType](tierConfig, skill);
+  currentExercise = freshExercise(skill, tierConfig);
   currentExercise.pickReason = pick.reason;
   currentExercise.tier = skillState.tier;
   currentExercise.answersGiven = [];
@@ -281,6 +333,22 @@ function renderExercise(pick) {
   el('next-button').classList.add('hidden');
   // Focus only works once the container is visible, so this must come last.
   fieldsContainer.querySelector('input').focus();
+}
+
+// No exact repeats within a session while unused variations remain. Some skills are small by
+// nature (one tafel has 10 facts, halves/quarters only 4 fractions), so after enough tries a
+// repeat is accepted rather than looping forever.
+function freshExercise(skill, tierConfig) {
+  let exercise;
+  let key;
+  for (let tries = 0; tries < MAX_TRIES_FOR_NEW_EXERCISE; tries++) {
+    exercise = Exercises[skill.exerciseType](tierConfig, skill);
+    // The question text alone isn't enough: every strook exercise asks the same question.
+    key = `${exercise.prompt}|${JSON.stringify(exercise.correctAnswer)}`;
+    if (!session.asked.has(key)) break;
+  }
+  session.asked.add(key);
+  return exercise;
 }
 
 // A question may come in parts so fractions show stacked (like in the rekenschrift):
@@ -474,6 +542,8 @@ function concludeExercise(solved) {
   el('answer-area').classList.add('hidden');
   el('next-button').classList.remove('hidden');
   el('next-button').focus();
+  // Correct: keep the flow going. After a shown solution the child taps on, so it gets read.
+  if (solved) session.autoNextTimer = setTimeout(onNext, AUTO_NEXT_MS);
 }
 
 function sessionTimeReached() {
@@ -486,6 +556,10 @@ function updateProgress() {
 }
 
 function onNext() {
+  // A tap during the auto-continue pause and the timer must not both advance.
+  clearTimeout(session.autoNextTimer);
+  session.autoNextTimer = null;
+  if (el('next-button').classList.contains('hidden')) return;
   if (sessionTimeReached()) {
     showSummary();
   } else {
@@ -524,8 +598,12 @@ function showSummary() {
     celebrations.push(`Weekdoel gehaald! +${STAR_BONUS.weekGoal} ★`);
   }
   profile.stars = (profile.stars || 0) + bonus;
-  const milestone = milestoneReached(session.starsAtStart, profile.stars);
-  if (milestone) celebrations.push(`★ Mijlpaal: ${milestone} sterren! ★`);
+  charactersUnlockedBetween(session.starsAtStart, profile.stars).forEach((character) => {
+    celebrations.push(`Nieuw in je verzameling: ${character.emoji} ${character.name}!`);
+  });
+  if (familyGoalReachedBetween(profile.familyGoal, session.starsAtStart, profile.stars)) {
+    celebrations.push(`Groot doel gehaald: ${profile.familyGoal.text}! Laat het aan je ouders zien.`);
+  }
   if (session.solvedWithHelp > 0) {
     const n = session.solvedWithHelp;
     celebrations.push(`Je hebt ${n} ${n === 1 ? 'som' : 'sommen'} opgelost met een hint: goed doorgezet!`);
@@ -537,6 +615,7 @@ function showSummary() {
   el('summary-score').textContent = `${totalCorrect} van de ${totalAttempts} goed`;
   el('summary-count').textContent = `${totalAttempts} ${totalAttempts === 1 ? 'som' : 'sommen'} gemaakt`;
   el('summary-stars').textContent = `+${session.starsEarned + bonus} ★ verdiend · totaal ${profile.stars} ★`;
+  renderStarGoal(el('summary-goal-fill'), el('summary-goal-text'), profile.stars);
   renderCelebrations(celebrations);
   renderList('summary-strong', strong, 'Nog geen duidelijk sterke vaardigheden deze keer.');
   renderList('summary-practice', needsPractice, 'Niets om extra te oefenen — sterk gedaan!');

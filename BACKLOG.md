@@ -1,6 +1,6 @@
 # Reken App — Backlog
 
-_Last updated: 2026-09-23 · Status: V1 + Phase 0 + breuken step 1 + profiles/motivation (D7) live; now: T-01 test (no new features). See Roadmap._
+_Last updated: 2026-09-24 · Status: T-01 running; first real-use lessons applied (see T-01 feedback log). See Roadmap._
 
 Size: **S** = small change · **M** = one focused build session · **L** = several sessions
 
@@ -43,6 +43,7 @@ It starts with one child (groep 6) and one domain (core arithmetic). Over time i
 | D5 | **Hosting:** GitHub Pages, public repository (free) | No login needed on the iPad, so the child never uses a parent's account. The code is backed up online. Family details stay out of the repo |
 | D6 | **Winter focus (2026-09-23):** complete groep 6 before bringing a second child on board | Phase 3 before Phase 5; siblings from spring 2027 |
 | D7 | **Motivation + profiles before the test (2026-09-23):** name picker; groep from birth date (parent confirms); a younger sibling may practise groep-6 content for now with a banner, an easier start and separate progress; stars for every sum finished correctly (also with a hint) + bonuses; **weekdoel (default 4 days) instead of a daily streak** (research: streak loss causes anxiety in children) | M-01 and S-01 done early; T-01 now also tests the motivation, so we can't separate 'comes back for the maths' from 'comes back for the stars' |
+| D8 | **Stars get a direction (2026-09-24):** visible next goal, a character collection (one animal per milestone, the seed of M-02), and an optional family reward set by the parent. Auto-continue 1.5 s after a correct answer | Stars stay never-spent; spending comes with M-02 |
 
 ## Roadmap (confirmed 2026-09-23)
 
@@ -60,6 +61,18 @@ Driven by **triggers, not dates**: several steps depend on what the test shows o
 | **By summer 2027** | Groep 7 curriculum (S-03) | New school year: the one real deadline |
 
 ---
+
+## T-01 feedback log
+
+| Date | Observation (real use) | Evidence | What we did |
+|---|---|---|---|
+| 2026-09-24 | Groep-5 sibling, first session: "Rond 730 af op tientallen" made no sense | 5% of rounding exercises were already round | Never pick an already-round number |
+| 2026-09-24 | Same exercises came back within a session | 11.8% exact repeats (tafels ×1–5: 5 facts; halves/quarters: 4) — and 6 × 5 asked 3× in one session | Session memory → 2.3% (only when a skill's variations are used up) |
+| 2026-09-24 | Difficulty varied a lot between exercise types | "Level 1" meant groep 3–4 for optellen but groep 5 for getalbegrip; 4 of 6 skills moved up within the session | Every level labelled with its groep; new skills start at the child's own groep |
+| 2026-09-24 | Tafels ×1–5 too easy; tafels t/m 10 are known | De Wereld in Getallen: 0–5 + 10 by end groep 4, all 0–10 by mid groep 5; tafels answered in 5–6 s | Groep 5 starts at ×1–10, groep 6 at the reversed form (6 × ? = 42) |
+| 2026-09-24 | Tapping Volgende after every correct answer | — | Auto-continue after 1.5 s; mistakes still wait for a tap |
+| 2026-09-24 | Child curious where 48 ★ leads (good signal) | — | D8: next goal, collection, family reward |
+| 2026-09-24 | Session overall | 27 sums in ~11 min, finished; **81% right first time (target 75–85%)**; the 5 slowest sums were exactly the 5 mistakes; rounding the weak spot | No action: calibration working as designed |
 
 ## NOW — Phase 0: make the first real test meaningful
 
@@ -117,7 +130,7 @@ These must be done before daily use. Without them the test won't tell us whether
 | ID | Item | Size |
 |---|---|---|
 | ~~M-01~~ ✅ | Light motivation (D7): stars (never lost), level-up celebrations, milestones, weekdoel week dots, weeks-in-a-row shown only as good news, effort praise | S |
-| M-02 | Story/character progression (your stated preference) — also where stars become spendable | L |
+| M-02 ◐ | Story/character progression (your stated preference) — **started:** the character collection (D8). Next: characters in a story, stars becoming spendable | L |
 
 ## LATER — Phase 5: siblings and moving up a year
 

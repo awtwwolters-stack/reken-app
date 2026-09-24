@@ -97,7 +97,7 @@ function renderSkills(state, skillsById, profileId) {
       return;
     }
 
-    const skillState = stateOrNew(skill, profileSkills, skillsById, groepOffset(profile));
+    const skillState = stateOrNew(skill, profileSkills, skillsById, practiceGroep(profile));
     const rate = successRate(skillState);
     const { bucket, reason } = classifySkill(skill, skillState, profileSkills);
     const change = skillState.lastTierChange;

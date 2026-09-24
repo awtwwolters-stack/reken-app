@@ -38,7 +38,10 @@ Exercises.getalbegrip = function (tierConfig, skill) {
   }
 
   const unit = roundingUnitFor(tierConfig.max);
-  const n = randomInt(unit, tierConfig.max);
+  let n;
+  do {
+    n = randomInt(unit, tierConfig.max);
+  } while (n % unit === 0); // "Rond 730 af op tientallen" asks nothing
   const rounded = Math.round(n / unit) * unit;
   return {
     skillId: skill.id,

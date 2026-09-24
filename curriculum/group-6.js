@@ -1,4 +1,6 @@
-// startTier: assumed early-groep-6 level for a new child; the app corrects it within 1-2 sessions.
+// Each tier's "groep": the groep that level fits at the start of the school year. A new skill starts at
+// the highest tier labelled at or below the child's groep; the app then adapts within 1-2 sessions.
+// Tafels per De Wereld in Getallen: 0-5 + 10 automated by end of groep 4, all 0-10 by mid groep 5.
 // A skill's maximum level is the number of entries in its `tiers`.
 const CURRICULUM = {
   "group": 6,
@@ -16,12 +18,11 @@ const CURRICULUM = {
       "exerciseType": "getalbegrip",
       "implemented": true,
       "prerequisites": [],
-      "startTier": 2,
       "tiers": [
-        { "tier": 1, "max": 1000 },
-        { "tier": 2, "max": 10000 },
-        { "tier": 3, "max": 50000 },
-        { "tier": 4, "max": 100000 }
+        { "tier": 1, "groep": 5, "max": 1000 },
+        { "tier": 2, "groep": 6, "max": 10000 },
+        { "tier": 3, "groep": 7, "max": 50000 },
+        { "tier": 4, "groep": 7, "max": 100000 }
       ]
     },
     {
@@ -33,12 +34,11 @@ const CURRICULUM = {
       "exerciseType": "optellen",
       "implemented": true,
       "prerequisites": ["getalbegrip_tot_100000"],
-      "startTier": 2,
       "tiers": [
-        { "tier": 1, "min": 1, "max": 50 },
-        { "tier": 2, "min": 10, "max": 500 },
-        { "tier": 3, "min": 100, "max": 5000 },
-        { "tier": 4, "min": 1000, "max": 50000 }
+        { "tier": 1, "groep": 4, "min": 1, "max": 50 },
+        { "tier": 2, "groep": 5, "min": 10, "max": 500 },
+        { "tier": 3, "groep": 7, "min": 100, "max": 5000 },
+        { "tier": 4, "groep": 7, "min": 1000, "max": 50000 }
       ]
     },
     {
@@ -50,12 +50,11 @@ const CURRICULUM = {
       "exerciseType": "aftrekken",
       "implemented": true,
       "prerequisites": ["getalbegrip_tot_100000"],
-      "startTier": 2,
       "tiers": [
-        { "tier": 1, "min": 1, "max": 100 },
-        { "tier": 2, "min": 10, "max": 1000 },
-        { "tier": 3, "min": 100, "max": 10000 },
-        { "tier": 4, "min": 1000, "max": 100000 }
+        { "tier": 1, "groep": 4, "min": 1, "max": 100 },
+        { "tier": 2, "groep": 5, "min": 10, "max": 1000 },
+        { "tier": 3, "groep": 7, "min": 100, "max": 10000 },
+        { "tier": 4, "groep": 7, "min": 1000, "max": 100000 }
       ]
     },
     {
@@ -68,11 +67,10 @@ const CURRICULUM = {
       "table": 6,
       "implemented": true,
       "prerequisites": [],
-      "startTier": 2,
       "tiers": [
-        { "tier": 1, "multiplierMax": 5 },
-        { "tier": 2, "multiplierMax": 10 },
-        { "tier": 3, "multiplierMax": 10, "askMissingFactor": true }
+        { "tier": 1, "groep": 4, "multiplierMax": 5 },
+        { "tier": 2, "groep": 5, "multiplierMax": 10 },
+        { "tier": 3, "groep": 6, "multiplierMax": 10, "askMissingFactor": true }
       ]
     },
     {
@@ -85,11 +83,10 @@ const CURRICULUM = {
       "table": 7,
       "implemented": true,
       "prerequisites": [],
-      "startTier": 2,
       "tiers": [
-        { "tier": 1, "multiplierMax": 5 },
-        { "tier": 2, "multiplierMax": 10 },
-        { "tier": 3, "multiplierMax": 10, "askMissingFactor": true }
+        { "tier": 1, "groep": 4, "multiplierMax": 5 },
+        { "tier": 2, "groep": 5, "multiplierMax": 10 },
+        { "tier": 3, "groep": 6, "multiplierMax": 10, "askMissingFactor": true }
       ]
     },
     {
@@ -102,11 +99,10 @@ const CURRICULUM = {
       "table": 8,
       "implemented": true,
       "prerequisites": [],
-      "startTier": 2,
       "tiers": [
-        { "tier": 1, "multiplierMax": 5 },
-        { "tier": 2, "multiplierMax": 10 },
-        { "tier": 3, "multiplierMax": 10, "askMissingFactor": true }
+        { "tier": 1, "groep": 4, "multiplierMax": 5 },
+        { "tier": 2, "groep": 5, "multiplierMax": 10 },
+        { "tier": 3, "groep": 6, "multiplierMax": 10, "askMissingFactor": true }
       ]
     },
     {
@@ -119,11 +115,10 @@ const CURRICULUM = {
       "table": 9,
       "implemented": true,
       "prerequisites": [],
-      "startTier": 2,
       "tiers": [
-        { "tier": 1, "multiplierMax": 5 },
-        { "tier": 2, "multiplierMax": 10 },
-        { "tier": 3, "multiplierMax": 10, "askMissingFactor": true }
+        { "tier": 1, "groep": 4, "multiplierMax": 5 },
+        { "tier": 2, "groep": 5, "multiplierMax": 10 },
+        { "tier": 3, "groep": 6, "multiplierMax": 10, "askMissingFactor": true }
       ]
     },
     {
@@ -136,11 +131,10 @@ const CURRICULUM = {
       "table": 10,
       "implemented": true,
       "prerequisites": [],
-      "startTier": 2,
       "tiers": [
-        { "tier": 1, "multiplierMax": 5 },
-        { "tier": 2, "multiplierMax": 10 },
-        { "tier": 3, "multiplierMax": 10, "askMissingFactor": true }
+        { "tier": 1, "groep": 4, "multiplierMax": 5 },
+        { "tier": 2, "groep": 5, "multiplierMax": 10 },
+        { "tier": 3, "groep": 6, "multiplierMax": 10, "askMissingFactor": true }
       ]
     },
     {
@@ -152,11 +146,10 @@ const CURRICULUM = {
       "exerciseType": "vermenigvuldigen_groot",
       "implemented": true,
       "prerequisites": ["vermenigvuldigen_tafel_6", "vermenigvuldigen_tafel_7", "vermenigvuldigen_tafel_8", "vermenigvuldigen_tafel_9"],
-      "startTier": 2,
       "tiers": [
-        { "tier": 1, "factor1Max": 20, "factor2Max": 5 },
-        { "tier": 2, "factor1Max": 50, "factor2Max": 7 },
-        { "tier": 3, "factor1Max": 99, "factor2Max": 9 }
+        { "tier": 1, "groep": 5, "factor1Max": 20, "factor2Max": 5 },
+        { "tier": 2, "groep": 6, "factor1Max": 50, "factor2Max": 7 },
+        { "tier": 3, "groep": 7, "factor1Max": 99, "factor2Max": 9 }
       ]
     },
     {
@@ -168,11 +161,10 @@ const CURRICULUM = {
       "exerciseType": "delen_zonder_rest",
       "implemented": true,
       "prerequisites": ["vermenigvuldigen_tafel_6", "vermenigvuldigen_tafel_7", "vermenigvuldigen_tafel_8", "vermenigvuldigen_tafel_9"],
-      "startTier": 2,
       "tiers": [
-        { "tier": 1, "divisorMax": 5, "quotientMax": 10 },
-        { "tier": 2, "divisorMax": 10, "quotientMax": 10 },
-        { "tier": 3, "divisorMax": 10, "quotientMax": 20 }
+        { "tier": 1, "groep": 4, "divisorMax": 5, "quotientMax": 10 },
+        { "tier": 2, "groep": 5, "divisorMax": 10, "quotientMax": 10 },
+        { "tier": 3, "groep": 7, "divisorMax": 10, "quotientMax": 20 }
       ]
     },
     {
@@ -184,12 +176,11 @@ const CURRICULUM = {
       "exerciseType": "delen_met_rest",
       "implemented": true,
       "prerequisites": ["delen_zonder_rest"],
-      "startTier": 2,
       "tiers": [
-        { "tier": 1, "divisorMax": 5, "quotientMax": 8 },
-        { "tier": 2, "divisorMax": 8, "quotientMax": 10 },
-        { "tier": 3, "divisorMax": 10, "quotientMax": 12 },
-        { "tier": 4, "divisorMax": 10, "quotientMax": 20 }
+        { "tier": 1, "groep": 5, "divisorMax": 5, "quotientMax": 8 },
+        { "tier": 2, "groep": 6, "divisorMax": 8, "quotientMax": 10 },
+        { "tier": 3, "groep": 7, "divisorMax": 10, "quotientMax": 12 },
+        { "tier": 4, "groep": 7, "divisorMax": 10, "quotientMax": 20 }
       ]
     },
     {
@@ -201,11 +192,10 @@ const CURRICULUM = {
       "exerciseType": "verhaalsom",
       "implemented": true,
       "prerequisites": ["optellen_tot_100000", "aftrekken_tot_100000", "vermenigvuldigen_grote_getallen", "delen_zonder_rest"],
-      "startTier": 2,
       "tiers": [
-        { "tier": 1, "max": 100 },
-        { "tier": 2, "max": 500 },
-        { "tier": 3, "max": 1000 }
+        { "tier": 1, "groep": 5, "max": 100 },
+        { "tier": 2, "groep": 6, "max": 500 },
+        { "tier": 3, "groep": 7, "max": 1000 }
       ]
     },
     {
@@ -217,10 +207,9 @@ const CURRICULUM = {
       "exerciseType": "breuk_herkennen",
       "implemented": true,
       "prerequisites": [],
-      "startTier": 1,
       "tiers": [
-        { "tier": 1, "denominators": [2, 4] },
-        { "tier": 2, "denominators": [2, 3, 4, 5, 8] }
+        { "tier": 1, "groep": 5, "denominators": [2, 4] },
+        { "tier": 2, "groep": 7, "denominators": [2, 3, 4, 5, 8] }
       ]
     },
     {
@@ -232,10 +221,9 @@ const CURRICULUM = {
       "exerciseType": "breuk_deel_van",
       "implemented": true,
       "prerequisites": ["delen_zonder_rest"],
-      "startTier": 1,
       "tiers": [
-        { "tier": 1, "denominators": [2, 4], "quotientMax": 10 },
-        { "tier": 2, "denominators": [2, 3, 4, 5, 10], "quotientMax": 10 }
+        { "tier": 1, "groep": 5, "denominators": [2, 4], "quotientMax": 10 },
+        { "tier": 2, "groep": 7, "denominators": [2, 3, 4, 5, 10], "quotientMax": 10 }
       ]
     },
     {

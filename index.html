@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Reken App</title>
-  <link rel="stylesheet" href="style.css?v=2026-09-23.8">
+  <link rel="stylesheet" href="style.css?v=2026-09-24.9">
 </head>
 <body>
   <main class="card">
@@ -23,6 +23,12 @@
         <p id="week-message" class="week-message"></p>
       </div>
       <p id="star-total" class="star-total"></p>
+      <div class="star-goal">
+        <div class="goal-bar"><div id="goal-fill" class="goal-fill"></div></div>
+        <p id="goal-text" class="goal-text"></p>
+      </div>
+      <div id="collection" class="collection" aria-label="Mijn verzameling"></div>
+      <p id="family-goal" class="family-goal hidden"></p>
       <p id="weeks-in-row" class="weeks-in-row hidden"></p>
       <button id="start-button" class="big-button">Start mijn oefeningen</button>
       <button id="switch-profile-button" class="link-button" type="button">Ik ben iemand anders</button>
@@ -61,6 +67,12 @@
           </select>
         </label>
         <label class="checkbox"><input id="profile-groep6" type="checkbox"> Voorlopig groep-6-sommen oefenen</label>
+        <fieldset class="family-goal-fields">
+          <legend>Groot doel (optioneel)</legend>
+          <p id="profile-current-stars" class="muted"></p>
+          <label>Bij hoeveel sterren? <input id="profile-goal-stars" type="number" min="1" inputmode="numeric"></label>
+          <label>Wat gaan jullie dan doen? <input id="profile-goal-text" type="text" maxlength="60" placeholder="bijv. samen pannenkoeken bakken"></label>
+        </fieldset>
         <p id="profile-form-error" class="form-error"></p>
         <button class="big-button" type="submit">Opslaan</button>
       </form>
@@ -88,6 +100,10 @@
       <p id="summary-count" class="summary-count"></p>
       <p id="summary-score" class="summary-score"></p>
       <p id="summary-stars" class="summary-stars"></p>
+      <div class="star-goal">
+        <div class="goal-bar"><div id="summary-goal-fill" class="goal-fill"></div></div>
+        <p id="summary-goal-text" class="goal-text"></p>
+      </div>
       <ul id="summary-celebrations" class="celebrations"></ul>
 
       <div class="summary-columns">
@@ -115,22 +131,22 @@
     <a href="parent.html">Ouder overzicht</a>
   </footer>
 
-  <script src="js/utils.js?v=2026-09-23.8"></script>
-  <script src="js/storage.js?v=2026-09-23.8"></script>
-  <script src="js/profiles.js?v=2026-09-23.8"></script>
-  <script src="js/motivation.js?v=2026-09-23.8"></script>
-  <script src="js/mastery.js?v=2026-09-23.8"></script>
-  <script src="js/hints.js?v=2026-09-23.8"></script>
-  <script src="curriculum/group-6.js?v=2026-09-23.8"></script>
-  <script src="js/exercises/optellen.js?v=2026-09-23.8"></script>
-  <script src="js/exercises/aftrekken.js?v=2026-09-23.8"></script>
-  <script src="js/exercises/tafel.js?v=2026-09-23.8"></script>
-  <script src="js/exercises/vermenigvuldigen_groot.js?v=2026-09-23.8"></script>
-  <script src="js/exercises/delen_zonder_rest.js?v=2026-09-23.8"></script>
-  <script src="js/exercises/delen_met_rest.js?v=2026-09-23.8"></script>
-  <script src="js/exercises/getalbegrip.js?v=2026-09-23.8"></script>
-  <script src="js/exercises/verhaalsom.js?v=2026-09-23.8"></script>
-  <script src="js/exercises/breuken.js?v=2026-09-23.8"></script>
-  <script src="js/app.js?v=2026-09-23.8"></script>
+  <script src="js/utils.js?v=2026-09-24.9"></script>
+  <script src="js/storage.js?v=2026-09-24.9"></script>
+  <script src="js/profiles.js?v=2026-09-24.9"></script>
+  <script src="js/motivation.js?v=2026-09-24.9"></script>
+  <script src="js/mastery.js?v=2026-09-24.9"></script>
+  <script src="js/hints.js?v=2026-09-24.9"></script>
+  <script src="curriculum/group-6.js?v=2026-09-24.9"></script>
+  <script src="js/exercises/optellen.js?v=2026-09-24.9"></script>
+  <script src="js/exercises/aftrekken.js?v=2026-09-24.9"></script>
+  <script src="js/exercises/tafel.js?v=2026-09-24.9"></script>
+  <script src="js/exercises/vermenigvuldigen_groot.js?v=2026-09-24.9"></script>
+  <script src="js/exercises/delen_zonder_rest.js?v=2026-09-24.9"></script>
+  <script src="js/exercises/delen_met_rest.js?v=2026-09-24.9"></script>
+  <script src="js/exercises/getalbegrip.js?v=2026-09-24.9"></script>
+  <script src="js/exercises/verhaalsom.js?v=2026-09-24.9"></script>
+  <script src="js/exercises/breuken.js?v=2026-09-24.9"></script>
+  <script src="js/app.js?v=2026-09-24.9"></script>
 </body>
 </html>

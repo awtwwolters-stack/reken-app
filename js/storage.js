@@ -1,10 +1,10 @@
 // Persists progress in the browser (localStorage). No accounts, no server.
 // State is keyed by profile so adding siblings later doesn't require a new storage format.
 
-// v2: skills start at their curriculum startTier; v1 data was test-only and is not migrated.
+// v1 data was test-only and is not migrated.
 const STORAGE_KEY = 'reken-app-state-v2';
 
-function emptySkillState(skill, startTier = skill.startTier || 1) {
+function emptySkillState(skill, startTier) {
   return {
     tier: startTier,
     recentResults: [],

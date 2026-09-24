@@ -39,7 +39,7 @@ function canPractise(profile) {
   return !!profile.groep6Content;
 }
 
-// A child below groep 6 starts one level lower per groep, until their own answers take over.
-function groepOffset(profile) {
-  return profile && profile.groep ? Math.min(0, profile.groep - GROEP_WITH_CONTENT) : 0;
+// The groep used to pick starting levels (a profile without one counts as groep 6).
+function practiceGroep(profile) {
+  return (profile && profile.groep) || GROEP_WITH_CONTENT;
 }

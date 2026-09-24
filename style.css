@@ -138,6 +138,24 @@ h3 { font-size: 1.1rem; color: var(--primary-dark); margin-bottom: 8px; }
 .star-total, .summary-stars { font-size: 1.3rem; font-weight: 700; color: #b8860b; margin: 8px 0; }
 .weeks-in-row { color: var(--primary-dark); font-weight: 600; }
 
+/* Next star goal: a bar filling from the previous milestone to the next. */
+.star-goal { margin: 4px 0 12px; }
+.goal-bar { height: 12px; background: #f3ead2; border-radius: 999px; overflow: hidden; max-width: 320px; margin: 0 auto; }
+.goal-fill { height: 100%; width: 0; background: #e0a800; border-radius: 999px; transition: width 0.6s ease; }
+.goal-text { margin: 6px 0 0; font-size: 0.95rem; color: #8a6500; }
+
+/* "Mijn verzameling": unlocked animals, then a "?" for the next one. */
+.collection { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; margin: 8px 0; }
+.character { font-size: 1.8rem; line-height: 1; }
+.character.next {
+  width: 1.8em; height: 1.8em; font-size: 1rem; display: inline-flex; align-items: center; justify-content: center;
+  border: 2px dashed #d8c58f; border-radius: 50%; color: #b89a4a; font-weight: 700;
+}
+
+.family-goal { background: #fff6e0; color: #7a5a00; border-radius: 10px; padding: 8px 12px; font-weight: 600; }
+.family-goal-fields { border: 2px solid var(--border); border-radius: 12px; padding: 8px 12px 12px; display: flex; flex-direction: column; gap: 10px; }
+.family-goal-fields legend { font-weight: 600; padding: 0 4px; }
+
 .celebrations { list-style: none; padding: 0; margin: 8px 0 16px; }
 .celebrations li { background: var(--correct-bg); color: var(--correct-text); border-radius: 10px; padding: 8px 12px; margin: 6px 0; font-weight: 600; }
 

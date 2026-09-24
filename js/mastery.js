@@ -137,24 +137,30 @@ function classifySkill(skill, skillState, allSkillStates) {
 
 // Where a not-yet-practised skill starts for this child: the curriculum's estimate, shifted
 // by how this child does elsewhere (one level below the estimate on average -> start one lower).
-// Until then, `groepOffset` (negative for a child below groep 6) gives a first estimate.
-function personalStartTier(skill, profileSkillStates, skillsById, groepOffset = 0) {
+// The curriculum's estimate for a child in `groep`: the highest tier labelled at or below it,
+// so "level 1" means the same school year for every skill.
+function groepStartTier(skill, groep) {
+  const fitting = skill.tiers.filter((t) => t.groep <= groep);
+  return fitting.length ? fitting[fitting.length - 1].tier : MIN_TIER;
+}
+
+// Until enough skills have settled, the groep estimate is the start.
+function personalStartTier(skill, profileSkillStates, skillsById, groep = GROEP_WITH_CONTENT) {
+  const estimate = groepStartTier(skill, groep);
   const offsets = Object.entries(profileSkillStates)
     .filter(([id, state]) => skillsById[id] && state.totalAttempts > 0 && !isCalibrating(state))
-    .map(([id, state]) => state.tier - skillsById[id].startTier);
-  // One skill that dropped after two slips must not lower every new skill: wait for a few.
-  if (offsets.length < MIN_SETTLED_SKILLS_FOR_PERSONAL_START) {
-    return Math.min(maxTier(skill), Math.max(MIN_TIER, skill.startTier + groepOffset));
-  }
+    .map(([id, state]) => state.tier - groepStartTier(skillsById[id], groep));
+  // One skill that dropped after two slips must not shift every new skill: wait for a few.
+  if (offsets.length < MIN_SETTLED_SKILLS_FOR_PERSONAL_START) return estimate;
   // Truncate, not round: only shift when the child is a full level off on average. An uneven
   // child (+1 here, 0 there) should start new skills at the plain estimate.
   const offset = Math.trunc(offsets.reduce((a, b) => a + b, 0) / offsets.length);
-  return Math.min(maxTier(skill), Math.max(MIN_TIER, skill.startTier + offset));
+  return Math.min(maxTier(skill), Math.max(MIN_TIER, estimate + offset));
 }
 
-function stateOrNew(skill, profileSkillStates, skillsById, groepOffset = 0) {
+function stateOrNew(skill, profileSkillStates, skillsById, groep = GROEP_WITH_CONTENT) {
   return profileSkillStates[skill.id]
-    || emptySkillState(skill, personalStartTier(skill, profileSkillStates, skillsById, groepOffset));
+    || emptySkillState(skill, personalStartTier(skill, profileSkillStates, skillsById, groep));
 }
 
 function classifyAll(curriculumSkills, profileSkillStates) {
