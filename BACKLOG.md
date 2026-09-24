@@ -72,6 +72,7 @@ Driven by **triggers, not dates**: several steps depend on what the test shows o
 | 2026-09-24 | Tafels ×1–5 too easy; tafels t/m 10 are known | De Wereld in Getallen: 0–5 + 10 by end groep 4, all 0–10 by mid groep 5; tafels answered in 5–6 s | Groep 5 starts at ×1–10, groep 6 at the reversed form (6 × ? = 42) |
 | 2026-09-24 | Tapping Volgende after every correct answer | — | Auto-continue after 1.5 s; mistakes still wait for a tap |
 | 2026-09-24 | Child curious where 48 ★ leads (good signal) | — | D8: next goal, collection, family reward |
+| 2026-09-24 | Parent testing: keyboard didn't come up for the next sum; question should stay visible with the keyboard up; option to remove a child | The auto-continue has no tap, and iPads only open the keyboard on a tap; in landscape the worst case (fraction + picture + hint) ended 127 px below the keyboard | The answer box is reused and stays focused, so the keyboard stays up; hints moved above the box; card at the top during practice; landscape splits question and answer side by side; 'verwijderen' in child setup |
 | 2026-09-24 | Session overall | 27 sums in ~11 min, finished; **81% right first time (target 75–85%)**; the 5 slowest sums were exactly the 5 mistakes; rounding the weak spot | No action: calibration working as designed |
 
 ## NOW — Phase 0: make the first real test meaningful

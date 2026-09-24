@@ -32,6 +32,8 @@ function showScreen(name) {
   SCREENS.forEach((screen) => {
     el(`screen-${screen}`).classList.toggle('hidden', screen !== name);
   });
+  // During practice the card sits at the top, so question and answer stay above the iPad keyboard.
+  document.body.classList.toggle('in-session', name === 'session');
 }
 
 function init() {
@@ -40,8 +42,22 @@ function init() {
   appState = loadState();
   el('start-button').addEventListener('click', startSession);
   el('play-again-button').addEventListener('click', showGreeting);
-  el('submit-button').addEventListener('click', onSubmit);
+  buildAnswerInputs();
+  el('submit-button').addEventListener('click', () => {
+    onSubmit();
+    // A tap may count as a user action to (re)open the iPad keyboard: keep the answer box focused.
+    if (!el('answer-area').classList.contains('hidden')) answerInputs[0].focus();
+  });
   el('next-button').addEventListener('click', onNext);
+  // Pressing a button must not pull focus away from the answer box (that closes the iPad keyboard).
+  ['submit-button', 'next-button'].forEach((id) => el(id).addEventListener('mousedown', (e) => e.preventDefault()));
+  if (window.visualViewport) {
+    // When the keyboard opens, keep the question at the top instead of scrolled out of view.
+    window.visualViewport.addEventListener('resize', () => {
+      if (document.body.classList.contains('in-session')) window.scrollTo(0, 0);
+    });
+  }
+  el('delete-profile-button').addEventListener('click', onDeleteProfile);
   el('switch-profile-button').addEventListener('click', showProfiles);
   el('summary-switch-button').addEventListener('click', showProfiles);
   el('soon-back-button').addEventListener('click', showProfiles);
@@ -181,7 +197,22 @@ function showSetup(profileId) {
   el('profile-current-stars').textContent = profile ? `${profile.name} heeft nu ${profile.stars || 0} ★.` : '';
   el('groep-note').textContent = profile && isAutumnChild(profile.birthDate) ? autumnNote(profile.groep) : '';
   el('profile-form-error').textContent = '';
+  el('delete-profile-button').classList.toggle('hidden', !profile);
+  el('delete-profile-button').textContent = profile ? `${profile.name} verwijderen` : '';
   showScreen('setup');
+}
+
+function onDeleteProfile() {
+  const id = el('profile-id').value;
+  const profile = appState.profiles[id];
+  if (!profile) return;
+  const sure = confirm(`${profile.name} verwijderen? Alle sterren, dieren en oefeningen van ${profile.name} worden gewist. Dit kan niet ongedaan worden gemaakt.`);
+  if (!sure) return;
+  appState = loadState();
+  deleteProfile(appState, id);
+  saveState(appState);
+  if (activeProfileId === id) activeProfileId = null;
+  showProfiles();
 }
 
 function autumnNote(groep) {
@@ -290,49 +321,75 @@ function renderExercise(pick) {
   el('feedback').textContent = '';
   el('feedback').className = 'feedback';
 
-  const fieldsContainer = el('answer-fields');
-  fieldsContainer.innerHTML = '';
-  const isFraction = currentExercise.answerLayout === 'fraction';
-  fieldsContainer.classList.toggle('fraction', isFraction);
-  currentExercise.answerFields.forEach((field, index) => {
-    if (isFraction && index === 1) fieldsContainer.appendChild(Object.assign(document.createElement('div'), { className: 'breukstreep' }));
-    const wrapper = document.createElement('label');
-    wrapper.className = 'answer-field';
-    if (field.label) {
-      const span = document.createElement('span');
-      span.textContent = field.label;
-      wrapper.appendChild(span);
-    }
-    // A text field (not type="number") so Dutch notation like 45.230 reaches our own parser.
-    const input = document.createElement('input');
-    input.type = 'text';
-    input.inputMode = 'numeric';
-    input.autocomplete = 'off';
-    input.spellcheck = false;
-    input.dataset.key = field.key;
-    input.className = 'answer-input-field';
-    if (isFraction) input.setAttribute('aria-label', field.key); // teller / noemer
-    input.addEventListener('keydown', (e) => {
-      if (e.key !== 'Enter') return;
-      // Without this, the same Enter press also "clicks" the Volgende button that
-      // receives focus on submit, skipping the feedback entirely.
-      e.preventDefault();
-      // In a two-field answer, Enter in the first field moves on to the empty second one.
-      const inputs = [...fieldsContainer.querySelectorAll('input')];
-      const next = inputs[inputs.indexOf(input) + 1];
-      if (next && next.value.trim() === '' && !input.value.includes('/')) {
-        next.focus();
-        return;
-      }
-      onSubmit();
-    });
-    wrapper.appendChild(input);
-    fieldsContainer.appendChild(wrapper);
-  });
+  session.awaitingNext = false;
   el('answer-area').classList.remove('hidden');
+  el('submit-button').classList.remove('hidden');
   el('next-button').classList.add('hidden');
-  // Focus only works once the container is visible, so this must come last.
-  fieldsContainer.querySelector('input').focus();
+  // Focus the first box before hiding any unused box: if the focused box were hidden first, the iPad
+  // closes the keyboard, and it can't reopen it when this runs from the auto-continue timer.
+  answerInputs[0].focus();
+
+  const isFraction = currentExercise.answerLayout === 'fraction';
+  el('answer-fields').classList.toggle('fraction', isFraction);
+  el('answer-fields').querySelector('.breukstreep').classList.toggle('hidden', !isFraction);
+  answerInputs.forEach((input, i) => {
+    const field = currentExercise.answerFields[i];
+    input.value = '';
+    input.parentElement.classList.toggle('hidden', !field);
+    if (!field) return;
+    input.dataset.key = field.key;
+    input.parentElement.querySelector('.field-label').textContent = field.label || '';
+    if (isFraction) input.setAttribute('aria-label', field.key); // teller / noemer
+    else input.removeAttribute('aria-label');
+  });
+  window.scrollTo(0, 0);
+}
+
+// The answer boxes are created once and reused for every sum. On the iPad the keyboard only opens
+// on a tap, so the auto-continue (no tap) can only keep it up if the same box simply stays focused.
+let answerInputs = [];
+
+function buildAnswerInputs() {
+  const container = el('answer-fields');
+  container.innerHTML = '';
+  answerInputs = [0, 1].map((i) => {
+    if (i === 1) container.appendChild(Object.assign(document.createElement('div'), { className: 'breukstreep' }));
+    const wrapper = Object.assign(document.createElement('label'), { className: 'answer-field' });
+    wrapper.appendChild(Object.assign(document.createElement('span'), { className: 'field-label' }));
+    // A text field (not type="number") so Dutch notation like 45.230 reaches our own parser.
+    const input = Object.assign(document.createElement('input'), {
+      type: 'text', inputMode: 'numeric', autocomplete: 'off', spellcheck: false, className: 'answer-input-field'
+    });
+    input.addEventListener('keydown', (e) => onAnswerKeydown(e, input));
+    wrapper.appendChild(input);
+    container.appendChild(wrapper);
+    return input;
+  });
+}
+
+function activeInputs() {
+  return answerInputs.slice(0, currentExercise.answerFields.length);
+}
+
+function onAnswerKeydown(e, input) {
+  if (session.awaitingNext) {
+    // During the pause after a correct answer: Enter moves on now; other typing is ignored.
+    e.preventDefault();
+    if (e.key === 'Enter') onNext();
+    return;
+  }
+  if (e.key !== 'Enter') return;
+  // Without this, the same Enter press also "clicks" the Volgende button that
+  // receives focus after a shown solution, skipping the feedback entirely.
+  e.preventDefault();
+  // In a two-field answer, Enter in the first field moves on to the empty second one.
+  const inputs = activeInputs();
+  const next = inputs[inputs.indexOf(input) + 1];
+  if (next && next.value.trim() === '' && !input.value.includes('/')) {
+    next.focus();
+    return;
+  }
+  onSubmit();
 }
 
 // No exact repeats within a session while unused variations remain. Some skills are small by
@@ -405,7 +462,7 @@ function renderVisual(visual) {
 }
 
 function readAnswer() {
-  const inputs = el('answer-fields').querySelectorAll('input');
+  const inputs = activeInputs();
   // A child used to writing "5/8" may type the whole fraction in the teller box.
   const typedFraction = currentExercise.answerLayout === 'fraction'
     && inputs[1].value.trim() === ''
@@ -445,6 +502,7 @@ function isCorrect(values) {
 }
 
 function onSubmit() {
+  if (session.awaitingNext) return; // already answered correctly; the next sum is on its way
   const { values, complete, valid } = readAnswer();
   // An empty field or something that isn't a number is not a wrong answer - it shouldn't count against mastery.
   if (!complete) return;
@@ -477,8 +535,8 @@ function showHint() {
 }
 
 function clearAnswerFields() {
-  el('answer-fields').querySelectorAll('input').forEach((i) => { i.value = ''; });
-  el('answer-fields').querySelector('input').focus();
+  activeInputs().forEach((i) => { i.value = ''; });
+  answerInputs[0].focus();
 }
 
 function concludeExercise(solved) {
@@ -539,11 +597,18 @@ function concludeExercise(solved) {
 
   updateProgress();
   el('next-button').textContent = sessionTimeReached() ? 'Klaar!' : 'Volgende';
-  el('answer-area').classList.add('hidden');
   el('next-button').classList.remove('hidden');
-  el('next-button').focus();
-  // Correct: keep the flow going. After a shown solution the child taps on, so it gets read.
-  if (solved) session.autoNextTimer = setTimeout(onNext, AUTO_NEXT_MS);
+  if (solved) {
+    // Keep the flow going: the answer box stays visible and focused (so the iPad keyboard stays
+    // up) and the next sum follows by itself. "Volgende" remains for an impatient tap.
+    session.awaitingNext = true;
+    el('submit-button').classList.add('hidden');
+    session.autoNextTimer = setTimeout(onNext, AUTO_NEXT_MS);
+  } else {
+    // After a shown solution the child taps on, so it gets read (the keyboard goes down meanwhile).
+    el('answer-area').classList.add('hidden');
+    el('next-button').focus();
+  }
 }
 
 function sessionTimeReached() {

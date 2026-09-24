@@ -169,6 +169,34 @@ h3 { font-size: 1.1rem; color: var(--primary-dark); margin-bottom: 8px; }
   font-size: 1.1rem; padding: 10px; border: 2px solid var(--border); border-radius: 10px; background: #fff;
 }
 .form-error { color: var(--solution-text); min-height: 1em; margin: 0; }
+.link-button.danger { color: var(--solution-text); }
+
+/* During practice: card at the top and compact, so the question, any hint and the answer box
+   all stay above the iPad keyboard. The parent link is hidden meanwhile. */
+body.in-session { justify-content: flex-start; padding-top: 12px; }
+body.in-session .card { padding: 18px 22px; }
+body.in-session h2.prompt { font-size: 2rem; margin: 12px 0; }
+body.in-session .answer-fields { margin: 10px 0; }
+body.in-session .big-button { margin-top: 8px; }
+body.in-session .footer { display: none; }
+.feedback:empty { min-height: 0; margin: 0; }
+
+/* iPad in landscape with the keyboard up leaves only ~380px of height: use the width instead.
+   Question, picture and hint on the left; answer boxes and buttons on the right. */
+@media (orientation: landscape) and (max-height: 560px) {
+  body.in-session .card { max-width: 900px; padding: 10px 18px; }
+  #screen-session { display: grid; grid-template-columns: 1fr 1fr; column-gap: 24px; align-items: start; }
+  #screen-session .progress { grid-column: 1 / -1; }
+  #exercise-prompt { grid-column: 1; grid-row: 2; }
+  #exercise-visual { grid-column: 1; grid-row: 3; }
+  #feedback { grid-column: 1; grid-row: 4; }
+  #answer-area { grid-column: 2; grid-row: 2 / span 2; }
+  #next-button { grid-column: 2; grid-row: 4; }
+  body.in-session h2.prompt { font-size: 1.6rem; margin: 8px 0; }
+  body.in-session .answer-fields { margin: 6px 0; }
+  body.in-session .answer-input-field { font-size: 1.6rem; padding: 8px; }
+  body.in-session .feedback { font-size: 1rem; }
+}
 
 /* Fractions stacked like in the rekenschrift: teller over a breukstreep over noemer. */
 .fraction {

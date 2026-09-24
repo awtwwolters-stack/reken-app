@@ -34,6 +34,13 @@ function saveProfile(state, id, fields) {
   return profileId;
 }
 
+// Removes a child with all their stars, progress and session history.
+function deleteProfile(state, id) {
+  delete state.profiles[id];
+  state.sessions = state.sessions.filter((s) => s.profileId !== id);
+  if (state.lastProfileId === id) delete state.lastProfileId;
+}
+
 // Only groep-6 content exists; the parent decides per child whether to use it for now.
 function canPractise(profile) {
   return !!profile.groep6Content;

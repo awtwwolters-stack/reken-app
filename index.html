@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Reken App</title>
-  <link rel="stylesheet" href="style.css?v=2026-09-24.9">
+  <link rel="stylesheet" href="style.css?v=2026-09-24.10">
 </head>
 <body>
   <main class="card">
@@ -75,6 +75,7 @@
         </fieldset>
         <p id="profile-form-error" class="form-error"></p>
         <button class="big-button" type="submit">Opslaan</button>
+        <button id="delete-profile-button" class="link-button danger hidden" type="button">Verwijder</button>
       </form>
       <button id="setup-back-button" class="link-button" type="button">Terug naar de namen</button>
       <p class="muted">Naam en geboortedatum blijven alleen op dit apparaat.</p>
@@ -84,13 +85,13 @@
       <div class="progress" aria-hidden="true"><div id="progress-fill" class="progress-fill"></div></div>
       <h2 id="exercise-prompt" class="prompt"></h2>
       <div id="exercise-visual" class="exercise-visual hidden"></div>
+      <!-- Above the answer box, so hints stay visible when the iPad keyboard is up. -->
+      <p id="feedback" class="feedback"></p>
 
       <div id="answer-area">
         <div id="answer-fields" class="answer-fields"></div>
         <button id="submit-button" class="big-button">Controleer</button>
       </div>
-
-      <p id="feedback" class="feedback"></p>
 
       <button id="next-button" class="big-button hidden">Volgende</button>
     </section>
@@ -131,22 +132,22 @@
     <a href="parent.html">Ouder overzicht</a>
   </footer>
 
-  <script src="js/utils.js?v=2026-09-24.9"></script>
-  <script src="js/storage.js?v=2026-09-24.9"></script>
-  <script src="js/profiles.js?v=2026-09-24.9"></script>
-  <script src="js/motivation.js?v=2026-09-24.9"></script>
-  <script src="js/mastery.js?v=2026-09-24.9"></script>
-  <script src="js/hints.js?v=2026-09-24.9"></script>
-  <script src="curriculum/group-6.js?v=2026-09-24.9"></script>
-  <script src="js/exercises/optellen.js?v=2026-09-24.9"></script>
-  <script src="js/exercises/aftrekken.js?v=2026-09-24.9"></script>
-  <script src="js/exercises/tafel.js?v=2026-09-24.9"></script>
-  <script src="js/exercises/vermenigvuldigen_groot.js?v=2026-09-24.9"></script>
-  <script src="js/exercises/delen_zonder_rest.js?v=2026-09-24.9"></script>
-  <script src="js/exercises/delen_met_rest.js?v=2026-09-24.9"></script>
-  <script src="js/exercises/getalbegrip.js?v=2026-09-24.9"></script>
-  <script src="js/exercises/verhaalsom.js?v=2026-09-24.9"></script>
-  <script src="js/exercises/breuken.js?v=2026-09-24.9"></script>
-  <script src="js/app.js?v=2026-09-24.9"></script>
+  <script src="js/utils.js?v=2026-09-24.10"></script>
+  <script src="js/storage.js?v=2026-09-24.10"></script>
+  <script src="js/profiles.js?v=2026-09-24.10"></script>
+  <script src="js/motivation.js?v=2026-09-24.10"></script>
+  <script src="js/mastery.js?v=2026-09-24.10"></script>
+  <script src="js/hints.js?v=2026-09-24.10"></script>
+  <script src="curriculum/group-6.js?v=2026-09-24.10"></script>
+  <script src="js/exercises/optellen.js?v=2026-09-24.10"></script>
+  <script src="js/exercises/aftrekken.js?v=2026-09-24.10"></script>
+  <script src="js/exercises/tafel.js?v=2026-09-24.10"></script>
+  <script src="js/exercises/vermenigvuldigen_groot.js?v=2026-09-24.10"></script>
+  <script src="js/exercises/delen_zonder_rest.js?v=2026-09-24.10"></script>
+  <script src="js/exercises/delen_met_rest.js?v=2026-09-24.10"></script>
+  <script src="js/exercises/getalbegrip.js?v=2026-09-24.10"></script>
+  <script src="js/exercises/verhaalsom.js?v=2026-09-24.10"></script>
+  <script src="js/exercises/breuken.js?v=2026-09-24.10"></script>
+  <script src="js/app.js?v=2026-09-24.10"></script>
 </body>
 </html>
