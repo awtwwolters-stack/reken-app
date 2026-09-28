@@ -200,6 +200,68 @@ Hints.breuk_deel_van = function (level, ctx) {
   return `${formatNumberNL(amount)} : ${noemer} = ${formatNumberNL(part)}, dus ${fraction} van ${formatNumberNL(amount)} = ${formatNumberNL(part)}.`;
 };
 
+// Groep 3: few, short words (the 🔊 button reads them aloud) and mostly numbers. The first
+// hint comes with the dot picture (see hintVisual in exercises/aanvankelijk.js).
+Hints.tellen = function (level, ctx) {
+  const { n } = ctx;
+  if (level === 1) return 'Tel de stippen één voor één.';
+  if (level === 2) {
+    if (n > 10) return 'Een vol vak is 10. Tel verder vanaf 10.';
+    if (n > 5) return 'Een volle rij is 5. Tel verder vanaf 5.';
+    return 'Wijs elke stip aan en tel: 1, 2, 3, …';
+  }
+  return `Het zijn er ${n}.`;
+};
+
+Hints.rijtjes = function (level, ctx) {
+  const { shown, step, backward, answer } = ctx;
+  const last = shown[shown.length - 1];
+  if (level === 1) {
+    if (step > 1) return `Het gaat telkens ${step} ${backward ? 'terug' : 'verder'}.`;
+    return backward ? 'Tel terug.' : 'Tel verder.';
+  }
+  if (level === 2) {
+    if (step > 1) return `${last} ${backward ? '-' : '+'} ${step} = ?`;
+    return backward ? `Welk getal komt vóór ${last}?` : `Welk getal komt na ${last}?`;
+  }
+  return `${shown.join(', ')}, ${answer}`;
+};
+
+Hints.splitsen = function (level, ctx) {
+  const { whole, part, answer } = ctx;
+  if (level === 1) return 'Tel de open rondjes.';
+  if (level === 2) return `Begin bij ${part}. Tel verder tot ${whole}.`;
+  return `${whole} = ${part} + ${answer}`;
+};
+
+Hints.plus_tot_20 = function (level, ctx) {
+  const { a, b } = ctx;
+  if (level === 1) return 'Tel de stippen.';
+  if (level === 2) {
+    if (a < 10 && b < 10 && a + b > 10) {
+      const toTen = 10 - a;
+      return `Eerst naar 10: ${a} + ${toTen} = 10. Dan nog ${b - toTen} erbij.`;
+    }
+    // Counting on goes quickest from the bigger number.
+    const [big, small] = a >= b ? [a, b] : [b, a];
+    return `Begin bij ${big} en tel ${small} verder.`;
+  }
+  return `${a} + ${b} = ${a + b}`;
+};
+
+Hints.min_tot_20 = function (level, ctx) {
+  const { a, b } = ctx;
+  if (level === 1) return 'Tel de stippen zonder kruisje.';
+  if (level === 2) {
+    const toTen = a - 10;
+    if (a > 10 && b > toTen) {
+      return `Eerst naar 10: ${a} - ${toTen} = 10. Dan nog ${b - toTen} eraf.`;
+    }
+    return `Begin bij ${a} en tel ${b} terug.`;
+  }
+  return `${a} - ${b} = ${a - b}`;
+};
+
 function getHint(exerciseType, level, hintContext) {
   const fn = Hints[exerciseType];
   if (!fn) return 'Denk rustig na en probeer het nog eens.';

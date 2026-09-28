@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Reken App</title>
-  <link rel="stylesheet" href="style.css?v=2026-09-24.10">
+  <link rel="stylesheet" href="style.css?v=2026-09-28.11">
 </head>
 <body>
   <main class="card">
@@ -16,7 +16,6 @@
     </section>
 
     <section id="screen-start" class="screen hidden">
-      <p id="groep-banner" class="banner hidden">Je oefent met sommen voor groep 6. De app zoekt uit wat bij jou past.</p>
       <h1 id="greeting"></h1>
       <div class="week">
         <div id="week-dots" class="week-dots"></div>
@@ -66,7 +65,6 @@
             <option value="7">7 dagen per week</option>
           </select>
         </label>
-        <label class="checkbox"><input id="profile-groep6" type="checkbox"> Voorlopig groep-6-sommen oefenen</label>
         <fieldset class="family-goal-fields">
           <legend>Groot doel (optioneel)</legend>
           <p id="profile-current-stars" class="muted"></p>
@@ -83,7 +81,11 @@
 
     <section id="screen-session" class="screen hidden">
       <div class="progress" aria-hidden="true"><div id="progress-fill" class="progress-fill"></div></div>
-      <h2 id="exercise-prompt" class="prompt"></h2>
+      <div class="prompt-row">
+        <h2 id="exercise-prompt" class="prompt"></h2>
+        <!-- Only for children still learning to read (groep 3-4): reads the sum and the hint aloud. -->
+        <button id="speak-button" class="speak-button hidden" type="button" aria-label="Lees voor">🔊</button>
+      </div>
       <div id="exercise-visual" class="exercise-visual hidden"></div>
       <!-- Above the answer box, so hints stay visible when the iPad keyboard is up. -->
       <p id="feedback" class="feedback"></p>
@@ -132,22 +134,24 @@
     <a href="parent.html">Ouder overzicht</a>
   </footer>
 
-  <script src="js/utils.js?v=2026-09-24.10"></script>
-  <script src="js/storage.js?v=2026-09-24.10"></script>
-  <script src="js/profiles.js?v=2026-09-24.10"></script>
-  <script src="js/motivation.js?v=2026-09-24.10"></script>
-  <script src="js/mastery.js?v=2026-09-24.10"></script>
-  <script src="js/hints.js?v=2026-09-24.10"></script>
-  <script src="curriculum/group-6.js?v=2026-09-24.10"></script>
-  <script src="js/exercises/optellen.js?v=2026-09-24.10"></script>
-  <script src="js/exercises/aftrekken.js?v=2026-09-24.10"></script>
-  <script src="js/exercises/tafel.js?v=2026-09-24.10"></script>
-  <script src="js/exercises/vermenigvuldigen_groot.js?v=2026-09-24.10"></script>
-  <script src="js/exercises/delen_zonder_rest.js?v=2026-09-24.10"></script>
-  <script src="js/exercises/delen_met_rest.js?v=2026-09-24.10"></script>
-  <script src="js/exercises/getalbegrip.js?v=2026-09-24.10"></script>
-  <script src="js/exercises/verhaalsom.js?v=2026-09-24.10"></script>
-  <script src="js/exercises/breuken.js?v=2026-09-24.10"></script>
-  <script src="js/app.js?v=2026-09-24.10"></script>
+  <script src="js/utils.js?v=2026-09-28.11"></script>
+  <script src="js/storage.js?v=2026-09-28.11"></script>
+  <script src="js/profiles.js?v=2026-09-28.11"></script>
+  <script src="js/motivation.js?v=2026-09-28.11"></script>
+  <script src="js/mastery.js?v=2026-09-28.11"></script>
+  <script src="js/hints.js?v=2026-09-28.11"></script>
+  <script src="curriculum/group-6.js?v=2026-09-28.11"></script>
+  <script src="curriculum/group-3.js?v=2026-09-28.11"></script>
+  <script src="js/exercises/optellen.js?v=2026-09-28.11"></script>
+  <script src="js/exercises/aftrekken.js?v=2026-09-28.11"></script>
+  <script src="js/exercises/tafel.js?v=2026-09-28.11"></script>
+  <script src="js/exercises/vermenigvuldigen_groot.js?v=2026-09-28.11"></script>
+  <script src="js/exercises/delen_zonder_rest.js?v=2026-09-28.11"></script>
+  <script src="js/exercises/delen_met_rest.js?v=2026-09-28.11"></script>
+  <script src="js/exercises/getalbegrip.js?v=2026-09-28.11"></script>
+  <script src="js/exercises/verhaalsom.js?v=2026-09-28.11"></script>
+  <script src="js/exercises/breuken.js?v=2026-09-28.11"></script>
+  <script src="js/exercises/aanvankelijk.js?v=2026-09-28.11"></script>
+  <script src="js/app.js?v=2026-09-28.11"></script>
 </body>
 </html>

@@ -5,7 +5,6 @@ const MAX_HINT_LEVEL = 3;
 const MAX_TRIES_FOR_NEW_EXERCISE = 20;
 // After a correct answer the praise and star stay visible this long, then the next sum follows.
 const AUTO_NEXT_MS = 1500;
-const SESSION_TARGET_MS = 10 * 60 * 1000;
 // Time on one exercise counts for at most this long, so walking away doesn't use up the session.
 const MAX_COUNTED_MS_PER_EXERCISE = 90 * 1000;
 // A category counts as "Sterk" in the summary when at least this share was right the first time.
@@ -14,10 +13,16 @@ const SUMMARY_STRONG_RATE = 0.8;
 const PRAISE_FIRST_TRY = ['Goed!', 'Netjes!', 'Yes, die heb je!', 'Knap gedaan!', 'Precies!'];
 const PRAISE_WITH_HELP = ['Goed, dat lukte!', 'Mooi, je hebt hem nu!', 'Zo is hij goed!'];
 const INVALID_NUMBER_MESSAGE = 'Typ alleen een getal, bijvoorbeeld 4520 of 4.520.';
+// Prompts longer than this are sentences (verhaalsommen) and get a smaller font.
+const LONG_PROMPT_CHARS = 30;
+// Text shrinks in these steps, down to this share of its normal size, until the card fits.
+const FIT_STEP = 0.05;
+const MIN_FIT = 0.6;
 const INVALID_FRACTION_MESSAGE = 'Typ boven de streep een getal en onder de streep een getal.';
 
 let appState = null;
 let curriculumById = {};
+let childSkillsById = {}; // the active child's own skills (skillsForGroep), see selectProfile
 let session = null;
 let currentExercise = null;
 let activeProfileId = null;
@@ -34,11 +39,15 @@ function showScreen(name) {
   });
   // During practice the card sits at the top, so question and answer stay above the iPad keyboard.
   document.body.classList.toggle('in-session', name === 'session');
+  if (name !== 'session') stopSpeaking();
 }
 
 function init() {
   curriculumById = {};
   CURRICULUM.skills.forEach((s) => { curriculumById[s.id] = s; });
+  // A built skill without a groep range would silently never be practised.
+  CURRICULUM.skills.filter((s) => s.implemented && !s.groepen)
+    .forEach((s) => console.error(`Vaardigheid ${s.id} mist "groepen" en komt nooit aan bod.`));
   appState = loadState();
   el('start-button').addEventListener('click', startSession);
   el('play-again-button').addEventListener('click', showGreeting);
@@ -50,11 +59,16 @@ function init() {
   });
   el('next-button').addEventListener('click', onNext);
   // Pressing a button must not pull focus away from the answer box (that closes the iPad keyboard).
-  ['submit-button', 'next-button'].forEach((id) => el(id).addEventListener('mousedown', (e) => e.preventDefault()));
+  el('speak-button').addEventListener('click', speakExercise);
+  // Some browsers list their voices only after a moment: re-check whether a Dutch one exists.
+  if ('speechSynthesis' in window) window.speechSynthesis.addEventListener('voiceschanged', updateSpeakButton);
+  ['submit-button', 'next-button', 'speak-button'].forEach((id) => el(id).addEventListener('mousedown', (e) => e.preventDefault()));
   if (window.visualViewport) {
-    // When the keyboard opens, keep the question at the top instead of scrolled out of view.
+    // When the keyboard opens or the iPad turns: question back at the top, and resized to fit.
     window.visualViewport.addEventListener('resize', () => {
-      if (document.body.classList.contains('in-session')) window.scrollTo(0, 0);
+      if (!document.body.classList.contains('in-session')) return;
+      window.scrollTo(0, 0);
+      fitSessionToScreen();
     });
   }
   el('delete-profile-button').addEventListener('click', onDeleteProfile);
@@ -68,6 +82,13 @@ function init() {
   showProfiles();
 }
 
+// The active child's own skills; follows their groep (also after a change in another tab).
+function loadChildSkills() {
+  childSkillsById = Object.fromEntries(
+    skillsForGroep(CURRICULUM.skills, practiceGroep(activeProfile())).map((s) => [s.id, s])
+  );
+}
+
 function activeProfile() {
   return appState.profiles[activeProfileId];
 }
@@ -77,7 +98,7 @@ function profileSkillStates() {
 }
 
 function currentSkillState(skill) {
-  const startTier = personalStartTier(skill, profileSkillStates(), curriculumById, practiceGroep(activeProfile()));
+  const startTier = personalStartTier(skill, profileSkillStates(), childSkillsById, practiceGroep(activeProfile()));
   return getSkillState(appState, activeProfileId, skill, startTier);
 }
 
@@ -102,6 +123,7 @@ function showProfiles() {
 function selectProfile(id) {
   activeProfileId = id;
   appState.lastProfileId = id;
+  loadChildSkills();
   saveState(appState);
   if (canPractise(activeProfile())) {
     showGreeting();
@@ -114,7 +136,6 @@ function selectProfile(id) {
 function showGreeting() {
   const profile = activeProfile();
   el('greeting').textContent = `Hoi ${profile.name}! Klaar om te rekenen?`;
-  el('groep-banner').classList.toggle('hidden', profile.groep === GROEP_WITH_CONTENT);
   renderWeek(el('week-dots'), el('week-message'), profile);
   const stars = profile.stars || 0;
   el('star-total').textContent = `★ ${stars} sterren`;
@@ -189,9 +210,8 @@ function showSetup(profileId) {
   el('profile-id').value = profileId || '';
   el('profile-name').value = profile ? profile.name : '';
   el('profile-birthdate').value = profile ? profile.birthDate : '';
-  el('profile-groep').value = String(profile ? profile.groep : GROEP_WITH_CONTENT);
+  el('profile-groep').value = String(profile ? profile.groep : DEFAULT_GROEP);
   el('profile-weekgoal').value = String(profile ? profile.weekGoal : DEFAULT_WEEK_GOAL);
-  el('profile-groep6').checked = profile ? !!profile.groep6Content : true;
   el('profile-goal-stars').value = profile && profile.familyGoal ? profile.familyGoal.stars : '';
   el('profile-goal-text').value = profile && profile.familyGoal ? profile.familyGoal.text : '';
   el('profile-current-stars').textContent = profile ? `${profile.name} heeft nu ${profile.stars || 0} ★.` : '';
@@ -225,7 +245,6 @@ function onBirthdateChange() {
   const groep = Math.max(0, Math.min(8, estimateGroep(birthDate)));
   el('profile-groep').value = String(groep);
   el('groep-note').textContent = isAutumnChild(birthDate) ? autumnNote(groep) : 'Geschat op basis van de geboortedatum. Pas aan als het niet klopt.';
-  if (!el('profile-id').value) el('profile-groep6').checked = groep >= 3; // kleuters can't read the sums yet
 }
 
 function onProfileFormSubmit(e) {
@@ -249,7 +268,6 @@ function onProfileFormSubmit(e) {
     birthDate,
     groep: Number(el('profile-groep').value),
     weekGoal: Number(el('profile-weekgoal').value),
-    groep6Content: el('profile-groep6').checked,
     familyGoal: goalText ? { stars: goalStars, text: goalText } : null
   });
   saveState(appState);
@@ -262,11 +280,14 @@ function tierConfigFor(skill, tier) {
 
 function startSession() {
   appState = loadState(); // pick up a backup restored in another tab since this page loaded
-  const selection = selectSessionSkills(CURRICULUM.skills, profileSkillStates());
+  const groep = practiceGroep(activeProfile());
+  const selection = selectSessionSkills(Object.values(childSkillsById), profileSkillStates(), groep);
   const record = startSessionRecord(appState, activeProfileId, selection);
   saveState(appState);
   session = {
     record, // the stored log for the parent view, saved after every exercise
+    groep,
+    targetMs: sessionMinutes(activeProfile()) * 60 * 1000,
     starsAtStart: activeProfile().stars || 0,
     starsEarned: 0,
     levelUps: [], // category names, for "Niveau omhoog: Tafels!"
@@ -298,7 +319,7 @@ function nextExercise() {
     const [followUp] = session.followUps.splice(dueIndex, 1);
     pick = { skillId: followUp.skillId, reason: 'controle na uitleg' };
   } else {
-    pick = pickNextSkill(session.skillIds, curriculumById, profileSkillStates(), session.previousSkillId);
+    pick = pickNextSkill(session.skillIds, childSkillsById, profileSkillStates(), session.previousSkillId, session.groep);
   }
   renderExercise(pick);
 }
@@ -316,6 +337,8 @@ function renderExercise(pick) {
   session.hadMistake = false;
   session.exerciseStartedAt = Date.now();
 
+  stopSpeaking();
+  updateSpeakButton();
   renderPrompt(currentExercise);
   renderVisual(currentExercise.visual);
   el('feedback').textContent = '';
@@ -343,6 +366,7 @@ function renderExercise(pick) {
     else input.removeAttribute('aria-label');
   });
   window.scrollTo(0, 0);
+  fitSessionToScreen();
 }
 
 // The answer boxes are created once and reused for every sum. On the iPad the keyboard only opens
@@ -412,6 +436,8 @@ function freshExercise(skill, tierConfig) {
 // ['text', { fraction: [1, 4] }, 'more text'].
 function renderPrompt(exercise) {
   const promptEl = el('exercise-prompt');
+  // Verhaalsommen are sentences, not sums: they start smaller.
+  promptEl.classList.toggle('long', exercise.prompt.length > LONG_PROMPT_CHARS);
   if (!exercise.promptParts) {
     promptEl.textContent = exercise.prompt;
     return;
@@ -434,31 +460,124 @@ function renderPrompt(exercise) {
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
 
-// A strook (bar) split into equal parts, the first `coloured` parts filled - the classroom breukenkast.
 function renderVisual(visual) {
   const container = el('exercise-visual');
   container.innerHTML = '';
   container.classList.toggle('hidden', !visual);
-  if (!visual || visual.type !== 'strook') return;
+  if (!visual) return;
+  if (visual.type === 'strook') container.appendChild(strookSvg(visual));
+  if (visual.type === 'dots') container.appendChild(dotsSvg(visual));
+}
 
+function svgNode(tag, attributes) {
+  const node = document.createElementNS(SVG_NS, tag);
+  Object.entries(attributes).forEach(([name, value]) => node.setAttribute(name, value));
+  return node;
+}
+
+// Dots in ten-frames of 2 rows of 5 (the classroom's five-structure), filled row by row, so
+// 8 + 5 visibly fills the first 10 before spilling into the second frame.
+const DOT_CELL = 36;
+const FRAME_GAP = 16;
+
+function dotsSvg(visual) {
+  const kinds = visual.parts.flatMap((part) => Array(part.count).fill(part.kind));
+  const frames = Math.max(1, Math.ceil(kinds.length / 10));
+  const frameWidth = 5 * DOT_CELL;
+  const width = frames * frameWidth + (frames - 1) * FRAME_GAP;
+  const height = 2 * DOT_CELL;
+  const svg = svgNode('svg', { viewBox: `-2 -2 ${width + 4} ${height + 4}`, class: 'dots', role: 'img' });
+  svg.setAttribute('aria-label', `${kinds.length} stippen`);
+  for (let i = 0; i < frames * 10; i++) {
+    const frame = Math.floor(i / 10);
+    const x = frame * (frameWidth + FRAME_GAP) + (i % 5) * DOT_CELL;
+    const y = Math.floor((i % 10) / 5) * DOT_CELL;
+    svg.appendChild(svgNode('rect', { x, y, width: DOT_CELL, height: DOT_CELL, class: 'dot-cell' }));
+    const kind = kinds[i];
+    if (!kind) continue;
+    const cx = x + DOT_CELL / 2;
+    const cy = y + DOT_CELL / 2;
+    svg.appendChild(svgNode('circle', { cx, cy, r: DOT_CELL * 0.36, class: `dot dot-${kind}` }));
+    if (kind === 'gone') {
+      const d = DOT_CELL * 0.3;
+      svg.appendChild(svgNode('path', { d: `M${cx - d} ${cy - d}L${cx + d} ${cy + d}M${cx + d} ${cy - d}L${cx - d} ${cy + d}`, class: 'dot-cross' }));
+    }
+  }
+  return svg;
+}
+
+// A strook (bar) split into equal parts, the first `coloured` parts filled - the classroom breukenkast.
+function strookSvg(visual) {
   const width = 320;
   const height = 56;
-  const svg = document.createElementNS(SVG_NS, 'svg');
-  svg.setAttribute('viewBox', `-2 -2 ${width + 4} ${height + 4}`);
-  svg.setAttribute('class', 'strook');
-  svg.setAttribute('role', 'img');
+  const svg = svgNode('svg', { viewBox: `-2 -2 ${width + 4} ${height + 4}`, class: 'strook', role: 'img' });
   svg.setAttribute('aria-label', `Strook in ${visual.parts} gelijke stukken, ${visual.coloured} gekleurd`);
   const partWidth = width / visual.parts;
   for (let i = 0; i < visual.parts; i++) {
-    const rect = document.createElementNS(SVG_NS, 'rect');
-    rect.setAttribute('x', i * partWidth);
-    rect.setAttribute('y', 0);
-    rect.setAttribute('width', partWidth);
-    rect.setAttribute('height', height);
-    rect.setAttribute('class', i < visual.coloured ? 'strook-part coloured' : 'strook-part');
-    svg.appendChild(rect);
+    svg.appendChild(svgNode('rect', {
+      x: i * partWidth, y: 0, width: partWidth, height, class: i < visual.coloured ? 'strook-part coloured' : 'strook-part'
+    }));
   }
-  container.appendChild(svg);
+  return svg;
+}
+
+// Everything in a sum (question, picture, hint, answer box) should fit above the iPad keyboard
+// without scrolling. Font sizes in the session use --fit; shrink step by step until the card fits.
+function fitSessionToScreen() {
+  if (!document.body.classList.contains('in-session')) return;
+  const style = document.body.style;
+  const card = document.querySelector('.card');
+  const visibleHeight = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+  let fit = 1;
+  style.setProperty('--fit', fit);
+  while (card.getBoundingClientRect().bottom > visibleHeight && fit > MIN_FIT + 0.001) {
+    fit = Math.round((fit - FIT_STEP) * 100) / 100;
+    style.setProperty('--fit', fit);
+  }
+}
+
+// 🔊 Read aloud with the device's own Dutch voice, only on a tap. The question has its own
+// spoken sentence ("Hoeveel is 3 plus 4?"); a shown hint or solution is read after it.
+function dutchVoice() {
+  return window.speechSynthesis.getVoices().find((v) => v.lang.replace('_', '-').toLowerCase().startsWith('nl'));
+}
+
+// Some browsers list their voices only later; an empty list is worth a try with lang nl-NL.
+function canSpeakDutch() {
+  if (!('speechSynthesis' in window)) return false;
+  return window.speechSynthesis.getVoices().length === 0 || !!dutchVoice();
+}
+
+function toSpeech(text) {
+  return text
+    .replace(/ \+ /g, ' plus ')
+    .replace(/ - /g, ' min ')
+    .replace(/ = \?/g, ' is hoeveel?')
+    .replace(/ = /g, ' is ')
+    .replace(/ x /g, ' keer ')
+    .replace(/ : /g, ' gedeeld door ');
+}
+
+function speakExercise() {
+  if (!currentExercise || !('speechSynthesis' in window)) return;
+  const parts = [currentExercise.speech || toSpeech(currentExercise.prompt)];
+  const feedback = el('feedback');
+  if (feedback.textContent && !feedback.classList.contains('feedback-correct')) parts.push(toSpeech(feedback.textContent));
+  stopSpeaking();
+  const utterance = new SpeechSynthesisUtterance(parts.join(' '));
+  utterance.lang = 'nl-NL';
+  const voice = dutchVoice();
+  if (voice) utterance.voice = voice;
+  utterance.rate = 0.9;
+  window.speechSynthesis.speak(utterance);
+}
+
+function updateSpeakButton() {
+  el('speak-button').classList.toggle('hidden', !(activeProfile() && offersReadAloud(activeProfile()) && canSpeakDutch()));
+}
+
+function stopSpeaking() {
+  if ('speechSynthesis' in window) window.speechSynthesis.cancel();
 }
 
 function readAnswer() {
@@ -510,6 +629,7 @@ function onSubmit() {
     el('feedback').textContent = currentExercise.answerLayout === 'fraction' ? INVALID_FRACTION_MESSAGE : INVALID_NUMBER_MESSAGE;
     el('feedback').className = 'feedback feedback-hint';
     clearAnswerFields();
+    fitSessionToScreen();
     return;
   }
 
@@ -531,7 +651,10 @@ function showHint() {
   const hintText = getHint(currentExercise.exerciseType, session.hintLevel, currentExercise.hintContext);
   el('feedback').textContent = hintText;
   el('feedback').className = 'feedback feedback-hint';
+  // For a child who can't read yet, the picture is the real hint.
+  if (currentExercise.hintVisual) renderVisual(currentExercise.hintVisual);
   clearAnswerFields();
+  fitSessionToScreen();
 }
 
 function clearAnswerFields() {
@@ -593,6 +716,7 @@ function concludeExercise(solved) {
     const solution = getHint(currentExercise.exerciseType, MAX_HINT_LEVEL, currentExercise.hintContext);
     feedbackEl.textContent = `Bijna! Zo los je hem op: ${solution}`;
     feedbackEl.className = 'feedback feedback-solution';
+    if (currentExercise.hintVisual) renderVisual(currentExercise.hintVisual);
   }
 
   updateProgress();
@@ -609,14 +733,15 @@ function concludeExercise(solved) {
     el('answer-area').classList.add('hidden');
     el('next-button').focus();
   }
+  fitSessionToScreen();
 }
 
 function sessionTimeReached() {
-  return session.activeMs >= SESSION_TARGET_MS;
+  return session.activeMs >= session.targetMs;
 }
 
 function updateProgress() {
-  const pct = Math.min(100, (session.activeMs / SESSION_TARGET_MS) * 100);
+  const pct = Math.min(100, (session.activeMs / session.targetMs) * 100);
   el('progress-fill').style.width = `${pct}%`;
 }
 
@@ -717,6 +842,7 @@ function renderList(elementId, items, emptyText) {
 window.addEventListener('storage', (e) => {
   if (e.key !== STORAGE_KEY) return;
   appState = loadState();
+  if (activeProfile()) loadChildSkills();
   if (session) {
     const same = appState.sessions.find((s) => s.id === session.record.id);
     if (same) session.record = same;

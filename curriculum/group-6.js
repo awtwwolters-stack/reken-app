@@ -2,6 +2,7 @@
 // the highest tier labelled at or below the child's groep; the app then adapts within 1-2 sessions.
 // Tafels per De Wereld in Getallen: 0-5 + 10 automated by end of groep 4, all 0-10 by mid groep 5.
 // A skill's maximum level is the number of entries in its `tiers`.
+// "groepen": [from, to] - a child only practises skills whose range includes their groep.
 const CURRICULUM = {
   "group": 6,
   "sources": [
@@ -17,6 +18,7 @@ const CURRICULUM = {
       "description": "Grote getallen vergelijken, ordenen en afronden.",
       "exerciseType": "getalbegrip",
       "implemented": true,
+      "groepen": [5, 8],
       "prerequisites": [],
       "tiers": [
         { "tier": 1, "groep": 5, "max": 1000 },
@@ -33,6 +35,7 @@ const CURRICULUM = {
       "description": "Optellen met grotere getallen, ook kolomsgewijs. Uitkomst blijft binnen het bereik van de tier.",
       "exerciseType": "optellen",
       "implemented": true,
+      "groepen": [4, 8],
       "prerequisites": ["getalbegrip_tot_100000"],
       "tiers": [
         { "tier": 1, "groep": 4, "min": 1, "max": 50 },
@@ -49,6 +52,7 @@ const CURRICULUM = {
       "description": "Aftrekken met grotere getallen, ook kolomsgewijs.",
       "exerciseType": "aftrekken",
       "implemented": true,
+      "groepen": [4, 8],
       "prerequisites": ["getalbegrip_tot_100000"],
       "tiers": [
         { "tier": 1, "groep": 4, "min": 1, "max": 100 },
@@ -66,6 +70,7 @@ const CURRICULUM = {
       "exerciseType": "tafel",
       "table": 6,
       "implemented": true,
+      "groepen": [4, 8],
       "prerequisites": [],
       "tiers": [
         { "tier": 1, "groep": 4, "multiplierMax": 5 },
@@ -82,6 +87,7 @@ const CURRICULUM = {
       "exerciseType": "tafel",
       "table": 7,
       "implemented": true,
+      "groepen": [4, 8],
       "prerequisites": [],
       "tiers": [
         { "tier": 1, "groep": 4, "multiplierMax": 5 },
@@ -98,6 +104,7 @@ const CURRICULUM = {
       "exerciseType": "tafel",
       "table": 8,
       "implemented": true,
+      "groepen": [4, 8],
       "prerequisites": [],
       "tiers": [
         { "tier": 1, "groep": 4, "multiplierMax": 5 },
@@ -114,6 +121,7 @@ const CURRICULUM = {
       "exerciseType": "tafel",
       "table": 9,
       "implemented": true,
+      "groepen": [4, 8],
       "prerequisites": [],
       "tiers": [
         { "tier": 1, "groep": 4, "multiplierMax": 5 },
@@ -130,6 +138,7 @@ const CURRICULUM = {
       "exerciseType": "tafel",
       "table": 10,
       "implemented": true,
+      "groepen": [4, 8],
       "prerequisites": [],
       "tiers": [
         { "tier": 1, "groep": 4, "multiplierMax": 5 },
@@ -145,6 +154,7 @@ const CURRICULUM = {
       "description": "Een getal van twee cijfers keer een getal van één cijfer.",
       "exerciseType": "vermenigvuldigen_groot",
       "implemented": true,
+      "groepen": [5, 8],
       "prerequisites": ["vermenigvuldigen_tafel_6", "vermenigvuldigen_tafel_7", "vermenigvuldigen_tafel_8", "vermenigvuldigen_tafel_9"],
       "tiers": [
         { "tier": 1, "groep": 5, "factor1Max": 20, "factor2Max": 5 },
@@ -160,6 +170,7 @@ const CURRICULUM = {
       "description": "Deelsommen die precies uitkomen.",
       "exerciseType": "delen_zonder_rest",
       "implemented": true,
+      "groepen": [4, 8],
       "prerequisites": ["vermenigvuldigen_tafel_6", "vermenigvuldigen_tafel_7", "vermenigvuldigen_tafel_8", "vermenigvuldigen_tafel_9"],
       "tiers": [
         { "tier": 1, "groep": 4, "divisorMax": 5, "quotientMax": 10 },
@@ -175,6 +186,7 @@ const CURRICULUM = {
       "description": "Deelsommen waar een rest overblijft.",
       "exerciseType": "delen_met_rest",
       "implemented": true,
+      "groepen": [5, 8],
       "prerequisites": ["delen_zonder_rest"],
       "tiers": [
         { "tier": 1, "groep": 5, "divisorMax": 5, "quotientMax": 8 },
@@ -191,6 +203,7 @@ const CURRICULUM = {
       "description": "Rekenverhalen met optellen, aftrekken, vermenigvuldigen en delen.",
       "exerciseType": "verhaalsom",
       "implemented": true,
+      "groepen": [5, 8],
       "prerequisites": ["optellen_tot_100000", "aftrekken_tot_100000", "vermenigvuldigen_grote_getallen", "delen_zonder_rest"],
       "tiers": [
         { "tier": 1, "groep": 5, "max": 100 },
@@ -206,6 +219,7 @@ const CURRICULUM = {
       "description": "Welk deel van een strook is gekleurd? Groep-5-herhaling; zesden/tienden pas als de klas zover is.",
       "exerciseType": "breuk_herkennen",
       "implemented": true,
+      "groepen": [5, 8],
       "prerequisites": [],
       "tiers": [
         { "tier": 1, "groep": 5, "denominators": [2, 4] },
@@ -220,6 +234,7 @@ const CURRICULUM = {
       "description": "Een stambreuk van een getal, zoals ¼ van 20. Niet-stambreuken (¾ van 20) pas als de klas zover is.",
       "exerciseType": "breuk_deel_van",
       "implemented": true,
+      "groepen": [5, 8],
       "prerequisites": ["delen_zonder_rest"],
       "tiers": [
         { "tier": 1, "groep": 5, "denominators": [2, 4], "quotientMax": 10 },

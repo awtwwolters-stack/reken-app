@@ -81,13 +81,18 @@ function renderSessions(state, skillsById, profileId) {
   });
 }
 
-function renderSkills(state, skillsById, profileId) {
+function renderSkills(state, profileId) {
   const profile = state.profiles[profileId];
   const profileSkills = (profile && profile.skills) || {};
   const tbody = document.getElementById('parent-table-body');
   tbody.innerHTML = '';
 
-  CURRICULUM.skills.forEach((skill) => {
+  // Only this child's skills; the not-yet-built groep-6 topics are listed for the older children.
+  const groep = practiceGroep(profile);
+  const childSkills = skillsForGroep(CURRICULUM.skills, groep);
+  const childSkillsById = Object.fromEntries(childSkills.map((s) => [s.id, s]));
+  const unbuilt = groep >= 5 ? CURRICULUM.skills.filter((s) => !s.implemented) : [];
+  [...childSkills, ...unbuilt].forEach((skill) => {
     if (!skill.implemented) {
       const row = tableRow([skill.name, skill.domain]);
       const note = node('td', 'nog niet gebouwd (staat in de data, wachtend op implementatie)', 'not-implemented');
@@ -97,7 +102,7 @@ function renderSkills(state, skillsById, profileId) {
       return;
     }
 
-    const skillState = stateOrNew(skill, profileSkills, skillsById, practiceGroep(profile));
+    const skillState = stateOrNew(skill, profileSkills, childSkillsById, groep);
     const rate = successRate(skillState);
     const { bucket, reason } = classifySkill(skill, skillState, profileSkills);
     const change = skillState.lastTierChange;
@@ -131,7 +136,7 @@ function renderParentView() {
   const profileId = renderChildSelect(state);
   renderBackupStatus(state);
   renderSessions(state, skillsById, profileId);
-  renderSkills(state, skillsById, profileId);
+  renderSkills(state, profileId);
 }
 
 // Keeps the current choice; otherwise the child who practised last. Returns the chosen profile id.

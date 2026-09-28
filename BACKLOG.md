@@ -1,6 +1,6 @@
 # Reken App — Backlog
 
-_Last updated: 2026-09-24 · Status: T-01 running; first real-use lessons applied (see T-01 feedback log). See Roadmap._
+_Last updated: 2026-09-28 · Status: T-01 running; groep-3 and groep-5 siblings practising too (D9). See Roadmap._
 
 Size: **S** = small change · **M** = one focused build session · **L** = several sessions
 
@@ -43,6 +43,7 @@ It starts with one child (groep 6) and one domain (core arithmetic). Over time i
 | D5 | **Hosting:** GitHub Pages, public repository (free) | No login needed on the iPad, so the child never uses a parent's account. The code is backed up online. Family details stay out of the repo |
 | D6 | **Winter focus (2026-09-23):** complete groep 6 before bringing a second child on board | Phase 3 before Phase 5; siblings from spring 2027 |
 | D7 | **Motivation + profiles before the test (2026-09-23):** name picker; groep from birth date (parent confirms); a younger sibling may practise groep-6 content for now with a banner, an easier start and separate progress; stars for every sum finished correctly (also with a hint) + bonuses; **weekdoel (default 4 days) instead of a daily streak** (research: streak loss causes anxiety in children) | M-01 and S-01 done early; T-01 now also tests the motivation, so we can't separate 'comes back for the maths' from 'comes back for the stars' |
+| D9 | **Siblings now, not spring 2027 (2026-09-28):** the groep-3 and groep-5 siblings wanted to practise. Every skill carries the groepen it is for (`groepen: [from, to]`); a child only sees skills for their own groep and starts at the beginning-of-year level of that groep. Groep 3 gets 5 new skills (tellen, rijtjes, splitsen, + and − tot 20) with dot pictures, **5-minute sessions** and a **🔊 read-aloud button** (device's own Dutch voice, only on a tap). Groep 5 keeps the existing skills at groep-5 starting levels; the "groep 6" banner and the parent checkbox are gone. No new groep-5 topics yet | Moves part of Phase 5 (S-02) forward; the rest of groep 6 (Phase 3) moves back correspondingly. Klokkijken and geld are the next groep-5 candidates: each needs a new picture and a new answer format, so each is its own build |
 | D8 | **Stars get a direction (2026-09-24):** visible next goal, a character collection (one animal per milestone, the seed of M-02), and an optional family reward set by the parent. Auto-continue 1.5 s after a correct answer | Stars stay never-spent; spending comes with M-02 |
 
 ## Roadmap (confirmed 2026-09-23)
@@ -57,7 +58,7 @@ Driven by **triggers, not dates**: several steps depend on what the test shows o
 | Before any new domain | **Q-02** permanent automatic correctness checks (pulled forward) | Start of Phase 3 |
 | Winter 2026–27 | **Phase 3:** rest of groep 6, in the school's order (D6) | After T-01 + quality |
 | Only with evidence | Phase 4 motivation (story/character) | T-01 shows motivation is the bottleneck |
-| Spring 2027 | Phase 5: profile picker + second child's curriculum (S-01, S-02) | Groep 6 solid |
+| ~~Spring 2027~~ Pulled forward (D9) | Phase 5: profile picker + siblings' curricula (S-01 ✅, S-02 ◐ groep 3 done, groep 5 on existing skills) | Siblings asked to practise |
 | **By summer 2027** | Groep 7 curriculum (S-03) | New school year: the one real deadline |
 
 ---
@@ -74,6 +75,8 @@ Driven by **triggers, not dates**: several steps depend on what the test shows o
 | 2026-09-24 | Child curious where 48 ★ leads (good signal) | — | D8: next goal, collection, family reward |
 | 2026-09-24 | Parent testing: keyboard didn't come up for the next sum; question should stay visible with the keyboard up; option to remove a child | The auto-continue has no tap, and iPads only open the keyboard on a tap; in landscape the worst case (fraction + picture + hint) ended 127 px below the keyboard | The answer box is reused and stays focused, so the keyboard stays up; hints moved above the box; card at the top during practice; landscape splits question and answer side by side; 'verwijderen' in child setup |
 | 2026-09-24 | Session overall | 27 sums in ~11 min, finished; **81% right first time (target 75–85%)**; the 5 slowest sums were exactly the 5 mistakes; rounding the weak spot | No action: calibration working as designed |
+| 2026-09-28 | Landscape with keyboard: text sometimes too big to see the whole sum without scrolling | Long word problems and worked solutions made the card taller than the space above the keyboard | Word problems start in a smaller font; the whole practice screen shrinks step by step (to at most 60%) until it fits, and grows back when the keyboard goes down; answer boxes never below 16px (iPad zooms in below that) |
+| 2026-09-28 | Groep-3 and groep-5 siblings excited and want to practise | Groep-3 goals (De Wereld in Getallen and SLO sources): counting to 20 with the five-structure, splitsen incl. vriendjes van 10, + and − to 10 then 20 | D9: groep-3 skills with dot pictures, 5-minute sessions, 🔊; simulated groep-3 child: levels settle at the child's real level, 0 repeats in 100 sums |
 
 ## NOW — Phase 0: make the first real test meaningful
 
@@ -138,7 +141,7 @@ These must be done before daily use. Without them the test won't tell us whether
 | ID | Item | Size |
 |---|---|---|
 | ~~S-01~~ ✅ | Profile picker + parent setup (name, birth date → groep, weekdoel), done early with D7 | S–M |
-| S-02 | Curricula for groep 3–5. Mostly new data and lower levels; the exercise generators are largely reusable | M per group |
+| S-02 ◐ | Curricula for groep 3–5. **Groep 3 done (D9):** tellen, rijtjes, splitsen, + and − tot 20 with dot pictures. Groep 4–5 use the existing skills from their own starting level. Next candidates for groep 4–5: klokkijken, geld, tafels 1–5 | M per group |
 | S-03 | **Groep 7 curriculum, needed by the start of the next school year** (the only real deadline) | L |
 | S-04 | **Kleuters (groep 1–2):** can't read yet, so this needs spoken instructions, counting with pictures, and tapping instead of typing. That makes it a different experience, not "just another profile" | L |
 

@@ -1,7 +1,8 @@
 // Children's profiles. Names and birth dates live only in this browser's storage, never in
 // the code: the repository is public.
 
-const GROEP_WITH_CONTENT = 6;
+// A profile without a groep (the old unnamed test profile) counts as groep 6.
+const DEFAULT_GROEP = 6;
 const DEFAULT_WEEK_GOAL = 4;
 
 // Dutch schools place children by their age on 1 October of the school year (which starts in
@@ -41,12 +42,25 @@ function deleteProfile(state, id) {
   if (state.lastProfileId === id) delete state.lastProfileId;
 }
 
-// Only groep-6 content exists; the parent decides per child whether to use it for now.
-function canPractise(profile) {
-  return !!profile.groep6Content;
+// The child's groep decides which skills they practise and where each one starts.
+// Groep 0 ("nog niet op school") is a real value, not a missing one.
+function practiceGroep(profile) {
+  return profile && Number.isInteger(profile.groep) ? profile.groep : DEFAULT_GROEP;
 }
 
-// The groep used to pick starting levels (a profile without one counts as groep 6).
-function practiceGroep(profile) {
-  return (profile && profile.groep) || GROEP_WITH_CONTENT;
+// A child can practise once there are sums for their groep (not yet for kleuters).
+function canPractise(profile) {
+  return skillsForGroep(CURRICULUM.skills, practiceGroep(profile)).length > 0;
+}
+
+// Young children (still learning to read) get sessions of 5 minutes and a 🔊 button.
+const YOUNG_READER_MAX_GROEP = 4;
+const SHORT_SESSION_MAX_GROEP = 3;
+
+function sessionMinutes(profile) {
+  return practiceGroep(profile) <= SHORT_SESSION_MAX_GROEP ? 5 : 10;
+}
+
+function offersReadAloud(profile) {
+  return practiceGroep(profile) <= YOUNG_READER_MAX_GROEP;
 }

@@ -145,7 +145,7 @@ function groepStartTier(skill, groep) {
 }
 
 // Until enough skills have settled, the groep estimate is the start.
-function personalStartTier(skill, profileSkillStates, skillsById, groep = GROEP_WITH_CONTENT) {
+function personalStartTier(skill, profileSkillStates, skillsById, groep = DEFAULT_GROEP) {
   const estimate = groepStartTier(skill, groep);
   const offsets = Object.entries(profileSkillStates)
     .filter(([id, state]) => skillsById[id] && state.totalAttempts > 0 && !isCalibrating(state))
@@ -158,24 +158,31 @@ function personalStartTier(skill, profileSkillStates, skillsById, groep = GROEP_
   return Math.min(maxTier(skill), Math.max(MIN_TIER, estimate + offset));
 }
 
-function stateOrNew(skill, profileSkillStates, skillsById, groep = GROEP_WITH_CONTENT) {
+function stateOrNew(skill, profileSkillStates, skillsById, groep = DEFAULT_GROEP) {
   return profileSkillStates[skill.id]
     || emptySkillState(skill, personalStartTier(skill, profileSkillStates, skillsById, groep));
 }
 
-function classifyAll(curriculumSkills, profileSkillStates) {
+// The skills a child in `groep` practises: built, and meant for that groep.
+function skillsForGroep(curriculumSkills, groep) {
+  return curriculumSkills.filter((s) => s.implemented && s.groepen && s.groepen[0] <= groep && groep <= s.groepen[1]);
+}
+
+// `curriculumSkills` is the child's own set (skillsForGroep), so starting levels are only
+// estimated from skills this child actually practises.
+function classifyAll(curriculumSkills, profileSkillStates, groep) {
   const skillsById = Object.fromEntries(curriculumSkills.map((s) => [s.id, s]));
   return curriculumSkills
     .filter((s) => s.implemented)
     .map((skill) => {
-      const state = stateOrNew(skill, profileSkillStates, skillsById);
+      const state = stateOrNew(skill, profileSkillStates, skillsById, groep);
       return { skill, state, ...classifySkill(skill, state, profileSkillStates) };
     });
 }
 
 // Chooses the 4-6 skills a session focuses on. Returns [{ skillId, bucket, reason }].
-function selectSessionSkills(curriculumSkills, profileSkillStates) {
-  const entries = classifyAll(curriculumSkills, profileSkillStates);
+function selectSessionSkills(curriculumSkills, profileSkillStates, groep) {
+  const entries = classifyAll(curriculumSkills, profileSkillStates, groep);
   const picks = [];
   const perCategory = {};
 
@@ -240,13 +247,13 @@ function selectSessionSkills(curriculumSkills, profileSkillStates) {
 // Picks the next exercise's skill among the session's skills, weighted by the skill's
 // *current* bucket (so a skill that turns weak mid-session gets more practice), never
 // the same skill twice in a row. Returns { skillId, bucket, reason }.
-function pickNextSkill(sessionSkillIds, skillsById, profileSkillStates, previousSkillId) {
+function pickNextSkill(sessionSkillIds, skillsById, profileSkillStates, previousSkillId, groep) {
   let candidates = sessionSkillIds.filter((id) => id !== previousSkillId);
   if (candidates.length === 0) candidates = sessionSkillIds;
 
   const weighted = candidates.map((id) => {
     const skill = skillsById[id];
-    const state = stateOrNew(skill, profileSkillStates, skillsById);
+    const state = stateOrNew(skill, profileSkillStates, skillsById, groep);
     const { bucket, reason } = classifySkill(skill, state, profileSkillStates);
     return { skillId: id, bucket, reason, weight: BUCKET_WEIGHTS[bucket] || 1 };
   });
