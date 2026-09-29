@@ -51,7 +51,9 @@ Exercises.rijtjes = function (tierConfig, skill) {
   };
 };
 
-// "7 = 4 + ?" - the picture shows the known part in colour and the missing part as open dots.
+// Splitsen, shown as a split picture (whole on top, parts below) rather than "10 = 7 + ?", which a
+// child reading left to right took as "the answer is 10". The formula stays as the logged prompt.
+// Dots show the known part in colour and the missing part as open dots.
 Exercises.splitsen = function (tierConfig, skill) {
   let whole;
   let part;
@@ -67,12 +69,16 @@ Exercises.splitsen = function (tierConfig, skill) {
     part = randomInt(1, whole - 1);
   }
   const answer = whole - part;
+  const splits = { type: 'splits', whole, part };
+  const dots = dotsVisual({ count: part, kind: 'a' }, { count: answer, kind: 'hidden' });
   return {
     skillId: skill.id,
     exerciseType: 'splitsen',
     prompt: `${whole} = ${part} + ?`,
-    speech: `${whole} is ${part} plus hoeveel?`,
-    ...withDots(tierConfig, dotsVisual({ count: part, kind: 'a' }, { count: answer, kind: 'hidden' })),
+    promptParts: [], // the split picture is the question
+    speech: `Splits ${whole}. ${part} en hoeveel?`,
+    visual: tierConfig.dots ? [splits, dots] : splits,
+    ...(tierConfig.dots ? {} : { hintVisual: [splits, dots] }),
     ...singleAnswer(answer),
     hintContext: { whole, part, answer }
   };

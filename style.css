@@ -211,6 +211,10 @@ body.in-session .footer { display: none; }
   body.in-session .answer-fields { margin: 6px 0; }
   body.in-session .answer-input-field { font-size: max(16px, calc(1.6rem * var(--fit))); padding: calc(8px * var(--fit)); }
   body.in-session .feedback { font-size: calc(1rem * var(--fit)); }
+  /* Two pictures (split picture + dots) side by side instead of stacked. */
+  #exercise-visual { display: flex; align-items: center; justify-content: center; gap: 12px; }
+  #exercise-visual .splits { margin: 0; flex: none; width: calc(160px * var(--fit)); }
+  #exercise-visual .dots { flex: 1; min-width: 0; }
 }
 
 /* Fractions stacked like in the rekenschrift: teller over a breukstreep over noemer. */
@@ -257,6 +261,16 @@ body.in-session .footer { display: none; }
 .dot-gone { fill: #c9d6d2; }
 .dot-hidden { fill: none; stroke: var(--primary); stroke-width: 2.5; stroke-dasharray: 4 3; }
 .dot-cross { stroke: var(--solution-text); stroke-width: 3; stroke-linecap: round; }
+
+/* Split picture (splitsen, groep 3): whole on top, two parts below, the missing one open. */
+.splits { width: 100%; max-width: 200px; height: auto; display: block; margin: 0 auto 10px; }
+body.in-session .splits { max-width: calc(200px * var(--fit)); }
+.splits-box { fill: #fff; stroke: var(--primary-dark); stroke-width: 3; }
+.splits-box.open { stroke-dasharray: 6 4; fill: var(--hint-bg); }
+.splits-line { stroke: var(--primary-dark); stroke-width: 3; }
+.splits-text { font-size: 34px; font-weight: 700; fill: var(--text); }
+/* Sums shown only as a picture have no text question. */
+h2.prompt:empty { display: none; }
 
 .answer-fields.fraction {
   flex-direction: column;

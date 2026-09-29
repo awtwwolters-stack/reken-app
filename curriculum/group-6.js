@@ -4,8 +4,10 @@
 // Keersommen are levelled by kind of sum, not by a maximum, so one level holds sums of similar
 // difficulty: groep 5 "after the tafels, × tientallen and samengestelde getallen" (3 × 40, 3 × 24),
 // groep 6 hoofdrekenen like 7 × 49 (DWiG groep-6 doelen). Written the school way: small number first.
-// Plus/min: groep 5 tot 1000, groep 6 tot 10.000; delen: groep 5 deeltafels t/m 10 and with rest,
-// larger numbers from the second half of groep 5 (same doelen).
+// Plus/min: groep 5 tot 1000, groep 6 tot 10.000 - first with handy numbers (560 - 240, 4.500 - 1.200,
+// 473 - 298: "handig"); any 4-digit numbers with inwisselen come mid groep 6, written out (cijferen),
+// so they stay groep 7 for hoofdrekenen. Delen: groep 5 deeltafels t/m 10 and with rest, larger
+// numbers from the second half of groep 5 (same doelen).
 // A skill's maximum level is the number of entries in its `tiers`.
 // "groepen": [from, to] - a child only practises skills whose range includes their groep.
 const CURRICULUM = {
@@ -45,8 +47,9 @@ const CURRICULUM = {
       "tiers": [
         { "tier": 1, "groep": 4, "min": 1, "max": 50 },
         { "tier": 2, "groep": 5, "min": 10, "max": 500 },
-        { "tier": 3, "groep": 6, "min": 100, "max": 5000 },
-        { "tier": 4, "groep": 7, "min": 1000, "max": 50000 }
+        { "tier": 3, "groep": 6, "handig": true },
+        { "tier": 4, "groep": 7, "min": 100, "max": 5000 },
+        { "tier": 5, "groep": 7, "min": 1000, "max": 50000 }
       ]
     },
     {
@@ -62,8 +65,9 @@ const CURRICULUM = {
       "tiers": [
         { "tier": 1, "groep": 4, "min": 1, "max": 100 },
         { "tier": 2, "groep": 5, "min": 10, "max": 1000 },
-        { "tier": 3, "groep": 6, "min": 100, "max": 10000 },
-        { "tier": 4, "groep": 7, "min": 1000, "max": 100000 }
+        { "tier": 3, "groep": 6, "handig": true },
+        { "tier": 4, "groep": 7, "min": 100, "max": 10000 },
+        { "tier": 5, "groep": 7, "min": 1000, "max": 100000 }
       ]
     },
     {

@@ -71,6 +71,27 @@ function subtractionStrategy(a, b) {
   return 'rijgen';
 }
 
+function trailingZeros(n) {
+  let zeros = 0;
+  while (n > 0 && n % 10 === 0) { n /= 10; zeros += 1; }
+  return zeros;
+}
+
+// Round numbers where the second is a single piece (4.200 - 2.000, 6.900 + 1.000) are done
+// "met de kleine som", as in the rekenboek: 42 - 20 = 22, then the zeros back: 2.200.
+function kleineSomHint(level, a, b, sign) {
+  if (placeValueParts(b).length !== 1) return null;
+  const zeros = Math.min(trailingZeros(a), trailingZeros(b));
+  if (zeros === 0) return null;
+  const unit = 10 ** zeros;
+  const [smallA, smallB] = [a / unit, b / unit];
+  const smallAnswer = sign === '+' ? smallA + smallB : smallA - smallB;
+  const answer = sign === '+' ? a + b : a - b;
+  if (level === 1) return `Reken met de kleine som: ${smallA} ${sign} ${smallB}.`;
+  if (level === 2) return `${smallA} ${sign} ${smallB} = ${smallAnswer}. Zet er nu ${'0'.repeat(zeros)} achter.`;
+  return `${formatNumberNL(a)} ${sign} ${formatNumberNL(b)} = ${formatNumberNL(answer)}`;
+}
+
 Hints.optellen = function (level, ctx) {
   const { a, b } = ctx;
   const sum = formatNumberNL(a + b);
@@ -84,6 +105,8 @@ Hints.optellen = function (level, ctx) {
     return `${formatNumberNL(a)} + ${round} = ${between}, en ${between} - ${near.over} = ${sum}.`;
   }
 
+  const small = kleineSomHint(level, a, b, '+');
+  if (small) return small;
   const steps = rijgenSteps(a, b, '+');
   if (level === 1) return 'Probeer te rijgen: tel het tweede getal er in stukjes bij, eerst het grootste stuk.';
   if (level === 2) return `Begin zo: ${steps[0]}. Tel daarna de rest erbij.`;
@@ -112,6 +135,8 @@ Hints.aftrekken = function (level, ctx) {
     return `${formatNumberNL(a)} - ${round} = ${between}, en ${between} + ${near.over} = ${answer}.`;
   }
 
+  const small = kleineSomHint(level, a, b, '-');
+  if (small) return small;
   const steps = rijgenSteps(a, b, '-');
   if (level === 1) return 'Probeer te rijgen: haal het tweede getal er in stukjes af, eerst het grootste stuk.';
   if (level === 2) return `Begin zo: ${steps[0]}. Haal daarna de rest eraf.`;

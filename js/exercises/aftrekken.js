@@ -20,10 +20,30 @@ function specialSubtraction(min, max) {
   return { a: randomInt(round, max), b };
 }
 
+// Groep-6 hoofdrekenen with handy numbers (see handigPlus in optellen.js): 560 - 240,
+// 4.500 - 1.200, 673 - 298.
+function handigMin() {
+  const kind = pickRandom(['tientallen', 'honderdtallen', 'bijnaHonderd']);
+  if (kind === 'tientallen') {
+    const a = randomInt(30, 99) * 10;
+    return [a, randomInt(2, a / 10 - 1) * 10];
+  }
+  if (kind === 'honderdtallen') {
+    const a = randomInt(30, 99) * 100;
+    return [a, randomInt(2, a / 100 - 1) * 100];
+  }
+  const b = randomInt(1, 8) * 100 - randomInt(1, 3);
+  return [randomInt(Math.ceil(b / 100) * 100 + 10, 999), b];
+}
+
 Exercises.aftrekken = function (tierConfig, skill) {
-  const special = Math.random() < SPECIAL_STRATEGY_SHARE ? specialSubtraction(tierConfig.min, tierConfig.max) : null;
+  const special = !tierConfig.handig && Math.random() < SPECIAL_STRATEGY_SHARE
+    ? specialSubtraction(tierConfig.min, tierConfig.max)
+    : null;
   let a, b;
-  if (special) {
+  if (tierConfig.handig) {
+    [a, b] = handigMin();
+  } else if (special) {
     ({ a, b } = special);
   } else {
     a = randomInt(tierConfig.min, tierConfig.max);

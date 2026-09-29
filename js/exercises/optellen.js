@@ -12,10 +12,24 @@ function justUnderHundredIn(min, max) {
   return randomInt(lowest, highest) * 100 - randomInt(1, 5);
 }
 
+// Groep-6 hoofdrekenen with handy numbers, as in the DWiG doelen (350 + 200, 560 - 500):
+// round tens to 1.000, round hundreds to 10.000, or a number just under a round hundred.
+function handigPlus() {
+  const kind = pickRandom(['tientallen', 'honderdtallen', 'bijnaHonderd']);
+  if (kind === 'tientallen') return [randomInt(11, 70) * 10, randomInt(2, 29) * 10];
+  if (kind === 'honderdtallen') return [randomInt(11, 70) * 100, randomInt(2, 29) * 100];
+  return [randomInt(120, 900), randomInt(1, 9) * 100 - randomInt(1, 3)];
+}
+
 Exercises.optellen = function (tierConfig, skill) {
-  const a = randomInt(tierConfig.min, tierConfig.max);
-  const special = Math.random() < SPECIAL_STRATEGY_SHARE ? justUnderHundredIn(tierConfig.min, tierConfig.max) : null;
-  const b = special || randomInt(tierConfig.min, tierConfig.max);
+  let a, b;
+  if (tierConfig.handig) {
+    [a, b] = handigPlus();
+  } else {
+    a = randomInt(tierConfig.min, tierConfig.max);
+    const special = Math.random() < SPECIAL_STRATEGY_SHARE ? justUnderHundredIn(tierConfig.min, tierConfig.max) : null;
+    b = special || randomInt(tierConfig.min, tierConfig.max);
+  }
   return {
     skillId: skill.id,
     exerciseType: 'optellen',

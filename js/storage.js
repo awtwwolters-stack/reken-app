@@ -32,7 +32,7 @@ function loadState() {
   }
 }
 
-// One-time data conversions, each recorded in state.migrations so it runs once.
+// One-time data conversions, each recorded in state.migrations so it runs once (in this order).
 // keersomLevels (2026-09-29): keersommen levels were rebuilt by kind of sum. A stored level keeps
 // its number, which now holds slightly easier sums (a cautious start); old answers were given at
 // the old level, so they are cleared and the app collects fresh evidence.
@@ -44,6 +44,20 @@ function migrateState(state) {
       if (skill) skill.recentResults = [];
     });
     state.migrations.keersomLevels = true;
+  }
+  // plusMinHandig (2026-09-29): a new level 3 (handy numbers) was inserted for optellen and
+  // aftrekken, so stored levels 3 and 4 move up one; their old answers are cleared.
+  if (!state.migrations.plusMinHandig) {
+    Object.values(state.profiles || {}).forEach((profile) => {
+      ['optellen_tot_100000', 'aftrekken_tot_100000'].forEach((id) => {
+        const skill = profile.skills && profile.skills[id];
+        if (skill && skill.tier >= 3) {
+          skill.tier += 1;
+          skill.recentResults = [];
+        }
+      });
+    });
+    state.migrations.plusMinHandig = true;
   }
   return state;
 }

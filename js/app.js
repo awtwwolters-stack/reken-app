@@ -469,13 +469,35 @@ function renderPrompt(exercise) {
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
 
+// A visual, or a list of them shown one below the other (e.g. a split picture with dots).
+const VISUAL_RENDERERS = { strook: strookSvg, dots: dotsSvg, splits: splitsSvg };
+
 function renderVisual(visual) {
   const container = el('exercise-visual');
   container.innerHTML = '';
   container.classList.toggle('hidden', !visual);
   if (!visual) return;
-  if (visual.type === 'strook') container.appendChild(strookSvg(visual));
-  if (visual.type === 'dots') container.appendChild(dotsSvg(visual));
+  [].concat(visual).forEach((v) => {
+    if (VISUAL_RENDERERS[v.type]) container.appendChild(VISUAL_RENDERERS[v.type](v));
+  });
+}
+
+// Splitsen as in groep 3: the whole number on top, its two parts in boxes below; the missing
+// part is an open box with a "?".
+function splitsSvg(visual) {
+  const svg = svgNode('svg', { viewBox: '-2 -2 204 154', class: 'splits', role: 'img' });
+  svg.setAttribute('aria-label', `${visual.whole} splitsen in ${visual.part} en hoeveel?`);
+  svg.appendChild(svgNode('path', { d: 'M100 56L45 94M100 56L155 94', class: 'splits-line' }));
+  const box = (x, y, text, open) => {
+    svg.appendChild(svgNode('rect', { x, y, width: 80, height: 56, rx: 10, class: open ? 'splits-box open' : 'splits-box' }));
+    const label = svgNode('text', { x: x + 40, y: y + 39, 'text-anchor': 'middle', class: 'splits-text' });
+    label.textContent = text;
+    svg.appendChild(label);
+  };
+  box(60, 0, String(visual.whole), false);
+  box(5, 94, String(visual.part), false);
+  box(115, 94, '?', true);
+  return svg;
 }
 
 function svgNode(tag, attributes) {
@@ -682,7 +704,10 @@ function concludeExercise(solved) {
   session.previousSkillId = skillId;
 
   const skillState = currentSkillState(skill);
-  const levelChange = recordAnswer(skill, skillState, recordedCorrect, groepCeilingTier(skill, session.groep));
+  // Right but slow (pauses excluded): counts as right, but not towards a level up. Not for word
+  // problems: reading the story takes time too.
+  const slow = recordedCorrect && spentMs > SLOW_ANSWER_MS && currentExercise.prompt.length <= LONG_PROMPT_CHARS;
+  const levelChange = recordAnswer(skill, skillState, recordedCorrect, groepCeilingTier(skill, session.groep), slow);
   if (skillState.tier > currentExercise.tier) session.levelUps.push(skill.category);
   // A star for every sum finished correctly, also after a hint: getting there counts.
   if (solved) {
@@ -697,6 +722,7 @@ function concludeExercise(solved) {
     prompt: currentExercise.prompt,
     answers: currentExercise.answersGiven,
     firstTryCorrect: recordedCorrect,
+    slow,
     hintsShown: Math.min(session.hintLevel, MAX_HINT_LEVEL - 1),
     solutionShown: !solved,
     seconds: Math.round(spentMs / 1000),

@@ -26,7 +26,7 @@ function skillName(skillsById, id) {
 }
 
 function helpText(ex) {
-  if (ex.firstTryCorrect) return 'meteen goed';
+  if (ex.firstTryCorrect) return ex.slow ? 'meteen goed, maar traag (telt niet om omhoog te gaan)' : 'meteen goed';
   const hints = ex.hintsShown === 1 ? '1 hint' : `${ex.hintsShown} hints`;
   return ex.solutionShown ? `${hints} + uitleg getoond` : `${hints}, toen goed`;
 }

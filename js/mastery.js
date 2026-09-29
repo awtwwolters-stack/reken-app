@@ -23,6 +23,11 @@ const MIN_SETTLED_SKILLS_FOR_PERSONAL_START = 3;
 const GENTLE_START_LEVELS = 1;
 // A child can climb to at most this many groepen above their own: stay close to the class.
 const CEILING_GROEPEN_ABOVE = 1;
+// A right answer that took longer than this (pauses excluded) is right, but not yet fluent:
+// it counts as correct (never as a mistake) but doesn't help towards a level up.
+const SLOW_ANSWER_MS = 90 * 1000;
+// Stored in recentResults instead of `true` for such an answer (truthy, so success rates count it).
+const SLOW_CORRECT = 'slow';
 
 const MIN_SESSION_SKILLS = 4;
 const MAX_SESSION_SKILLS = 6;
@@ -58,10 +63,16 @@ function isCalibrating(skillState) {
 }
 
 // Updates a skill's state after one answer. Returns the reason if the level changed, else null.
-// `ceiling` is the highest level this child may reach (groepCeilingTier).
-function recordAnswer(skill, skillState, wasCorrect, ceiling = maxTier(skill)) {
+// Only fast right answers count towards a level up.
+function isFastCorrect(result) {
+  return result === true;
+}
+
+// `ceiling` is the highest level this child may reach (groepCeilingTier); `slow` marks a right
+// answer that took longer than SLOW_ANSWER_MS.
+function recordAnswer(skill, skillState, wasCorrect, ceiling = maxTier(skill), slow = false) {
   const calibrating = isCalibrating(skillState);
-  skillState.recentResults.push(wasCorrect);
+  skillState.recentResults.push(wasCorrect && slow ? SLOW_CORRECT : wasCorrect);
   if (skillState.recentResults.length > RESULT_WINDOW) {
     skillState.recentResults.shift();
   }
@@ -76,16 +87,16 @@ function recordAnswer(skill, skillState, wasCorrect, ceiling = maxTier(skill)) {
   if (calibrating) {
     const lastUp = results.slice(-CALIBRATION_UP_STREAK);
     const wrongInLastThree = results.slice(-3).filter((r) => !r).length;
-    if (lastUp.length === CALIBRATION_UP_STREAK && lastUp.every(Boolean)) {
+    if (lastUp.length === CALIBRATION_UP_STREAK && lastUp.every(isFastCorrect)) {
       direction = 1;
       why = `${CALIBRATION_UP_STREAK} keer op rij goed tijdens het bepalen van het niveau`;
     } else if (wrongInLastThree >= 2) {
       direction = -1;
       why = '2 van de laatste 3 niet in één keer goed tijdens het bepalen van het niveau';
     }
-  } else if (results.length >= STEADY_UP_MIN_ANSWERS && rate >= STEADY_UP_RATE) {
+  } else if (results.length >= STEADY_UP_MIN_ANSWERS && results.filter(isFastCorrect).length / results.length >= STEADY_UP_RATE) {
     direction = 1;
-    why = `laatste ${results.length} antwoorden ${Math.round(rate * 100)}% goed`;
+    why = `laatste ${results.length} antwoorden ${Math.round(rate * 100)}% goed, vlot`;
   } else if (results.length >= STEADY_DOWN_MIN_ANSWERS && rate < STEADY_DOWN_RATE) {
     direction = -1;
     why = `laatste ${results.length} antwoorden maar ${Math.round(rate * 100)}% goed`;
