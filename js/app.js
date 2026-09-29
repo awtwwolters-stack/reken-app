@@ -27,7 +27,7 @@ let session = null;
 let currentExercise = null;
 let activeProfileId = null;
 
-const SCREENS = ['profiles', 'start', 'soon', 'setup', 'session', 'summary'];
+const SCREENS = ['profiles', 'start', 'soon', 'setup', 'session', 'pause', 'summary'];
 
 function el(id) {
   return document.getElementById(id);
@@ -38,7 +38,8 @@ function showScreen(name) {
     el(`screen-${screen}`).classList.toggle('hidden', screen !== name);
   });
   // During practice the card sits at the top, so question and answer stay above the iPad keyboard.
-  document.body.classList.toggle('in-session', name === 'session');
+  // The pause screen counts as practice too: the parent link stays hidden there.
+  document.body.classList.toggle('in-session', name === 'session' || name === 'pause');
   if (name !== 'session') stopSpeaking();
 }
 
@@ -58,6 +59,10 @@ function init() {
     if (!el('answer-area').classList.contains('hidden')) answerInputs[0].focus();
   });
   el('next-button').addEventListener('click', onNext);
+  el('pause-button').addEventListener('click', pauseSession);
+  el('resume-button').addEventListener('click', resumeSession);
+  // Switching to another app or locking the iPad pauses too, so coming back is calm, not mid-sum.
+  document.addEventListener('visibilitychange', () => { if (document.hidden) pauseSession(); });
   // Pressing a button must not pull focus away from the answer box (that closes the iPad keyboard).
   el('speak-button').addEventListener('click', speakExercise);
   // Some browsers list their voices only after a moment: re-check whether a Dutch one exists.
@@ -98,7 +103,8 @@ function profileSkillStates() {
 }
 
 function currentSkillState(skill) {
-  const startTier = personalStartTier(skill, profileSkillStates(), childSkillsById, practiceGroep(activeProfile()));
+  const groep = practiceGroep(activeProfile());
+  const startTier = personalStartTier(skill, profileSkillStates(), childSkillsById, groep);
   return getSkillState(appState, activeProfileId, skill, startTier);
 }
 
@@ -327,10 +333,13 @@ function nextExercise() {
 function renderExercise(pick) {
   const skill = curriculumById[pick.skillId];
   const skillState = currentSkillState(skill);
+  // A level above the child's ceiling (e.g. reached before the ceiling existed) comes down first.
+  const ceilingChange = applyCeiling(skill, skillState, session.groep);
   const tierConfig = tierConfigFor(skill, skillState.tier);
 
   currentExercise = freshExercise(skill, tierConfig);
   currentExercise.pickReason = pick.reason;
+  currentExercise.ceilingChange = ceilingChange;
   currentExercise.tier = skillState.tier;
   currentExercise.answersGiven = [];
   session.hintLevel = 0;
@@ -524,7 +533,7 @@ function strookSvg(visual) {
 // Everything in a sum (question, picture, hint, answer box) should fit above the iPad keyboard
 // without scrolling. Font sizes in the session use --fit; shrink step by step until the card fits.
 function fitSessionToScreen() {
-  if (!document.body.classList.contains('in-session')) return;
+  if (el('screen-session').classList.contains('hidden')) return;
   const style = document.body.style;
   const card = document.querySelector('.card');
   const visibleHeight = window.visualViewport ? window.visualViewport.height : window.innerHeight;
@@ -554,7 +563,7 @@ function toSpeech(text) {
     .replace(/ - /g, ' min ')
     .replace(/ = \?/g, ' is hoeveel?')
     .replace(/ = /g, ' is ')
-    .replace(/ x /g, ' keer ')
+    .replace(/ [x×] /g, ' keer ')
     .replace(/ : /g, ' gedeeld door ');
 }
 
@@ -673,7 +682,7 @@ function concludeExercise(solved) {
   session.previousSkillId = skillId;
 
   const skillState = currentSkillState(skill);
-  const levelChange = recordAnswer(skill, skillState, recordedCorrect);
+  const levelChange = recordAnswer(skill, skillState, recordedCorrect, groepCeilingTier(skill, session.groep));
   if (skillState.tier > currentExercise.tier) session.levelUps.push(skill.category);
   // A star for every sum finished correctly, also after a hint: getting there counts.
   if (solved) {
@@ -692,7 +701,7 @@ function concludeExercise(solved) {
     solutionShown: !solved,
     seconds: Math.round(spentMs / 1000),
     reason: currentExercise.pickReason,
-    levelChange
+    levelChange: [currentExercise.ceilingChange, levelChange].filter(Boolean).join('; ') || null
   });
   session.record.activeSeconds = Math.round(session.activeMs / 1000);
   saveState(appState);
@@ -731,6 +740,33 @@ function concludeExercise(solved) {
   } else {
     // After a shown solution the child taps on, so it gets read (the keyboard goes down meanwhile).
     el('answer-area').classList.add('hidden');
+    el('next-button').focus();
+  }
+  fitSessionToScreen();
+}
+
+// Pause: nothing runs on (no auto-continue, no time counted) until the child taps Verder.
+function pauseSession() {
+  if (!session || session.pausedAt || el('screen-session').classList.contains('hidden')) return;
+  clearTimeout(session.autoNextTimer);
+  session.autoNextTimer = null;
+  session.pausedAt = Date.now();
+  if (document.activeElement) document.activeElement.blur(); // keyboard down
+  showScreen('pause');
+}
+
+function resumeSession() {
+  if (!session || !session.pausedAt) return;
+  // The pause doesn't count as time spent on this sum (nor towards the session's minutes).
+  session.exerciseStartedAt += Date.now() - session.pausedAt;
+  session.pausedAt = null;
+  showScreen('session');
+  // This tap is what lets the iPad open the keyboard again, so focus now, not later.
+  if (session.awaitingNext) {
+    onNext(); // paused during "Goed!": straight on to the next sum
+  } else if (!el('answer-area').classList.contains('hidden')) {
+    answerInputs[0].focus();
+  } else {
     el('next-button').focus();
   }
   fitSessionToScreen();

@@ -1,6 +1,6 @@
 # Reken App — Backlog
 
-_Last updated: 2026-09-28 · Status: T-01 running; groep-3 and groep-5 siblings practising too (D9). See Roadmap._
+_Last updated: 2026-09-29 · Status: T-01 running with three children (D9); keersommen, gentle start, ceiling and pause added (D10). See Roadmap._
 
 Size: **S** = small change · **M** = one focused build session · **L** = several sessions
 
@@ -44,6 +44,7 @@ It starts with one child (groep 6) and one domain (core arithmetic). Over time i
 | D6 | **Winter focus (2026-09-23):** complete groep 6 before bringing a second child on board | Phase 3 before Phase 5; siblings from spring 2027 |
 | D7 | **Motivation + profiles before the test (2026-09-23):** name picker; groep from birth date (parent confirms); a younger sibling may practise groep-6 content for now with a banner, an easier start and separate progress; stars for every sum finished correctly (also with a hint) + bonuses; **weekdoel (default 4 days) instead of a daily streak** (research: streak loss causes anxiety in children) | M-01 and S-01 done early; T-01 now also tests the motivation, so we can't separate 'comes back for the maths' from 'comes back for the stars' |
 | D9 | **Siblings now, not spring 2027 (2026-09-28):** the groep-3 and groep-5 siblings wanted to practise. Every skill carries the groepen it is for (`groepen: [from, to]`); a child only sees skills for their own groep and starts at the beginning-of-year level of that groep. Groep 3 gets 5 new skills (tellen, rijtjes, splitsen, + and − tot 20) with dot pictures, **5-minute sessions** and a **🔊 read-aloud button** (device's own Dutch voice, only on a tap). Groep 5 keeps the existing skills at groep-5 starting levels; the "groep 6" banner and the parent checkbox are gone. No new groep-5 topics yet | Moves part of Phase 5 (S-02) forward; the rest of groep 6 (Phase 3) moves back correspondingly. Klokkijken and geld are the next groep-5 candidates: each needs a new picture and a new answer format, so each is its own build |
+| D10 | **Even difficulty and a confident start (2026-09-29):** keersom levels by *kind* of sum instead of a maximum (× tientallen → 3 × 24 → 7 × 48 → 6 × 78); every new skill starts **one level below** the groep estimate; a child can climb to at most **one groep above** their own; sums written the school way (`5 × 6`, `6 × 78`, `×`), tafel hints via steunsommen, keersom hints via splitsen; a **pause** button (and automatic pause when the app goes to the background) | Simulation: a child who finds it hard scores 74% instead of 56% in their first session; later sessions barely change (67–69%), which the child's real data should confirm. Side effect, accepted: relabelling plus/min/delen level 3 to groep 6 makes an existing groep-6 child's settled levels count as one below the estimate, so her remaining new skills start a little lower still. See "Aansluiting lesmethode" |
 | D8 | **Stars get a direction (2026-09-24):** visible next goal, a character collection (one animal per milestone, the seed of M-02), and an optional family reward set by the parent. Auto-continue 1.5 s after a correct answer | Stars stay never-spent; spending comes with M-02 |
 
 ## Roadmap (confirmed 2026-09-23)
@@ -76,7 +77,31 @@ Driven by **triggers, not dates**: several steps depend on what the test shows o
 | 2026-09-24 | Parent testing: keyboard didn't come up for the next sum; question should stay visible with the keyboard up; option to remove a child | The auto-continue has no tap, and iPads only open the keyboard on a tap; in landscape the worst case (fraction + picture + hint) ended 127 px below the keyboard | The answer box is reused and stays focused, so the keyboard stays up; hints moved above the box; card at the top during practice; landscape splits question and answer side by side; 'verwijderen' in child setup |
 | 2026-09-24 | Session overall | 27 sums in ~11 min, finished; **81% right first time (target 75–85%)**; the 5 slowest sums were exactly the 5 mistakes; rounding the weak spot | No action: calibration working as designed |
 | 2026-09-28 | Landscape with keyboard: text sometimes too big to see the whole sum without scrolling | Long word problems and worked solutions made the card taller than the space above the keyboard | Word problems start in a smaller font; the whole practice screen shrinks step by step (to at most 60%) until it fits, and grows back when the keyboard goes down; answer boxes never below 16px (iPad zooms in below that) |
+| 2026-09-29 | Multiplication felt uneven: from 6 × 5 to 78 × 6 (groep-5 child) | 78 × 6 only existed at keersom level 3, labelled groep 7; the child had climbed two levels in calibration. Within that level answers ranged 20–891 | D10: levels by kind of sum (level 4 now 306–891, level 2 22–145), ceiling one groep above own groep |
+| 2026-09-29 | Parent: the groep-6 child finds it hard; wants her to gain confidence | Tuning notes (R-04): a child one level below the estimate scored ~50% in session 1 | D10: gentle start (one level lower); simulated 56% → 74% in session 1. Her real data still to be checked (backup, never stored in the repo) |
+| 2026-09-29 | Children sometimes need to stop for a moment | — | Pause button; pause also when the app goes to the background; paused time isn't counted |
 | 2026-09-28 | Groep-3 and groep-5 siblings excited and want to practise | Groep-3 goals (De Wereld in Getallen and SLO sources): counting to 20 with the five-structure, splitsen incl. vriendjes van 10, + and − to 10 then 20 | D9: groep-3 skills with dot pictures, 5-minute sessions, 🔊; simulated groep-3 child: levels settle at the child's real level, 0 repeats in 100 sums |
+
+## Aansluiting lesmethode (checked 2026-09-29)
+
+Checked against a De Wereld in Getallen groep-6 werkboek (blok 7) that a school published online, the groep-5/6 doelen of a school using the method, and earlier groep-3 sources (see D9). The method books themselves aren't public; **the strongest check stays a photo of the child's rekenschrift or weektaak.**
+
+| Topic | School (source) | App | Status |
+|---|---|---|---|
+| Keersom notation | `6 × 284`, `3 × 70`: small number first, `×` (werkboek) | Was `78 x 6` | ✅ adjusted (D10) |
+| Tafel notation | `4 × … = 24`; tafel van 6 = 1 × 6 … 10 × 6 | Was `6 x 5` for the tafel van 6 | ✅ adjusted |
+| Keersom strategy | Splitsen: 6 × 200 = 1200, 6 × 80 = 480, 6 × 4 = 24 (werkboek) | Was brackets `(70 x 6) + (8 x 6)` | ✅ adjusted |
+| Keersommen per groep | Groep 5: "na de tafels × tientallen en samengestelde getallen"; groep 6: 7 × 49, 4 × 180 (doelen) | Levels 1–2 groep 5, level 3 groep 6 | ✅ |
+| Plus/min range | Groep 5 tot 1000, groep 6 tot 10.000 (doelen) | Level 3 (to 5.000/10.000) was labelled groep 7 | ✅ relabelled groep 6 |
+| Plus/min strategies | Hoofdrekenen: rijgen, aanvullen, handig (350 + 200); groep 6 also **cijferen and kolomsgewijs** (werkboek) | Hints teach hoofdrekenen only | ⚠️ gap: for big numbers the school writes it out; a hint "schrijf onder elkaar" could follow later |
+| Delen | Groep 5 deeltafels t/m 10 and with rest; groep 6 splitsen (129 : 2 = 120 : 2 + 9 : 2) and 320 : 4 (doelen, werkboek) | Deeltafels, with rest, quotient ≤ 20 | ✅ (groep-6 types like 320 : 4 not yet: Phase 3) |
+| Symbols | `×`, `:` for delen, "rest" | Same | ✅ |
+| Breuken | Groep 6 introduction with strook, ¾ van 12 euro (doelen, werkboek) | Strook, stambreuk van | ✅ (¾ van: B-03b) |
+| Afronden | Groep 6 op honderdtallen en duizendtallen (doelen) | Tientallen/honderdtallen/duizendtallen | ✅ |
+| Groep 3 | Rekenrek/five-structure, splitsen, vriendjes van 10, + and − to 20 | Same (D9) | ✅ |
+| Not in the app yet | Groep 5–6: klokkijken (tot de minuut), geld, meten, verhoudingstabel, kalender/tijdbalk | — | Backlog (Phase 3 / S-02) |
+
+Sources: bsalbatros.nl/wp-content/uploads/2019/10/doelen-groep-5.pdf and doelen-groep-6.pdf; heutinkvoorthuis.nl (corona materials, De Wereld in Getallen groep 6 werkboek blok 7).
 
 ## NOW — Phase 0: make the first real test meaningful
 

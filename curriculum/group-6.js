@@ -1,6 +1,11 @@
 // Each tier's "groep": the groep that level fits at the start of the school year. A new skill starts at
 // the highest tier labelled at or below the child's groep; the app then adapts within 1-2 sessions.
 // Tafels per De Wereld in Getallen: 0-5 + 10 automated by end of groep 4, all 0-10 by mid groep 5.
+// Keersommen are levelled by kind of sum, not by a maximum, so one level holds sums of similar
+// difficulty: groep 5 "after the tafels, × tientallen and samengestelde getallen" (3 × 40, 3 × 24),
+// groep 6 hoofdrekenen like 7 × 49 (DWiG groep-6 doelen). Written the school way: small number first.
+// Plus/min: groep 5 tot 1000, groep 6 tot 10.000; delen: groep 5 deeltafels t/m 10 and with rest,
+// larger numbers from the second half of groep 5 (same doelen).
 // A skill's maximum level is the number of entries in its `tiers`.
 // "groepen": [from, to] - a child only practises skills whose range includes their groep.
 const CURRICULUM = {
@@ -40,7 +45,7 @@ const CURRICULUM = {
       "tiers": [
         { "tier": 1, "groep": 4, "min": 1, "max": 50 },
         { "tier": 2, "groep": 5, "min": 10, "max": 500 },
-        { "tier": 3, "groep": 7, "min": 100, "max": 5000 },
+        { "tier": 3, "groep": 6, "min": 100, "max": 5000 },
         { "tier": 4, "groep": 7, "min": 1000, "max": 50000 }
       ]
     },
@@ -57,7 +62,7 @@ const CURRICULUM = {
       "tiers": [
         { "tier": 1, "groep": 4, "min": 1, "max": 100 },
         { "tier": 2, "groep": 5, "min": 10, "max": 1000 },
-        { "tier": 3, "groep": 7, "min": 100, "max": 10000 },
+        { "tier": 3, "groep": 6, "min": 100, "max": 10000 },
         { "tier": 4, "groep": 7, "min": 1000, "max": 100000 }
       ]
     },
@@ -157,9 +162,10 @@ const CURRICULUM = {
       "groepen": [5, 8],
       "prerequisites": ["vermenigvuldigen_tafel_6", "vermenigvuldigen_tafel_7", "vermenigvuldigen_tafel_8", "vermenigvuldigen_tafel_9"],
       "tiers": [
-        { "tier": 1, "groep": 5, "factor1Max": 20, "factor2Max": 5 },
-        { "tier": 2, "groep": 6, "factor1Max": 50, "factor2Max": 7 },
-        { "tier": 3, "groep": 7, "factor1Max": 99, "factor2Max": 9 }
+        { "tier": 1, "groep": 5, "multiplier": [2, 5], "number": [20, 90], "roundTens": true },
+        { "tier": 2, "groep": 5, "multiplier": [2, 5], "number": [11, 30] },
+        { "tier": 3, "groep": 6, "multiplier": [2, 9], "number": [11, 50] },
+        { "tier": 4, "groep": 7, "multiplier": [6, 9], "number": [51, 99] }
       ]
     },
     {
@@ -175,7 +181,7 @@ const CURRICULUM = {
       "tiers": [
         { "tier": 1, "groep": 4, "divisorMax": 5, "quotientMax": 10 },
         { "tier": 2, "groep": 5, "divisorMax": 10, "quotientMax": 10 },
-        { "tier": 3, "groep": 7, "divisorMax": 10, "quotientMax": 20 }
+        { "tier": 3, "groep": 6, "divisorMax": 10, "quotientMax": 20 }
       ]
     },
     {

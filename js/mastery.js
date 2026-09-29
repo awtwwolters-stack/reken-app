@@ -17,6 +17,12 @@ const WEAK_MIN_ANSWERS = 5;
 const WEAK_RATE = 0.6;
 const DAYS_UNTIL_DUE_FOR_REVIEW = 2;
 const MIN_SETTLED_SKILLS_FOR_PERSONAL_START = 3;
+// A new skill starts this many levels below the groep estimate: the first sums should feel doable
+// (a child one level below the estimate otherwise scored only ~50% in their first session).
+// Three right in a row still moves up a level, so a child who finds it easy loses only a few sums.
+const GENTLE_START_LEVELS = 1;
+// A child can climb to at most this many groepen above their own: stay close to the class.
+const CEILING_GROEPEN_ABOVE = 1;
 
 const MIN_SESSION_SKILLS = 4;
 const MAX_SESSION_SKILLS = 6;
@@ -52,7 +58,8 @@ function isCalibrating(skillState) {
 }
 
 // Updates a skill's state after one answer. Returns the reason if the level changed, else null.
-function recordAnswer(skill, skillState, wasCorrect) {
+// `ceiling` is the highest level this child may reach (groepCeilingTier).
+function recordAnswer(skill, skillState, wasCorrect, ceiling = maxTier(skill)) {
   const calibrating = isCalibrating(skillState);
   skillState.recentResults.push(wasCorrect);
   if (skillState.recentResults.length > RESULT_WINDOW) {
@@ -85,7 +92,9 @@ function recordAnswer(skill, skillState, wasCorrect) {
   }
 
   const from = skillState.tier;
-  const to = Math.min(maxTier(skill), Math.max(MIN_TIER, from + direction));
+  // Never above the ceiling; bringing a level down to it is applyCeiling's job, not this one's.
+  const top = Math.min(maxTier(skill), Math.max(ceiling, from));
+  const to = Math.min(top, Math.max(MIN_TIER, from + direction));
   if (to === from) return null;
 
   if (calibrating && direction === -1) skillState.calibrationDone = true;
@@ -144,18 +153,39 @@ function groepStartTier(skill, groep) {
   return fitting.length ? fitting[fitting.length - 1].tier : MIN_TIER;
 }
 
-// Until enough skills have settled, the groep estimate is the start.
+// The highest level a child in `groep` may reach: labelled at most one groep above their own.
+function groepCeilingTier(skill, groep) {
+  return groepStartTier(skill, groep + CEILING_GROEPEN_ABOVE);
+}
+
+// A level above the ceiling (reached before the ceiling existed, or after the groep was changed)
+// comes down to it. Returns the reason, or null if nothing changed.
+function applyCeiling(skill, skillState, groep) {
+  const ceiling = groepCeilingTier(skill, groep);
+  if (skillState.tier <= ceiling) return null;
+  const from = skillState.tier;
+  skillState.tier = ceiling;
+  skillState.recentResults = [];
+  const reason = `niveau ${from} → ${ceiling}: maximaal één groep boven groep ${groep}`;
+  skillState.lastTierChange = { at: Date.now(), from, to: ceiling, reason };
+  return reason;
+}
+
+// Start one level below the groep estimate (GENTLE_START_LEVELS). Once enough skills have
+// settled, also shifted by how this child does elsewhere compared to the estimate.
 function personalStartTier(skill, profileSkillStates, skillsById, groep = DEFAULT_GROEP) {
   const estimate = groepStartTier(skill, groep);
   const offsets = Object.entries(profileSkillStates)
     .filter(([id, state]) => skillsById[id] && state.totalAttempts > 0 && !isCalibrating(state))
     .map(([id, state]) => state.tier - groepStartTier(skillsById[id], groep));
   // One skill that dropped after two slips must not shift every new skill: wait for a few.
-  if (offsets.length < MIN_SETTLED_SKILLS_FOR_PERSONAL_START) return estimate;
   // Truncate, not round: only shift when the child is a full level off on average. An uneven
   // child (+1 here, 0 there) should start new skills at the plain estimate.
-  const offset = Math.trunc(offsets.reduce((a, b) => a + b, 0) / offsets.length);
-  return Math.min(maxTier(skill), Math.max(MIN_TIER, estimate + offset));
+  const offset = offsets.length < MIN_SETTLED_SKILLS_FOR_PERSONAL_START
+    ? 0
+    : Math.trunc(offsets.reduce((a, b) => a + b, 0) / offsets.length);
+  const start = estimate + offset - GENTLE_START_LEVELS;
+  return Math.min(groepCeilingTier(skill, groep), Math.max(MIN_TIER, start));
 }
 
 function stateOrNew(skill, profileSkillStates, skillsById, groep = DEFAULT_GROEP) {

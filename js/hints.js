@@ -118,28 +118,61 @@ Hints.aftrekken = function (level, ctx) {
   return `${steps.join(', ')}. Dus ${formatNumberNL(a)} - ${formatNumberNL(b)} = ${answer}.`;
 };
 
+// Tafels are worked out from the steunsommen children know best (1×, 2×, 5×, 10×):
+// 7 × 6 from 5 × 6 = 30, then two more sixes; 9 × 6 from 10 × 6 = 60, one six less.
+const STEUNSOMMEN = [1, 2, 5, 10];
+
+function steunsomStep(multiplier, table) {
+  const anchor = STEUNSOMMEN.reduce((best, s) => (Math.abs(s - multiplier) < Math.abs(best - multiplier) ? s : best));
+  const steps = multiplier - anchor;
+  const from = formatNumberNL(anchor * table);
+  const sign = steps > 0 ? '+' : '-';
+  const extra = Array(Math.abs(steps)).fill(table).join(` ${sign} `);
+  return `${anchor} × ${table} = ${from}, dus ${multiplier} × ${table} = ${from} ${sign} ${extra}.`;
+}
+
+// The steunsommen themselves get their own reminder.
+function steunsomItself(multiplier, table) {
+  if (multiplier === 1) return `1 × ${table} is één groepje van ${table}.`;
+  if (multiplier === 2) return `2 × ${table} is het dubbele: ${table} + ${table}.`;
+  if (multiplier === 5) return `5 × ${table} is de helft van 10 × ${table} = ${formatNumberNL(10 * table)}.`;
+  return `10 × ${table}: zet een 0 achter de ${table}.`;
+}
+
 Hints.tafel = function (level, ctx) {
   const { table, multiplier, product, missingFactor } = ctx;
   if (level === 1) return `Denk aan de tafel van ${table}.`;
   if (level === 2) {
     if (missingFactor) {
-      return `Tel er telkens ${table} bij op totdat je bij ${formatNumberNL(product)} uitkomt: ${table}, ${table * 2}, ${table * 3}, ...`;
+      return `Tel in stappen van ${table} tot je bij ${formatNumberNL(product)} bent: ${table}, ${table * 2}, ${table * 3}, …`;
     }
-    return `${table} x ${multiplier - 1} = ${formatNumberNL(table * (multiplier - 1))}, dus ${table} x ${multiplier} = ${formatNumberNL(table * (multiplier - 1))} + ${table}.`;
+    return STEUNSOMMEN.includes(multiplier) ? steunsomItself(multiplier, table) : steunsomStep(multiplier, table);
   }
-  return missingFactor
-    ? `${table} x ${multiplier} = ${formatNumberNL(product)}`
-    : `${table} x ${multiplier} = ${formatNumberNL(product)}`;
+  return `${multiplier} × ${table} = ${formatNumberNL(product)}`;
 };
 
+// Shown as a × b; the two-digit number is split into tens and units (splitsen), as in the
+// rekenboek: 6 × 78 = 6 × 70 + 6 × 8. Also used by verhaalsommen ("12 zakjes van 7" = 12 × 7).
 Hints.vermenigvuldigen_groot = function (level, ctx) {
   const { a, b } = ctx;
-  if (level === 1) return 'Splits het grote getal in tientallen en eenheden.';
-  if (level === 2) {
-    const s = splitTens(a);
-    return `Reken zo: (${formatNumberNL(s.tens)} x ${b}) + (${s.units} x ${b}) = ${formatNumberNL(s.tens * b)} + ${formatNumberNL(s.units * b)}.`;
+  const bigIsSecond = b >= a;
+  const big = bigIsSecond ? b : a;
+  const small = bigIsSecond ? a : b;
+  if (big <= 10) {
+    // Both within the tafels (a verhaalsom like "4 zakjes van 7").
+    return Hints.tafel(level, { table: b, multiplier: a, product: a * b, missingFactor: false });
   }
-  return `${formatNumberNL(a)} x ${b} = ${formatNumberNL(a * b)}`;
+  const { tens, units } = splitTens(big);
+  const times = (n) => (bigIsSecond ? `${small} × ${formatNumberNL(n)}` : `${formatNumberNL(n)} × ${small}`);
+  if (units === 0) {
+    const tensDigit = tens / 10;
+    if (level === 1) return `Reken eerst ${small} × ${tensDigit} en zet er dan een 0 achter.`;
+    if (level === 2) return `${small} × ${tensDigit} = ${formatNumberNL(small * tensDigit)}. Zet er nu een 0 achter.`;
+    return `${times(big)} = ${formatNumberNL(a * b)}`;
+  }
+  if (level === 1) return `Splits ${big} in ${tens} en ${units}.`;
+  if (level === 2) return `${times(tens)} = ${formatNumberNL(small * tens)} en ${times(units)} = ${formatNumberNL(small * units)}.`;
+  return `${times(big)} = ${formatNumberNL(small * tens)} + ${formatNumberNL(small * units)} = ${formatNumberNL(a * b)}`;
 };
 
 Hints.delen_zonder_rest = function (level, ctx) {

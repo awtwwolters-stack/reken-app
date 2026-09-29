@@ -26,10 +26,26 @@ function loadState() {
     return { profiles: {}, sessions: [] };
   }
   try {
-    return JSON.parse(raw);
+    return migrateState(JSON.parse(raw));
   } catch (e) {
     return { profiles: {}, sessions: [] };
   }
+}
+
+// One-time data conversions, each recorded in state.migrations so it runs once.
+// keersomLevels (2026-09-29): keersommen levels were rebuilt by kind of sum. A stored level keeps
+// its number, which now holds slightly easier sums (a cautious start); old answers were given at
+// the old level, so they are cleared and the app collects fresh evidence.
+function migrateState(state) {
+  state.migrations = state.migrations || {};
+  if (!state.migrations.keersomLevels) {
+    Object.values(state.profiles || {}).forEach((profile) => {
+      const skill = profile.skills && profile.skills.vermenigvuldigen_grote_getallen;
+      if (skill) skill.recentResults = [];
+    });
+    state.migrations.keersomLevels = true;
+  }
+  return state;
 }
 
 function saveState(state) {

@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Reken App</title>
-  <link rel="stylesheet" href="style.css?v=2026-09-28.11">
+  <link rel="stylesheet" href="style.css?v=2026-09-29.12">
 </head>
 <body>
   <main class="card">
@@ -80,7 +80,10 @@
     </section>
 
     <section id="screen-session" class="screen hidden">
-      <div class="progress" aria-hidden="true"><div id="progress-fill" class="progress-fill"></div></div>
+      <div class="session-top">
+        <div class="progress" aria-hidden="true"><div id="progress-fill" class="progress-fill"></div></div>
+        <button id="pause-button" class="pause-button" type="button" aria-label="Pauze">⏸</button>
+      </div>
       <div class="prompt-row">
         <h2 id="exercise-prompt" class="prompt"></h2>
         <!-- Only for children still learning to read (groep 3-4): reads the sum and the hint aloud. -->
@@ -96,6 +99,12 @@
       </div>
 
       <button id="next-button" class="big-button hidden">Volgende</button>
+    </section>
+
+    <section id="screen-pause" class="screen hidden">
+      <h1>Even pauze</h1>
+      <p>Je sommen en sterren zijn bewaard.</p>
+      <button id="resume-button" class="big-button" type="button">Verder</button>
     </section>
 
     <section id="screen-summary" class="screen hidden">
@@ -134,24 +143,24 @@
     <a href="parent.html">Ouder overzicht</a>
   </footer>
 
-  <script src="js/utils.js?v=2026-09-28.11"></script>
-  <script src="js/storage.js?v=2026-09-28.11"></script>
-  <script src="js/profiles.js?v=2026-09-28.11"></script>
-  <script src="js/motivation.js?v=2026-09-28.11"></script>
-  <script src="js/mastery.js?v=2026-09-28.11"></script>
-  <script src="js/hints.js?v=2026-09-28.11"></script>
-  <script src="curriculum/group-6.js?v=2026-09-28.11"></script>
-  <script src="curriculum/group-3.js?v=2026-09-28.11"></script>
-  <script src="js/exercises/optellen.js?v=2026-09-28.11"></script>
-  <script src="js/exercises/aftrekken.js?v=2026-09-28.11"></script>
-  <script src="js/exercises/tafel.js?v=2026-09-28.11"></script>
-  <script src="js/exercises/vermenigvuldigen_groot.js?v=2026-09-28.11"></script>
-  <script src="js/exercises/delen_zonder_rest.js?v=2026-09-28.11"></script>
-  <script src="js/exercises/delen_met_rest.js?v=2026-09-28.11"></script>
-  <script src="js/exercises/getalbegrip.js?v=2026-09-28.11"></script>
-  <script src="js/exercises/verhaalsom.js?v=2026-09-28.11"></script>
-  <script src="js/exercises/breuken.js?v=2026-09-28.11"></script>
-  <script src="js/exercises/aanvankelijk.js?v=2026-09-28.11"></script>
-  <script src="js/app.js?v=2026-09-28.11"></script>
+  <script src="js/utils.js?v=2026-09-29.12"></script>
+  <script src="js/storage.js?v=2026-09-29.12"></script>
+  <script src="js/profiles.js?v=2026-09-29.12"></script>
+  <script src="js/motivation.js?v=2026-09-29.12"></script>
+  <script src="js/mastery.js?v=2026-09-29.12"></script>
+  <script src="js/hints.js?v=2026-09-29.12"></script>
+  <script src="curriculum/group-6.js?v=2026-09-29.12"></script>
+  <script src="curriculum/group-3.js?v=2026-09-29.12"></script>
+  <script src="js/exercises/optellen.js?v=2026-09-29.12"></script>
+  <script src="js/exercises/aftrekken.js?v=2026-09-29.12"></script>
+  <script src="js/exercises/tafel.js?v=2026-09-29.12"></script>
+  <script src="js/exercises/vermenigvuldigen_groot.js?v=2026-09-29.12"></script>
+  <script src="js/exercises/delen_zonder_rest.js?v=2026-09-29.12"></script>
+  <script src="js/exercises/delen_met_rest.js?v=2026-09-29.12"></script>
+  <script src="js/exercises/getalbegrip.js?v=2026-09-29.12"></script>
+  <script src="js/exercises/verhaalsom.js?v=2026-09-29.12"></script>
+  <script src="js/exercises/breuken.js?v=2026-09-29.12"></script>
+  <script src="js/exercises/aanvankelijk.js?v=2026-09-29.12"></script>
+  <script src="js/app.js?v=2026-09-29.12"></script>
 </body>
 </html>

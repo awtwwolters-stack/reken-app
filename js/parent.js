@@ -81,6 +81,14 @@ function renderSessions(state, skillsById, profileId) {
   });
 }
 
+// "3 / 4", or "3 / 4 (max 3 voor groep 5)" when the ceiling is below the top level.
+function levelText(skill, skillState, groep) {
+  const ceiling = groepCeilingTier(skill, groep);
+  // A stored level above the ceiling comes down at the child's next sum; show where it will be.
+  const text = `${Math.min(skillState.tier, ceiling)} / ${maxTier(skill)}`;
+  return ceiling < maxTier(skill) ? `${text} (max ${ceiling} voor groep ${groep})` : text;
+}
+
 function renderSkills(state, profileId) {
   const profile = state.profiles[profileId];
   const profileSkills = (profile && profile.skills) || {};
@@ -109,7 +117,7 @@ function renderSkills(state, profileId) {
     tbody.appendChild(tableRow([
       skill.name,
       skill.domain,
-      `${skillState.tier} / ${maxTier(skill)}`,
+      levelText(skill, skillState, groep),
       rate === null ? '-' : `${Math.round(rate * 100)}%`,
       skillState.totalAttempts,
       formatDate(skillState.lastPracticed),
