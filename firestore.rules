@@ -1,0 +1,11 @@
+rules_version = '2';
+// Reken App cloud sync (js/cloud.js): each parent account can read and write only its own
+// family's data, families/{its user id}/... Paste this in the Firebase console under
+// Firestore Database > Rules and publish it. Everything else is closed.
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /families/{familyId}/{document=**} {
+      allow read, write: if request.auth != null && request.auth.uid == familyId;
+    }
+  }
+}

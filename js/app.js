@@ -82,9 +82,74 @@ function init() {
   el('soon-back-button').addEventListener('click', showProfiles);
   el('open-setup-button').addEventListener('click', () => showSetup(null));
   el('setup-back-button').addEventListener('click', showProfiles);
-  el('profile-birthdate').addEventListener('change', onBirthdateChange);
   el('profile-form').addEventListener('submit', onProfileFormSubmit);
+  el('sync-signin-button').addEventListener('click', () => {
+    if (window.Cloud.state === 'failed' && window.Cloud.email) window.Cloud.retry();
+    else window.Cloud.signIn();
+  });
+  el('sync-signout-button').addEventListener('click', () => window.Cloud.signOut());
   showProfiles();
+  startCloudSync();
+}
+
+// Cloud sync (js/cloud.js): this page's data goes up after every save; changes made on other
+// iPads come in here.
+function startCloudSync() {
+  if (!window.Cloud) return;
+  window.Cloud.start({
+    getState: () => appState,
+    replaceState: (state) => {
+      appState = state;
+      saveState(appState);
+      if (activeProfileId && !appState.profiles[activeProfileId]) activeProfileId = null;
+      refreshAfterSync();
+    },
+    remoteChanges: onCloudChanges,
+    statusChanged: renderSyncBlock
+  });
+}
+
+// The child practising on this iPad right now keeps this iPad's version; everything else follows
+// the other iPads.
+function onCloudChanges(changes) {
+  const practising = session && !session.record.completed
+    ? { profileId: activeProfileId, sessionId: String(session.record.id) }
+    : {};
+  let changed = false;
+  changes.forEach((change) => { if (applyRemoteChange(appState, change, practising)) changed = true; });
+  if (!changed) return;
+  saveState(appState);
+  refreshAfterSync();
+}
+
+function visibleScreen() {
+  return SCREENS.find((name) => !el(`screen-${name}`).classList.contains('hidden'));
+}
+
+// Screens that show names or stars are redrawn; practice and the setup form are never interrupted.
+function refreshAfterSync() {
+  const screen = visibleScreen();
+  if (screen === 'profiles') showProfiles();
+  else if (screen === 'start') {
+    if (activeProfile()) showGreeting();
+    else showProfiles();
+  } else if (screen === 'setup') renderSetupList();
+}
+
+function renderSyncBlock() {
+  const cloud = window.Cloud;
+  const configured = !!cloud && cloud.state !== 'unconfigured';
+  el('sync-block').classList.toggle('hidden', !configured);
+  el('storage-note').textContent = configured && cloud.state === 'on'
+    ? 'Namen en voortgang staan op deze iPad en in jullie eigen, afgeschermde cloud.'
+    : 'Namen en voortgang staan alleen op dit apparaat.';
+  if (!configured) return;
+  el('sync-status').textContent = cloud.statusText();
+  const signedIn = !!cloud.email;
+  const canSignIn = cloud.state === 'signedOut' || (cloud.state === 'failed' && !!cloud.email);
+  el('sync-signin-button').classList.toggle('hidden', !canSignIn);
+  el('sync-signin-button').textContent = signedIn ? 'Opnieuw proberen' : 'Inloggen met Google';
+  el('sync-signout-button').classList.toggle('hidden', !signedIn);
 }
 
 // The active child's own skills; follows their groep (also after a change in another tab).
@@ -135,6 +200,9 @@ function selectProfile(id) {
     showGreeting();
   } else {
     el('soon-greeting').textContent = `Hoi ${activeProfile().name}!`;
+    el('soon-text').textContent = hasFinishedPrimarySchool(activeProfile())
+      ? 'Je hebt de basisschool afgerond. Knap gedaan! 🎓'
+      : 'Jouw sommen komen er binnenkort aan!';
     showScreen('soon');
   }
 }
@@ -198,33 +266,42 @@ function renderWeek(dotsEl, messageEl, profile) {
   messageEl.textContent = weekGoalMessage(profile);
 }
 
-// Parent setup: add or edit a child. The groep is estimated from the birth date and confirmed.
-function showSetup(profileId) {
+// Parent setup: add or edit a child. The parent picks the groep for this school year; it moves up
+// by itself every 1 August (currentGroep in profiles.js).
+function groepLabel(profile) {
+  const groep = currentGroep(profile);
+  if (groep > LAST_GROEP) return 'basisschool klaar';
+  return groep ? `groep ${groep}` : 'nog niet op school';
+}
+
+function renderSetupList() {
   const list = el('setup-list');
   list.innerHTML = '';
   listProfiles(appState).forEach(({ id, profile }) => {
     const item = document.createElement('li');
-    item.appendChild(document.createTextNode(`${profile.name} (${profile.groep ? `groep ${profile.groep}` : 'nog niet op school'}) `));
+    item.appendChild(document.createTextNode(`${profile.name} (${groepLabel(profile)}) `));
     const edit = Object.assign(document.createElement('button'), { type: 'button', className: 'link-button', textContent: 'wijzig' });
     edit.addEventListener('click', () => showSetup(id));
     item.appendChild(edit);
     list.appendChild(item);
   });
+}
 
+function showSetup(profileId) {
+  renderSetupList();
   const profile = profileId ? appState.profiles[profileId] : null;
   el('profile-form-title').textContent = profile ? `${profile.name} wijzigen` : 'Kind toevoegen';
   el('profile-id').value = profileId || '';
   el('profile-name').value = profile ? profile.name : '';
-  el('profile-birthdate').value = profile ? profile.birthDate : '';
-  el('profile-groep').value = String(profile ? profile.groep : DEFAULT_GROEP);
+  el('profile-groep').value = String(profile ? Math.min(LAST_GROEP, currentGroep(profile)) : DEFAULT_GROEP);
   el('profile-weekgoal').value = String(profile ? profile.weekGoal : DEFAULT_WEEK_GOAL);
   el('profile-goal-stars').value = profile && profile.familyGoal ? profile.familyGoal.stars : '';
   el('profile-goal-text').value = profile && profile.familyGoal ? profile.familyGoal.text : '';
   el('profile-current-stars').textContent = profile ? `${profile.name} heeft nu ${profile.stars || 0} ★.` : '';
-  el('groep-note').textContent = profile && isAutumnChild(profile.birthDate) ? autumnNote(profile.groep) : '';
   el('profile-form-error').textContent = '';
   el('delete-profile-button').classList.toggle('hidden', !profile);
   el('delete-profile-button').textContent = profile ? `${profile.name} verwijderen` : '';
+  renderSyncBlock();
   showScreen('setup');
 }
 
@@ -235,30 +312,19 @@ function onDeleteProfile() {
   const sure = confirm(`${profile.name} verwijderen? Alle sterren, dieren en oefeningen van ${profile.name} worden gewist. Dit kan niet ongedaan worden gemaakt.`);
   if (!sure) return;
   appState = loadState();
+  const sessionIds = appState.sessions.filter((s) => s.profileId === id).map((s) => s.id);
   deleteProfile(appState, id);
   saveState(appState);
+  if (window.Cloud) window.Cloud.deleteProfile(id, sessionIds);
   if (activeProfileId === id) activeProfileId = null;
   showProfiles();
-}
-
-function autumnNote(groep) {
-  return `Jarig in oktober-december: dan zitten kinderen soms een groep hoger of lager. Klopt groep ${groep}?`;
-}
-
-function onBirthdateChange() {
-  const birthDate = el('profile-birthdate').value;
-  if (!birthDate) return;
-  const groep = Math.max(0, Math.min(8, estimateGroep(birthDate)));
-  el('profile-groep').value = String(groep);
-  el('groep-note').textContent = isAutumnChild(birthDate) ? autumnNote(groep) : 'Geschat op basis van de geboortedatum. Pas aan als het niet klopt.';
 }
 
 function onProfileFormSubmit(e) {
   e.preventDefault();
   const name = el('profile-name').value.trim();
-  const birthDate = el('profile-birthdate').value;
-  if (!name || !birthDate) {
-    el('profile-form-error').textContent = 'Vul een naam en een geboortedatum in.';
+  if (!name) {
+    el('profile-form-error').textContent = 'Vul een naam in.';
     return;
   }
   // Optional family reward: both fields filled, or both empty (no reward).
@@ -269,10 +335,13 @@ function onProfileFormSubmit(e) {
     return;
   }
   appState = loadState();
+  const existing = appState.profiles[el('profile-id').value];
+  const groep = Number(el('profile-groep').value);
+  // Only a changed groep starts a new count; otherwise the school year it was set in stays.
+  const groepChanged = !existing || groep !== Math.min(LAST_GROEP, currentGroep(existing));
   saveProfile(appState, el('profile-id').value || null, {
     name,
-    birthDate,
-    groep: Number(el('profile-groep').value),
+    ...(groepChanged ? { groep, groepSchoolYear: schoolYearOf() } : {}),
     weekGoal: Number(el('profile-weekgoal').value),
     familyGoal: goalText ? { stars: goalStars, text: goalText } : null
   });

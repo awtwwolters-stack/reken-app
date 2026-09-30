@@ -160,6 +160,8 @@ h3 { font-size: 1.1rem; color: var(--primary-dark); margin-bottom: 8px; }
   font-size: 1.1rem; padding: 10px; border: 2px solid var(--border); border-radius: 10px; background: #fff;
 }
 .form-error { color: var(--solution-text); min-height: 1em; margin: 0; }
+.sync-block { text-align: left; border-top: 2px solid var(--border); margin-top: 20px; padding-top: 8px; }
+.sync-block h2 { font-size: 1.2rem; margin: 8px 0 0; }
 .link-button.danger { color: var(--solution-text); }
 
 /* During practice: card at the top and compact, so the question, any hint and the answer box

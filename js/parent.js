@@ -265,11 +265,43 @@ function restoreFromText(text) {
     return;
   }
   const when = imported.lastBackupAt ? formatDate(imported.lastBackupAt) : 'een onbekende datum';
-  if (!confirm(`Dit vervangt alle huidige voortgang door de back-up van ${when}. Doorgaan?`)) return;
+  if (window.Cloud && ['loading', 'linking'].includes(window.Cloud.state)) {
+    showBackupMessage('De cloud is nog aan het laden. Probeer het over een paar seconden opnieuw; er is niets veranderd.', true);
+    return;
+  }
+  const everywhere = window.Cloud && window.Cloud.state === 'on' ? ' op alle iPads' : '';
+  if (!confirm(`Dit vervangt alle huidige voortgang${everywhere} door de back-up van ${when}. Doorgaan?`)) return;
 
+  imported = migrateState(imported);
   saveState(imported);
+  if (window.Cloud) window.Cloud.removeMissing(imported);
   renderParentView();
   showBackupMessage('Back-up teruggezet.');
+}
+
+// This iPad's own data from before its first sync, kept aside when the family data was merged.
+function renderPreCloudBackup() {
+  let contents = null;
+  try { contents = localStorage.getItem(PRE_CLOUD_BACKUP_KEY); } catch (e) { contents = null; }
+  document.getElementById('precloud').classList.toggle('hidden', !contents);
+  document.getElementById('precloud-button').onclick = () => downloadFile(new File([contents], 'reken-app-backup-voor-synchroniseren.json', { type: 'application/json' }));
+}
+
+// Cloud sync (js/cloud.js): changes from other iPads show up here as they come in.
+function startCloudSync() {
+  if (!window.Cloud) return;
+  window.Cloud.start({
+    getState: loadState,
+    replaceState: (state) => { saveState(state); renderParentView(); renderPreCloudBackup(); },
+    remoteChanges: (changes) => {
+      const state = loadState();
+      if (changes.map((c) => applyRemoteChange(state, c)).some(Boolean)) {
+        saveState(state);
+        renderParentView();
+      }
+    },
+    statusChanged: () => {}
+  });
 }
 
 window.addEventListener('DOMContentLoaded', () => {
@@ -280,4 +312,6 @@ window.addEventListener('DOMContentLoaded', () => {
   document.getElementById('paste-restore-button').addEventListener('click', restoreFromPaste);
   document.getElementById('app-version').textContent = `versie ${APP_VERSION}`;
   renderParentView();
+  renderPreCloudBackup();
+  startCloudSync();
 });

@@ -1,24 +1,28 @@
-// Children's profiles. Names and birth dates live only in this browser's storage, never in
-// the code: the repository is public.
+// Children's profiles. Names live only in the app's data (this browser, and the family's cloud
+// copy when sync is on), never in the code: the repository is public. No birth dates are kept.
 
 // A profile without a groep (the old unnamed test profile) counts as groep 6.
 const DEFAULT_GROEP = 6;
 const DEFAULT_WEEK_GOAL = 4;
 
-// Dutch schools place children by their age on 1 October of the school year (which starts in
-// August): 4 -> groep 1, ..., 9 -> groep 6. Children born october-december are often placed a
-// groep earlier or later, so the parent always confirms. Below 1 = not in school yet.
-function estimateGroep(birthDate, today = new Date()) {
-  const [year, month, day] = birthDate.split('-').map(Number);
-  const schoolYearStart = today.getMonth() >= 7 ? today.getFullYear() : today.getFullYear() - 1;
-  let ageOnFirstOctober = schoolYearStart - year;
-  if (month > 10 || (month === 10 && day > 1)) ageOnFirstOctober -= 1;
-  return ageOnFirstOctober - 3;
+const LAST_GROEP = 8;
+
+// The school year a date falls in, named by the year it starts: it starts on 1 August.
+function schoolYearOf(date = new Date()) {
+  return date.getMonth() >= 7 ? date.getFullYear() : date.getFullYear() - 1;
 }
 
-function isAutumnChild(birthDate) {
-  const month = Number(birthDate.split('-')[1]);
-  return month >= 10;
+// A profile stores the groep the parent chose and the school year it was chosen in; every new
+// school year moves the child up one groep by itself. Staying down or skipping: the parent
+// simply sets the groep again, which starts a new count. May exceed 8 (finished primary school).
+function currentGroep(profile, today = new Date()) {
+  if (!profile || !Number.isInteger(profile.groep)) return DEFAULT_GROEP;
+  const since = Number.isInteger(profile.groepSchoolYear) ? profile.groepSchoolYear : schoolYearOf(today);
+  return profile.groep + Math.max(0, schoolYearOf(today) - since);
+}
+
+function hasFinishedPrimarySchool(profile) {
+  return currentGroep(profile) > LAST_GROEP;
 }
 
 // Named profiles only: the unnamed "default" profile holds pre-profile test data.
@@ -45,12 +49,13 @@ function deleteProfile(state, id) {
 // The child's groep decides which skills they practise and where each one starts.
 // Groep 0 ("nog niet op school") is a real value, not a missing one.
 function practiceGroep(profile) {
-  return profile && Number.isInteger(profile.groep) ? profile.groep : DEFAULT_GROEP;
+  return Math.min(LAST_GROEP, currentGroep(profile));
 }
 
-// A child can practise once there are sums for their groep (not yet for kleuters).
+// A child can practise once there are sums for their groep (not yet for kleuters), until they
+// have finished groep 8.
 function canPractise(profile) {
-  return skillsForGroep(CURRICULUM.skills, practiceGroep(profile)).length > 0;
+  return !hasFinishedPrimarySchool(profile) && skillsForGroep(CURRICULUM.skills, practiceGroep(profile)).length > 0;
 }
 
 // Young children (still learning to read) get sessions of 5 minutes and a 🔊 button.
