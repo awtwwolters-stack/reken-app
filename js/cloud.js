@@ -112,7 +112,9 @@ function push(state) {
 }
 
 function subscribe() {
-  unsubscribers = ['profile', 'session'].map((kind) => F.onSnapshot(refs[kind], (snap) => {
+  // includeMetadataChanges: also hear "now confirmed by the server" (no data change), which is
+  // what tells online from offline; docChanges() below still lists only real data changes.
+  unsubscribers = ['profile', 'session'].map((kind) => F.onSnapshot(refs[kind], { includeMetadataChanges: true }, (snap) => {
     remoteIds[kind] = new Set(snap.docs.map((d) => d.id));
     const changes = [];
     snap.docChanges().forEach((change) => {
