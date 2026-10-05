@@ -44,6 +44,12 @@ function showScreen(name) {
 }
 
 function init() {
+  // An old copy of the page with new scripts (or an old utils.js): get a fresh page first.
+  if (typeof pageIsStale !== 'function') {
+    if (!location.search.includes('fresh=')) location.replace(`${location.pathname}?fresh=${Date.now()}`);
+    return;
+  }
+  if (pageIsStale()) return;
   curriculumById = {};
   CURRICULUM.skills.forEach((s) => { curriculumById[s.id] = s; });
   // A built skill without a groep range would silently never be practised.

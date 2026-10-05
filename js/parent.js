@@ -305,6 +305,7 @@ function startCloudSync() {
 }
 
 window.addEventListener('DOMContentLoaded', () => {
+  if (typeof pageIsStale === 'function' && pageIsStale()) return; // old page copy: a fresh one is on its way
   document.getElementById('backup-button').addEventListener('click', makeBackup);
   document.getElementById('restore-input').addEventListener('change', restoreBackup);
   document.getElementById('child-select').addEventListener('change', renderParentView);
