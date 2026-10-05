@@ -83,10 +83,13 @@ function init() {
   el('open-setup-button').addEventListener('click', () => showSetup(null));
   el('setup-back-button').addEventListener('click', showProfiles);
   el('profile-form').addEventListener('submit', onProfileFormSubmit);
-  el('sync-signin-button').addEventListener('click', () => {
+  const signInOrRetry = () => {
     if (window.Cloud.state === 'failed' && window.Cloud.email) window.Cloud.retry();
+    else if (window.Cloud.state === 'failed') location.reload(); // the cloud code didn't load: try again
     else window.Cloud.signIn();
-  });
+  };
+  el('sync-signin-button').addEventListener('click', signInOrRetry);
+  el('fetch-children-button').addEventListener('click', signInOrRetry);
   el('sync-signout-button').addEventListener('click', () => window.Cloud.signOut());
   showProfiles();
   startCloudSync();
@@ -136,7 +139,20 @@ function refreshAfterSync() {
   } else if (screen === 'setup') renderSetupList();
 }
 
+// On an iPad without children yet, signing in is offered right on the first screen.
+function renderFetchChildren() {
+  const cloud = window.Cloud;
+  const offer = !!cloud && listProfiles(appState).length === 0 && ['signedOut', 'linking', 'failed'].includes(cloud.state);
+  el('fetch-children').classList.toggle('hidden', !offer);
+  if (!offer) return;
+  el('fetch-children-button').classList.toggle('hidden', cloud.state === 'linking');
+  el('fetch-children-status').textContent = cloud.state === 'signedOut' && !cloud.problem
+    ? 'Voor ouders: log in met het Google-account van jullie gezin.'
+    : cloud.statusText();
+}
+
 function renderSyncBlock() {
+  renderFetchChildren();
   const cloud = window.Cloud;
   const configured = !!cloud && cloud.state !== 'unconfigured';
   el('sync-block').classList.toggle('hidden', !configured);
@@ -188,6 +204,7 @@ function showProfiles() {
     container.appendChild(button);
   });
   el('no-profiles').classList.toggle('hidden', profiles.length > 0);
+  renderFetchChildren();
   showScreen('profiles');
 }
 
