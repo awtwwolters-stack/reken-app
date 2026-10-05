@@ -222,7 +222,7 @@ const Cloud = {
         import(`${SDK}/firebase-app.js`), import(`${SDK}/firebase-auth.js`), import(`${SDK}/firebase-firestore.js`)
       ]);
     } catch (e) {
-      setState('failed', 'De cloud kon niet geladen worden (geen internet?). De app werkt gewoon op deze iPad.');
+      setState('failed', `De cloud kon niet geladen worden (geen internet, of deze iPad is te oud): ${e.message}. De app werkt gewoon op deze iPad.`);
       return;
     }
     const app = appModule.initializeApp(window.FIREBASE_CONFIG);

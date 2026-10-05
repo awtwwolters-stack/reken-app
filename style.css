@@ -355,3 +355,5 @@ h2.prompt:empty { display: none; }
 @media (max-width: 420px) {
   .summary-columns { flex-direction: column; }
 }
+
+.diagnostics { color: #aab; font-size: 0.7rem; margin: 6px 0 0; max-width: 480px; word-break: break-word; }

@@ -145,8 +145,16 @@ function refreshAfterSync() {
   } else if (screen === 'setup') renderSetupList();
 }
 
+// The small line under the app: version, children on this iPad and the cloud's state.
+function renderDiagnostics() {
+  const cloud = window.Cloud;
+  const cloudText = !cloud ? 'niet geladen' : cloud.state + (cloud.email ? ` (${cloud.email})` : '') + (cloud.problem ? `: ${cloud.problem}` : '');
+  el('diag-info').textContent = `versie ${APP_VERSION} · ${listProfiles(appState).length} kinderen op deze iPad · cloud: ${cloudText}`;
+}
+
 // On an iPad without children yet, signing in is offered right on the first screen.
 function renderFetchChildren() {
+  renderDiagnostics();
   const cloud = window.Cloud;
   const offer = !!cloud && listProfiles(appState).length === 0 && ['signedOut', 'linking', 'failed'].includes(cloud.state);
   el('fetch-children').classList.toggle('hidden', !offer);
