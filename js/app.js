@@ -16,6 +16,10 @@ const INVALID_NUMBER_MESSAGE = 'Typ alleen een getal, bijvoorbeeld 4520 of 4.520
 // Prompts longer than this are sentences (verhaalsommen) and get a smaller font.
 const LONG_PROMPT_CHARS = 30;
 // Text shrinks in these steps, down to this share of its normal size, until the card fits.
+// Visible height (above the keyboard) up to which a wide screen gets the two-column layout.
+const WIDE_SHORT_MAX_HEIGHT = 560;
+// The iPad moves the page a moment after the keyboard slides in: check the fit again then.
+const REFIT_DELAYS_MS = [350, 800];
 const FIT_STEP = 0.05;
 const MIN_FIT = 0.6;
 const INVALID_FRACTION_MESSAGE = 'Typ boven de streep een getal en onder de streep een getal.';
@@ -83,12 +87,10 @@ function init() {
   optionalFeature(() => {
     if (!window.visualViewport) return;
     // When the keyboard opens or the iPad turns: question back at the top, and resized to fit.
-    window.visualViewport.addEventListener('resize', () => {
-      if (!document.body.classList.contains('in-session')) return;
-      window.scrollTo(0, 0);
-      fitSessionToScreen();
-    });
+    window.visualViewport.addEventListener('resize', keepSumInView);
   });
+  // Tapping the answer box brings the keyboard up; not every iPad reports that as a resize.
+  answerInputs.forEach((input) => input.addEventListener('focus', keepSumInView));
   el('delete-profile-button').addEventListener('click', onDeleteProfile);
   el('switch-profile-button').addEventListener('click', showProfiles);
   el('summary-switch-button').addEventListener('click', showProfiles);
@@ -106,6 +108,18 @@ function init() {
   el('sync-signout-button').addEventListener('click', () => window.Cloud.signOut());
   showProfiles();
   optionalFeature(startCloudSync);
+}
+
+// The sum back at the top and sized to what is visible - now, and again once the keyboard has
+// finished sliding in (the iPad scrolls the page to the answer box a moment later).
+function keepSumInView() {
+  const refit = () => {
+    if (el('screen-session').classList.contains('hidden')) return;
+    window.scrollTo(0, 0);
+    fitSessionToScreen();
+  };
+  refit();
+  REFIT_DELAYS_MS.forEach((ms) => setTimeout(refit, ms));
 }
 
 // Extras (read-aloud, keyboard fitting, cloud sync) differ per browser and iPad age. If setting
@@ -676,7 +690,12 @@ function fitSessionToScreen() {
   if (el('screen-session').classList.contains('hidden')) return;
   const style = document.body.style;
   const card = document.querySelector('.card');
-  const visibleHeight = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+  const view = window.visualViewport;
+  const visibleHeight = view ? view.height : window.innerHeight;
+  const visibleWidth = view ? view.width : window.innerWidth;
+  // Wide but short (an iPad lying down with the keyboard up): question left, answer right. Decided
+  // from what is really visible; the page's own height doesn't change when the keyboard comes up.
+  document.body.classList.toggle('wide-short', visibleWidth > visibleHeight && visibleHeight <= WIDE_SHORT_MAX_HEIGHT);
   let fit = 1;
   style.setProperty('--fit', fit);
   while (card.getBoundingClientRect().bottom > visibleHeight && fit > MIN_FIT + 0.001) {
