@@ -72,16 +72,23 @@ function init() {
   // Pressing a button must not pull focus away from the answer box (that closes the iPad keyboard).
   el('speak-button').addEventListener('click', speakExercise);
   // Some browsers list their voices only after a moment: re-check whether a Dutch one exists.
-  if ('speechSynthesis' in window) window.speechSynthesis.addEventListener('voiceschanged', updateSpeakButton);
+  // iOS 15 has speechSynthesis but not its addEventListener (this stopped the whole start-up on an
+  // older iPad); there the voices are simply read when a sum is shown.
+  optionalFeature(() => {
+    if ('speechSynthesis' in window && typeof window.speechSynthesis.addEventListener === 'function') {
+      window.speechSynthesis.addEventListener('voiceschanged', updateSpeakButton);
+    }
+  });
   ['submit-button', 'next-button', 'speak-button'].forEach((id) => el(id).addEventListener('mousedown', (e) => e.preventDefault()));
-  if (window.visualViewport) {
+  optionalFeature(() => {
+    if (!window.visualViewport) return;
     // When the keyboard opens or the iPad turns: question back at the top, and resized to fit.
     window.visualViewport.addEventListener('resize', () => {
       if (!document.body.classList.contains('in-session')) return;
       window.scrollTo(0, 0);
       fitSessionToScreen();
     });
-  }
+  });
   el('delete-profile-button').addEventListener('click', onDeleteProfile);
   el('switch-profile-button').addEventListener('click', showProfiles);
   el('summary-switch-button').addEventListener('click', showProfiles);
@@ -98,7 +105,18 @@ function init() {
   el('fetch-children-button').addEventListener('click', signInOrRetry);
   el('sync-signout-button').addEventListener('click', () => window.Cloud.signOut());
   showProfiles();
-  startCloudSync();
+  optionalFeature(startCloudSync);
+}
+
+// Extras (read-aloud, keyboard fitting, cloud sync) differ per browser and iPad age. If setting
+// one up fails, practising must still work: the problem is noted in the diagnostics line instead
+// of stopping the whole start-up.
+function optionalFeature(setup) {
+  try {
+    setup();
+  } catch (e) {
+    el('diag-errors').textContent += ` · extra uitgeschakeld: ${e.message}`;
+  }
 }
 
 // Cloud sync (js/cloud.js): this page's data goes up after every save; changes made on other
