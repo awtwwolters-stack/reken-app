@@ -1,8 +1,27 @@
 # Reken App — Backlog
 
-_Last updated: 2026-10-10 · Status: three children practising on synced iPads (D12); next: klokkijken, then motivation (D13). See Roadmap._
+_Last updated: 2026-10-10 · Status: see "Now" below._
 
 Size: **S** = small change · **M** = one focused build session · **L** = several sessions
+
+---
+
+## Now (2026-10-10)
+
+**Live: version 2026-10-10.24.** Three children (groep 3, 5 and 6) practise on shared iPads, synced through the family's own Firebase project (D12).
+
+**Open checks (need a real iPad or real use):**
+- Tap "Controleer de app op dit apparaat" (Ouder overzicht) on the old iPad (iOS 15) and send a photo of the result.
+- One clock sum in landscape with the keyboard up: clock on the left, answer boxes and hint on the right, no scrolling.
+- The groep-6 child's first sessions, then a backup pasted in chat: is the gentle start enough? In simulation a child who finds it hard settles at 67–69% right, just under the 75–85% target. For klokkijken she starts at "to the minute"; one level lower is possible on request.
+
+**Next steps, in the agreed order (D13):**
+1. ~~Rest of groep 6, small part~~ ✅ (320 : 4, ¾ van 12, self-check)
+2. ~~Klokkijken~~ ✅ (D14)
+3. **Motivation: the animals in a story, spending stars (M-02).** Needs choices from the parent first (which story, what stars can buy).
+4. Later, when the class and the data say so: tijdsduur (groep 6), kommagetallen (B-05), a hint "reken onder elkaar" for big plus/min sums, the rest of breuken step 2 (B-03b), geld, the youngest child (S-04).
+
+The sections "Where we are: V1" and "Roadmap (confirmed 2026-09-23)" below are history; decisions D9–D14 replaced that order.
 
 ---
 
