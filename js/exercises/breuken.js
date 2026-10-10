@@ -19,6 +19,7 @@ Exercises.breuk_herkennen = function (tierConfig, skill) {
     skillId: skill.id,
     exerciseType: 'breuk_herkennen',
     prompt: 'Welk deel van de strook is gekleurd?',
+    logPrompt: `Welk deel van de strook is gekleurd? (${teller} van de ${noemer})`,
     visual: { type: 'strook', parts: noemer, coloured: teller },
     answerLayout: 'fraction',
     answerFields: [{ key: 'teller', label: null }, { key: 'noemer', label: null }],

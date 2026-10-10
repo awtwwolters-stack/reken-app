@@ -25,6 +25,7 @@ Exercises.tellen = function (tierConfig, skill) {
     skillId: skill.id,
     exerciseType: 'tellen',
     prompt: 'Hoeveel stippen?',
+    logPrompt: `Hoeveel stippen? (${n} stippen getoond)`,
     speech: 'Hoeveel stippen zie je?',
     visual,
     ...singleAnswer(n),

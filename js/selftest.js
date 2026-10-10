@@ -19,6 +19,8 @@ function pictureProblem(visual) {
     } else if (v.type === 'dots') {
       const total = v.parts.reduce((n, p) => n + p.count, 0);
       if (!v.parts.every((p) => isWholeNumber(p.count) && ['a', 'b', 'gone', 'hidden'].includes(p.kind)) || total > 20) return 'stippen kloppen niet';
+    } else if (v.type === 'clock') {
+      if (!(isWholeNumber(v.hour) && v.hour >= 1 && v.hour <= 12 && isWholeNumber(v.minute) && v.minute <= 59)) return 'klok klopt niet';
     } else if (v.type === 'splits') {
       if (!(isWholeNumber(v.whole) && isWholeNumber(v.part) && v.part < v.whole)) return 'splitsplaatje klopt niet';
     } else {
@@ -45,12 +47,46 @@ function exerciseProblem(exercise) {
     const hint = getHint(exercise.exerciseType, level, exercise.hintContext);
     if (typeof hint !== 'string' || hint.trim() === '') return `hint ${level} ontbreekt`;
     if (/\b(undefined|NaN|null)\b/.test(hint)) return `hint ${level} bevat een fout ("${hint}")`;
-    // The last hint is the worked solution: the right answer has to be in it.
-    if (level === 3 && !answers.every((value) => namesNumber(hint, value))) {
-      return `de uitleg noemt het goede antwoord niet ("${hint}")`;
-    }
+    // The last hint is the worked solution: the right answer has to be in it (a time as 3:05).
+    const named = exercise.answerLayout === 'time'
+      ? hint.includes(tijdTekst(exercise.correctAnswer.uur, exercise.correctAnswer.minuten))
+      : answers.every((value) => namesNumber(hint, value));
+    if (level === 3 && !named) return `de uitleg noemt het goede antwoord niet ("${hint}")`;
   }
-  return pictureProblem(exercise.visual) || pictureProblem(exercise.hintVisual);
+  return timeProblem(exercise) || pictureProblem(exercise.visual) || pictureProblem(exercise.hintVisual);
+}
+
+// Clock sums: the picture shows the asked time, and the right hours are accepted and no others
+// (3:15 and 15:15 without a dagdeel; only the 24-hour time with one).
+function timeProblem(exercise) {
+  const clock = [].concat(exercise.visual || [], exercise.hintVisual || []).find((v) => v.type === 'clock');
+  if (!clock) return null;
+  if (exercise.answerLayout !== 'time') {
+    return clock.hour === exercise.correctAnswer.antwoord && clock.minute === 0 ? null : 'de klok toont een andere tijd dan het antwoord';
+  }
+  const { uur, minuten } = exercise.correctAnswer;
+  if (clock.hour % 12 !== uur % 12 || clock.minute !== minuten) return 'de klok toont een andere tijd dan het antwoord';
+  const accepts = (u, m) => exercise.checkAnswer({ uur: u, minuten: m });
+  const other = (uur + 12) % 24;
+  const withDagdeel = !!exercise.hintContext.dagdeel;
+  if (accepts(other, minuten) === withDagdeel) return withDagdeel ? 'met dagdeel wordt ook de 12-uurs tijd goed gerekend' : 'zonder dagdeel wordt de andere dagdeel-tijd fout gerekend';
+  if (accepts((uur + 1) % 24, minuten) || accepts(uur, (minuten + 1) % 60)) return 'een verkeerde tijd wordt goed gerekend';
+  return null;
+}
+
+// The Dutch time words are easy to get wrong around "half" and around 12: known pairs.
+const TIJD_IN_WOORDEN_VOORBEELDEN = [
+  [3, 0, '3 uur'], [3, 5, '5 over 3'], [3, 10, '10 over 3'], [3, 15, 'kwart over 3'], [3, 20, '10 voor half 4'],
+  [3, 25, '5 voor half 4'], [3, 30, 'half 4'], [3, 35, '5 over half 4'], [3, 40, '10 over half 4'],
+  [3, 45, 'kwart voor 4'], [3, 50, '10 voor 4'], [3, 55, '5 voor 4'], [3, 17, '13 voor half 4'],
+  [3, 43, '13 over half 4'], [3, 58, '2 voor 4'], [12, 0, '12 uur'], [12, 30, 'half 1'], [12, 45, 'kwart voor 1'],
+  [11, 55, '5 voor 12'], [11, 30, 'half 12'], [15, 45, 'kwart voor 4'], [0, 10, '10 over 12'], [23, 50, '10 voor 12']
+];
+
+function timeWordsProblems() {
+  return TIJD_IN_WOORDEN_VOORBEELDEN
+    .filter(([uur, minuten, woorden]) => tijdInWoorden(uur, minuten) !== woorden)
+    .map(([uur, minuten, woorden]) => `Tijd in woorden: ${tijdTekst(uur, minuten)} hoort "${woorden}" te zijn, maar is "${tijdInWoorden(uur, minuten)}"`);
 }
 
 function deviceReport() {
@@ -68,7 +104,7 @@ function deviceReport() {
 
 // Returns { skills, levels, sums, problems: ['Tafel van 6 niveau 2: ...'], device: [...] }.
 function runSelfTest() {
-  const problems = [];
+  const problems = timeWordsProblems();
   let levels = 0;
   let sums = 0;
   const skills = CURRICULUM.skills.filter((s) => s.implemented);

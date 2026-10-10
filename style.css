@@ -206,10 +206,13 @@ body.in-session.wide-short .card { max-width: 900px; padding: 10px 18px; }
 body.in-session.wide-short #screen-session { display: grid; grid-template-columns: 1fr 1fr; column-gap: 24px; align-items: start; }
 body.in-session.wide-short #screen-session .session-top { grid-column: 1 / -1; }
 body.in-session.wide-short #screen-session .prompt-row { grid-column: 1; grid-row: 2; }
-body.in-session.wide-short #exercise-visual { grid-column: 1; grid-row: 3; }
-body.in-session.wide-short #feedback { grid-column: 1; grid-row: 4; }
+/* Left: question and picture (a clock needs the height). Right: answer boxes, then the hint. */
+/* The spans keep the two columns independent: a short question doesn't get the height of the
+   answer block next to it, so the picture below it can use that room. */
+body.in-session.wide-short #exercise-visual { grid-column: 1; grid-row: 3 / span 3; }
 body.in-session.wide-short #answer-area { grid-column: 2; grid-row: 2 / span 2; }
-body.in-session.wide-short #next-button { grid-column: 2; grid-row: 4; }
+body.in-session.wide-short #feedback { grid-column: 2; grid-row: 4; }
+body.in-session.wide-short #next-button { grid-column: 2; grid-row: 5; }
 body.in-session.wide-short h2.prompt { font-size: calc(1.6rem * var(--fit)); margin: 8px 0; }
 body.in-session.wide-short h2.prompt.long { font-size: calc(1.2rem * var(--fit)); }
 body.in-session.wide-short .answer-fields { margin: 6px 0; }
@@ -287,6 +290,24 @@ h2.prompt:empty { display: none; }
   border-radius: 2px;
   background: var(--text);
 }
+
+/* Time answers: uur : minuten, two narrower boxes with a colon between them. */
+.answer-fields.time { align-items: center; gap: 8px; flex-wrap: nowrap; }
+.answer-fields.time .answer-input-field { width: 96px; }
+.time-colon { font-size: 2rem; font-weight: 700; line-height: 1; }
+
+/* Wijzerklok. */
+.clock { width: 100%; max-width: 200px; height: auto; display: block; margin: 0 auto; }
+body.in-session .clock { max-width: calc(200px * var(--fit)); }
+body.in-session.wide-short #exercise-visual .clock { flex: none; width: calc(170px * var(--fit)); }
+.clock-face { fill: #fff; stroke: var(--primary-dark); stroke-width: 4; }
+.clock-tick { stroke: #9ab; stroke-width: 1.5; }
+.clock-tick.five { stroke: var(--text); stroke-width: 3; }
+.clock-number { font-size: 20px; font-weight: 700; fill: var(--text); stroke: #fff; stroke-width: 5px; paint-order: stroke; stroke-linejoin: round; }
+.clock-hand { stroke-linecap: round; }
+.clock-hand.hour { stroke: var(--text); stroke-width: 8; }
+.clock-hand.minute { stroke: var(--accent); stroke-width: 5; }
+.clock-centre { fill: var(--text); }
 
 .feedback {
   min-height: 1.6em;

@@ -335,6 +335,75 @@ Hints.min_tot_20 = function (level, ctx) {
   return `${a} - ${b} = ${a - b}`;
 };
 
+// Klokkijken. tijdInWoorden, tijdTekst and uurOpKlok come from exercises/klok.js.
+Hints.klok_uur = function (level, ctx) {
+  const { uur } = ctx;
+  if (level === 1) return 'Kijk naar de kleine wijzer.';
+  if (level === 2) return `De grote wijzer staat op de 12: het is een heel uur. De kleine wijzer wijst naar de ${uur}.`;
+  return `Het is ${uur} uur.`;
+};
+
+// "'s Middags tel je 12 bij het uur: 3 + 12 = 15." - only when the 24-hour hour differs.
+function dagdeelStap(ctx) {
+  if (!ctx.dagdeel) return '';
+  if (ctx.uur24 === ctx.uur12) return ` Het is ${ctx.dagdeel}: het uur blijft ${ctx.uur12}.`;
+  const naam = ctx.dagdeel.replace(/^'s (.)/, (m, letter) => `'s ${letter.toUpperCase()}`);
+  return ` ${naam} tel je 12 bij het uur: ${ctx.uur12} + 12 = ${ctx.uur24}.`;
+}
+
+function grotewijzerTekst(minuten) {
+  if (minuten === 0) return 'De grote wijzer staat op de 12: dat is 0 minuten.';
+  const cijfer = Math.floor(minuten / 5) || 12;
+  const extra = minuten % 5;
+  if (extra === 0) return `De grote wijzer staat op de ${cijfer}: dat is ${minuten} minuten.`;
+  return `De grote wijzer staat ${extra} ${extra === 1 ? 'streepje' : 'streepjes'} voorbij de ${cijfer}: dat is ${minuten} minuten.`;
+}
+
+Hints.klok = function (level, ctx) {
+  const { uur12, uur24, minuten, dagdeel } = ctx;
+  if (level === 1) {
+    const eerst = minuten === 0
+      ? 'De grote wijzer staat op de 12: het is een heel uur. Naar welk getal wijst de kleine wijzer?'
+      : 'Kijk eerst naar de kleine wijzer: welk uur is al voorbij?';
+    return dagdeel ? `${eerst} Het is ${dagdeel}: denk aan de 24-uursklok.` : eerst;
+  }
+  if (level === 2) {
+    const kleine = minuten === 0 ? `De kleine wijzer wijst naar de ${uur12}.` : `De kleine wijzer is de ${uur12} voorbij: het uur is ${uur12}.`;
+    return `${kleine} ${grotewijzerTekst(minuten)}${dagdeelStap(ctx)}`;
+  }
+  return `Het is ${tijdTekst(dagdeel ? uur24 : uur12, minuten)} (${tijdInWoorden(uur12, minuten)}).`;
+};
+
+// Time in words: the trick is which hour it is - "voor 4" and "half 4" both belong to hour 3.
+Hints.klok_woorden = function (level, ctx) {
+  const { uur12, uur24, minuten, dagdeel } = ctx;
+  const next = uurOpKlok(uur12 + 1);
+  const half = `${uur12}:30`;
+  const kind = minuten === 0 ? 'heel' : minuten === 30 ? 'half' : minuten <= 15 ? 'over' : minuten < 30 ? 'voorHalf' : minuten < 45 ? 'overHalf' : 'voor';
+  if (level === 1) {
+    return {
+      heel: `Bij "${uur12} uur" zijn de minuten 0.`,
+      half: `Half ${next} is een half uur vóór ${next} uur.`,
+      over: `"Over ${uur12}" betekent: het is al ${uur12} uur geweest. Het uur is ${uur12}.`,
+      voorHalf: `Half ${next} is ${half}. "Voor half ${next}" is iets eerder dan ${half}.`,
+      overHalf: `Half ${next} is ${half}. "Over half ${next}" is iets later dan ${half}.`,
+      voor: `"Voor ${next}" betekent: het is nog geen ${next} uur. Het uur is ${uur12}.`
+    }[kind];
+  }
+  if (level === 2) {
+    const stap = {
+      heel: `Het uur is ${uur12} en de minuten zijn 00.`,
+      half: `Half ${next} is ${half}.`,
+      over: `Het uur is ${uur12}. ${minuten === 15 ? 'Kwart is 15 minuten.' : `De minuten zijn ${minuten}.`}`,
+      voorHalf: `Het uur is ${uur12}. Tel terug vanaf ${half}: 30 - ${30 - minuten} = ${minuten} minuten.`,
+      overHalf: `Het uur is ${uur12}. Tel verder vanaf ${half}: 30 + ${minuten - 30} = ${minuten} minuten.`,
+      voor: `${minuten === 45 ? 'Kwart is 15 minuten. ' : ''}Tel terug vanaf ${next} uur: 60 - ${60 - minuten} = ${minuten} minuten. Het uur is ${uur12}.`
+    }[kind];
+    return `${stap}${dagdeelStap(ctx)}`;
+  }
+  return `${tijdInWoorden(uur12, minuten)}${dagdeel ? ` ${dagdeel}` : ''} = ${tijdTekst(dagdeel ? uur24 : uur12, minuten)}`;
+};
+
 function getHint(exerciseType, level, hintContext) {
   const fn = Hints[exerciseType];
   if (!fn) return 'Denk rustig na en probeer het nog eens.';

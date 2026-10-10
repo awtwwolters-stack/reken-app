@@ -22,6 +22,7 @@ const WIDE_SHORT_MAX_HEIGHT = 560;
 const REFIT_DELAYS_MS = [350, 800];
 const FIT_STEP = 0.05;
 const MIN_FIT = 0.6;
+const INVALID_TIME_MESSAGE = 'Typ het uur in het eerste vakje en de minuten in het tweede, bijvoorbeeld 3 en 15.';
 const INVALID_FRACTION_MESSAGE = 'Typ boven de streep een getal en onder de streep een getal.';
 
 let appState = null;
@@ -494,8 +495,12 @@ function renderExercise(pick) {
   answerInputs[0].focus();
 
   const isFraction = currentExercise.answerLayout === 'fraction';
+  const isTime = currentExercise.answerLayout === 'time';
   el('answer-fields').classList.toggle('fraction', isFraction);
-  el('answer-fields').querySelector('.breukstreep').classList.toggle('hidden', !isFraction);
+  el('answer-fields').classList.toggle('time', isTime);
+  const separator = el('answer-fields').querySelector('.answer-separator');
+  separator.className = `answer-separator ${isFraction ? 'breukstreep' : isTime ? 'time-colon' : 'hidden'}`;
+  separator.textContent = isTime ? ':' : '';
   answerInputs.forEach((input, i) => {
     const field = currentExercise.answerFields[i];
     input.value = '';
@@ -503,7 +508,7 @@ function renderExercise(pick) {
     if (!field) return;
     input.dataset.key = field.key;
     input.parentElement.querySelector('.field-label').textContent = field.label || '';
-    if (isFraction) input.setAttribute('aria-label', field.key); // teller / noemer
+    if (isFraction || isTime) input.setAttribute('aria-label', field.key); // teller / noemer, uur / minuten
     else input.removeAttribute('aria-label');
   });
   window.scrollTo(0, 0);
@@ -518,7 +523,8 @@ function buildAnswerInputs() {
   const container = el('answer-fields');
   container.innerHTML = '';
   answerInputs = [0, 1].map((i) => {
-    if (i === 1) container.appendChild(Object.assign(document.createElement('div'), { className: 'breukstreep' }));
+    // Between the two boxes: a breukstreep for fractions, a ":" for times (set per sum).
+    if (i === 1) container.appendChild(Object.assign(document.createElement('div'), { className: 'answer-separator hidden' }));
     const wrapper = Object.assign(document.createElement('label'), { className: 'answer-field' });
     wrapper.appendChild(Object.assign(document.createElement('span'), { className: 'field-label' }));
     // A text field (not type="number") so Dutch notation like 45.230 reaches our own parser.
@@ -550,7 +556,10 @@ function onAnswerKeydown(e, input) {
   // In a two-field answer, Enter in the first field moves on to the empty second one.
   const inputs = activeInputs();
   const next = inputs[inputs.indexOf(input) + 1];
-  if (next && next.value.trim() === '' && !input.value.includes('/')) {
+  // (Not when the first box already holds a whole answer: "5/8", or a time like "3:15" or "3.15".)
+  const wholeAnswerTyped = input.value.includes('/')
+    || (currentExercise.answerLayout === 'time' && /\d\s*[:.]\s*\d/.test(input.value));
+  if (next && next.value.trim() === '' && !wholeAnswerTyped) {
     next.focus();
     return;
   }
@@ -602,7 +611,7 @@ function renderPrompt(exercise) {
 const SVG_NS = 'http://www.w3.org/2000/svg';
 
 // A visual, or a list of them shown one below the other (e.g. a split picture with dots).
-const VISUAL_RENDERERS = { strook: strookSvg, dots: dotsSvg, splits: splitsSvg };
+const VISUAL_RENDERERS = { strook: strookSvg, dots: dotsSvg, splits: splitsSvg, clock: clockSvg };
 
 function renderVisual(visual) {
   const container = el('exercise-visual');
@@ -612,6 +621,36 @@ function renderVisual(visual) {
   [].concat(visual).forEach((v) => {
     if (VISUAL_RENDERERS[v.type]) container.appendChild(VISUAL_RENDERERS[v.type](v));
   });
+}
+
+// A wijzerklok: 12 numbers, a tick per minute (longer every 5), a short thick hour hand that
+// creeps along with the minutes (at half past it sits between two numbers) and a long minute hand.
+function clockSvg(visual) {
+  const svg = svgNode('svg', { viewBox: '-104 -104 208 208', class: 'clock', role: 'img' });
+  svg.setAttribute('aria-label', 'Een wijzerklok');
+  svg.appendChild(svgNode('circle', { cx: 0, cy: 0, r: 100, class: 'clock-face' }));
+  const point = (angle, radius) => [Math.sin(angle) * radius, -Math.cos(angle) * radius];
+  for (let i = 0; i < 60; i++) {
+    const angle = (i / 60) * 2 * Math.PI;
+    const [x1, y1] = point(angle, i % 5 === 0 ? 86 : 92);
+    const [x2, y2] = point(angle, 98);
+    svg.appendChild(svgNode('line', { x1, y1, x2, y2, class: i % 5 === 0 ? 'clock-tick five' : 'clock-tick' }));
+  }
+  const hand = (angle, length, cls) => {
+    const [x2, y2] = point(angle, length);
+    svg.appendChild(svgNode('line', { x1: 0, y1: 0, x2, y2, class: cls }));
+  };
+  hand(((visual.hour % 12) + visual.minute / 60) / 12 * 2 * Math.PI, 46, 'clock-hand hour');
+  hand((visual.minute / 60) * 2 * Math.PI, 84, 'clock-hand minute');
+  // The numbers go on top of the hands (with a white edge), so a hand never hides one.
+  for (let n = 1; n <= 12; n++) {
+    const [x, y] = point((n / 12) * 2 * Math.PI, 68);
+    const label = svgNode('text', { x, y: y + 7, 'text-anchor': 'middle', class: 'clock-number' });
+    label.textContent = String(n);
+    svg.appendChild(label);
+  }
+  svg.appendChild(svgNode('circle', { cx: 0, cy: 0, r: 5, class: 'clock-centre' }));
+  return svg;
 }
 
 // Splitsen as in groep 3: the whole number on top, its two parts in boxes below; the missing
@@ -757,6 +796,13 @@ function readAnswer() {
   if (typedFraction) {
     return { values: { teller: Number(typedFraction[1]), noemer: Number(typedFraction[2]) }, complete: true, valid: true };
   }
+  // Likewise a whole time, "3:15" or "3.15", in the hour box.
+  const typedTime = currentExercise.answerLayout === 'time'
+    && inputs[1].value.trim() === ''
+    && inputs[0].value.match(/^\s*(\d{1,2})\s*[:.]\s*(\d{1,2})\s*$/);
+  if (typedTime) {
+    return { values: { uur: Number(typedTime[1]), minuten: Number(typedTime[2]) }, complete: true, valid: true };
+  }
   const values = {};
   let complete = true;
   let valid = true;
@@ -775,6 +821,7 @@ function readAnswer() {
 // "7 rest 5" for two-field answers, "1.459" for one field.
 function formatAnswer(values) {
   if (currentExercise.answerLayout === 'fraction') return `${values.teller}/${values.noemer}`;
+  if (currentExercise.answerLayout === 'time') return tijdTekst(values.uur, values.minuten);
   return currentExercise.answerFields
     .map((field, i) => `${i > 0 && field.label ? field.label + ' ' : ''}${formatNumberNL(values[field.key])}`)
     .join(' ');
@@ -794,7 +841,7 @@ function onSubmit() {
   // An empty field or something that isn't a number is not a wrong answer - it shouldn't count against mastery.
   if (!complete) return;
   if (!valid) {
-    el('feedback').textContent = currentExercise.answerLayout === 'fraction' ? INVALID_FRACTION_MESSAGE : INVALID_NUMBER_MESSAGE;
+    el('feedback').textContent = { fraction: INVALID_FRACTION_MESSAGE, time: INVALID_TIME_MESSAGE }[currentExercise.answerLayout] || INVALID_NUMBER_MESSAGE;
     el('feedback').className = 'feedback feedback-hint';
     clearAnswerFields();
     fitSessionToScreen();
@@ -856,7 +903,8 @@ function concludeExercise(solved) {
     at: new Date().toISOString(),
     skillId,
     tier: currentExercise.tier,
-    prompt: currentExercise.prompt,
+    // Picture sums all ask the same question: the log also says what the picture showed.
+    prompt: currentExercise.logPrompt || currentExercise.prompt,
     answers: currentExercise.answersGiven,
     firstTryCorrect: recordedCorrect,
     slow,
