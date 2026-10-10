@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="nl" data-version="2026-10-08.22">
+<html lang="nl" data-version="2026-10-10.23">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -22,6 +22,11 @@
     .backup button, .backup label { font-size: 0.95rem; padding: 8px 14px; margin-right: 8px; border-radius: 8px; border: 1px solid #2f9e83; background: white; color: #227a65; cursor: pointer; display: inline-block; }
     #backup-message { font-weight: bold; }
     #backup-message.error { color: #a33; }
+    .hidden { display: none; }
+    .selftest { background: white; border: 1px solid #dde; border-radius: 8px; padding: 12px 16px; margin-top: 16px; }
+    .selftest button { font-size: 0.95rem; padding: 8px 14px; border-radius: 8px; border: 1px solid #2f9e83; background: white; color: #227a65; cursor: pointer; }
+    #selftest-result { font-size: 0.9rem; white-space: pre-line; margin-bottom: 0; }
+    #selftest-result.error { color: #a33; }
   </style>
 </head>
 <body>
@@ -43,6 +48,11 @@
       <button id="paste-restore-button" type="button">Zet geplakte back-up terug</button>
       <textarea id="backup-text" rows="6" style="width: 100%; margin-top: 8px;" placeholder="Plak hier een back-up om terug te zetten"></textarea>
     </details>
+  </section>
+
+  <section class="selftest">
+    <button id="selftest-button" type="button">Controleer de app op dit apparaat</button>
+    <p id="selftest-result">Maakt alle soorten sommen een paar honderd keer en controleert antwoorden, hints en plaatjes.</p>
   </section>
 
   <p><label>Kind: <select id="child-select"></select></label></p>
@@ -70,14 +80,26 @@
     <tbody id="parent-table-body"></tbody>
   </table>
 
-  <script src="js/utils.js?v=2026-10-08.22"></script>
-  <script src="js/storage.js?v=2026-10-08.22"></script>
-  <script src="js/profiles.js?v=2026-10-08.22"></script>
-  <script src="js/mastery.js?v=2026-10-08.22"></script>
-  <script src="curriculum/group-6.js?v=2026-10-08.22"></script>
-  <script src="curriculum/group-3.js?v=2026-10-08.22"></script>
-  <script src="js/parent.js?v=2026-10-08.22"></script>
-  <script src="js/cloud-config.js?v=2026-10-08.22"></script>
-  <script type="module" src="js/cloud.js?v=2026-10-08.22"></script>
+  <script src="js/utils.js?v=2026-10-10.23"></script>
+  <script src="js/storage.js?v=2026-10-10.23"></script>
+  <script src="js/profiles.js?v=2026-10-10.23"></script>
+  <script src="js/mastery.js?v=2026-10-10.23"></script>
+  <script src="curriculum/group-6.js?v=2026-10-10.23"></script>
+  <script src="curriculum/group-3.js?v=2026-10-10.23"></script>
+  <script src="js/hints.js?v=2026-10-10.23"></script>
+  <script src="js/exercises/optellen.js?v=2026-10-10.23"></script>
+  <script src="js/exercises/aftrekken.js?v=2026-10-10.23"></script>
+  <script src="js/exercises/tafel.js?v=2026-10-10.23"></script>
+  <script src="js/exercises/vermenigvuldigen_groot.js?v=2026-10-10.23"></script>
+  <script src="js/exercises/delen_zonder_rest.js?v=2026-10-10.23"></script>
+  <script src="js/exercises/delen_met_rest.js?v=2026-10-10.23"></script>
+  <script src="js/exercises/getalbegrip.js?v=2026-10-10.23"></script>
+  <script src="js/exercises/verhaalsom.js?v=2026-10-10.23"></script>
+  <script src="js/exercises/breuken.js?v=2026-10-10.23"></script>
+  <script src="js/exercises/aanvankelijk.js?v=2026-10-10.23"></script>
+  <script src="js/selftest.js?v=2026-10-10.23"></script>
+  <script src="js/parent.js?v=2026-10-10.23"></script>
+  <script src="js/cloud-config.js?v=2026-10-10.23"></script>
+  <script type="module" src="js/cloud.js?v=2026-10-10.23"></script>
 </body>
 </html>

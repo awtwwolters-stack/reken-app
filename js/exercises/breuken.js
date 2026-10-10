@@ -28,18 +28,35 @@ Exercises.breuk_herkennen = function (tierConfig, skill) {
   };
 };
 
+// Plain text for any fraction: ¾ where a single character exists, else 3/10.
+const FRACTION_TEXT = { '2/3': '⅔', '3/4': '¾', '2/5': '⅖', '3/5': '⅗', '4/5': '⅘', '3/8': '⅜', '5/8': '⅝', '7/8': '⅞' };
+
+function fractionText(teller, noemer) {
+  if (teller === 1) return unitFractionText(noemer);
+  return FRACTION_TEXT[`${teller}/${noemer}`] || `${teller}/${noemer}`;
+}
+
+// "¼ van 20", and on the "nonUnit" level "¾ van 20": first one part, then that many parts.
+// The strook (the fraction's parts, the asked ones coloured) appears as the first hint.
 Exercises.breuk_deel_van = function (tierConfig, skill) {
   const noemer = pickRandom(tierConfig.denominators);
-  const answer = randomInt(2, tierConfig.quotientMax);
-  const amount = noemer * answer; // always divides evenly, so the answer is a whole number
+  // Only fractions in their simplest form (¾, not 2/4 or 5/10): gelijkwaardige breuken come later.
+  const simplest = (t) => [2, 3, 5, 7].every((p) => t % p !== 0 || noemer % p !== 0);
+  let teller = 1;
+  if (tierConfig.nonUnit) {
+    do { teller = randomInt(2, noemer - 1); } while (!simplest(teller));
+  }
+  const onePart = randomInt(2, tierConfig.quotientMax);
+  const amount = noemer * onePart; // always divides evenly, so the answer is a whole number
   return {
     skillId: skill.id,
     exerciseType: 'breuk_deel_van',
-    prompt: `${unitFractionText(noemer)} van ${formatNumberNL(amount)} = ?`,
-    promptParts: [{ fraction: [1, noemer] }, ` van ${formatNumberNL(amount)} = ?`],
+    prompt: `${fractionText(teller, noemer)} van ${formatNumberNL(amount)} = ?`,
+    promptParts: [{ fraction: [teller, noemer] }, ` van ${formatNumberNL(amount)} = ?`],
+    hintVisual: { type: 'strook', parts: noemer, coloured: teller },
     answerFields: [{ key: 'antwoord', label: null }],
-    correctAnswer: { antwoord: answer },
-    hintContext: { noemer, amount }
+    correctAnswer: { antwoord: onePart * teller },
+    hintContext: { noemer, amount, teller }
   };
 };
 

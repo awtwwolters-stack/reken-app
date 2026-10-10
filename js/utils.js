@@ -2,7 +2,7 @@
 
 // Shown in the parent view so a stale cached copy is easy to spot. Bump on every publish, together
 // with the ?v= on every script/style tag in index.html and parent.html (forces fresh files on reload).
-const APP_VERSION = '2026-10-08.22';
+const APP_VERSION = '2026-10-10.23';
 
 // A browser can keep an old copy of the page (HTML) while loading the newest scripts. The page then
 // lacks parts the scripts expect and nothing works (seen on an iPad: no names, dead links). Each

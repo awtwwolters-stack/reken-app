@@ -311,6 +311,25 @@ window.addEventListener('DOMContentLoaded', () => {
   document.getElementById('child-select').addEventListener('change', renderParentView);
   document.getElementById('copy-backup-button').addEventListener('click', copyBackup);
   document.getElementById('paste-restore-button').addEventListener('click', restoreFromPaste);
+  document.getElementById('selftest-button').addEventListener('click', () => {
+    // js/selftest.js: every kind of sum, on this device, in this browser.
+    const box = document.getElementById('selftest-result');
+    box.textContent = 'Bezig met controleren…';
+    box.className = '';
+    // A moment later, so "Bezig" is on screen first: on an older iPad the check takes a few seconds.
+    setTimeout(() => {
+      let result;
+      try {
+        result = runSelfTest();
+      } catch (e) {
+        box.textContent = `✗ De controle zelf liep vast: ${e.message}. Maak een foto en stuur hem door.`;
+        box.className = 'error';
+        return;
+      }
+      box.textContent = selfTestSummary(result).join('\n');
+      box.className = result.problems.length ? 'error' : '';
+    }, 50);
+  });
   document.getElementById('app-version').textContent = `versie ${APP_VERSION}`;
   renderParentView();
   renderPreCloudBackup();

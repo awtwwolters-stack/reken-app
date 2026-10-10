@@ -185,7 +185,8 @@ const CURRICULUM = {
       "tiers": [
         { "tier": 1, "groep": 4, "divisorMax": 5, "quotientMax": 10 },
         { "tier": 2, "groep": 5, "divisorMax": 10, "quotientMax": 10 },
-        { "tier": 3, "groep": 6, "divisorMax": 10, "quotientMax": 20 }
+        { "tier": 3, "groep": 6, "divisorMax": 10, "quotientMax": 20 },
+        { "tier": 4, "groep": 6, "divisorMax": 10, "quotientMax": 10, "zeros": true }
       ]
     },
     {
@@ -241,14 +242,15 @@ const CURRICULUM = {
       "name": "Deel van een hoeveelheid",
       "category": "Breuken",
       "domain": "breuken",
-      "description": "Een stambreuk van een getal, zoals ¼ van 20. Niet-stambreuken (¾ van 20) pas als de klas zover is.",
+      "description": "Een stambreuk van een getal, zoals ¼ van 20; op het hoogste niveau ook ¾ van 20 (midden groep 6, alleen bereikbaar door te stijgen).",
       "exerciseType": "breuk_deel_van",
       "implemented": true,
       "groepen": [5, 8],
       "prerequisites": ["delen_zonder_rest"],
       "tiers": [
         { "tier": 1, "groep": 5, "denominators": [2, 4], "quotientMax": 10 },
-        { "tier": 2, "groep": 7, "denominators": [2, 3, 4, 5, 10], "quotientMax": 10 }
+        { "tier": 2, "groep": 7, "denominators": [2, 3, 4, 5, 10], "quotientMax": 10 },
+        { "tier": 3, "groep": 7, "denominators": [3, 4, 5, 8, 10], "quotientMax": 6, "nonUnit": true }
       ]
     },
     {

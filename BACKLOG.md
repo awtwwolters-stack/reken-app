@@ -1,6 +1,6 @@
 # Reken App — Backlog
 
-_Last updated: 2026-09-29 · Status: T-01 running with three children (D9); keersommen, gentle start, ceiling and pause added (D10). See Roadmap._
+_Last updated: 2026-10-10 · Status: three children practising on synced iPads (D12); next: klokkijken, then motivation (D13). See Roadmap._
 
 Size: **S** = small change · **M** = one focused build session · **L** = several sessions
 
@@ -47,6 +47,7 @@ It starts with one child (groep 6) and one domain (core arithmetic). Over time i
 | D10 | **Even difficulty and a confident start (2026-09-29):** keersom levels by *kind* of sum instead of a maximum (× tientallen → 3 × 24 → 7 × 48 → 6 × 78); every new skill starts **one level below** the groep estimate; a child can climb to at most **one groep above** their own; sums written the school way (`5 × 6`, `6 × 78`, `×`), tafel hints via steunsommen, keersom hints via splitsen; a **pause** button (and automatic pause when the app goes to the background) | Simulation: a child who finds it hard scores 74% instead of 56% in their first session; later sessions barely change (67–69%), which the child's real data should confirm. Side effect, accepted: relabelling plus/min/delen level 3 to groep 6 makes an existing groep-6 child's settled levels count as one below the estimate, so her remaining new skills start a little lower still. See "Aansluiting lesmethode" |
 | D11 | **Lessons from the logs of 2026-09-29:** a new plus/min level 3 with *handy* numbers (560 − 240, 4.500 − 1.200, 473 − 298; groep 6), random 4-digit sums with inwisselen back to groep 7; hints "met de kleine som" for round numbers (42 − 20, then 00 back), as in the rekenboek; splitsen shown as a **split picture** (whole on top, two boxes below) instead of `10 = 7 + ?`; a right answer after more than 90 s (pauses excluded) counts as right but **not towards a level up** | Stored plus/min levels 3–4 move up one (one-time conversion); a groep-5 child then comes back to the new level 3 via the ceiling |
 | D12 | **Cloud sync between iPads (2026-09-30):** the children take whichever iPad is free. Firebase (free Spark plan, EU `europe-west4`; Supabase pauses free projects after 7 idle days); the parent signs in once per iPad with Google (an e-mail link would open in Safari, not Chrome). One cloud document per child, so children on different iPads never conflict; the same child on two iPads at once: last save wins. Offline-first: localStorage stays the working copy. **Privacy:** only name, groep, stars and results; **no birth date** any more - the groep moves up by itself every 1 August (`groep` + `groepSchoolYear`). Access is limited by `firestore.rules`; the app warns if the rule is open | The parent creates the Firebase project; the config goes in `js/cloud-config.js` (not secret). Until then sync is off and nothing changes |
+| D13 | **Order of the next steps (2026-10-10):** rest of groep 6 (small part) → klokkijken → motivation (story, spending stars); kommagetallen and "reken onder elkaar" wait for the class and for the groep-6 child's data. **¾ van 12 is built as a higher level** instead of waiting for the class (replaces "wait for B-04" for this item): a child only reaches it by climbing, and the hint explains it with the strook. **Self-check with every new kind of sum** (`js/selftest.js`, button in the Ouder overzicht): three faults had only shown up on the real iPads (iOS 15 start-up, landscape layout never switching on, stale page copy) | Run the self-check before every release; ask the parent to tap it on the old iPad after bigger changes |
 | D8 | **Stars get a direction (2026-09-24):** visible next goal, a character collection (one animal per milestone, the seed of M-02), and an optional family reward set by the parent. Auto-continue 1.5 s after a correct answer | Stars stay never-spent; spending comes with M-02 |
 
 ## Roadmap (confirmed 2026-09-23)
@@ -101,9 +102,9 @@ Checked against a De Wereld in Getallen groep-6 werkboek (blok 7) that a school 
 | Keersommen per groep | Groep 5: "na de tafels × tientallen en samengestelde getallen"; groep 6: 7 × 49, 4 × 180 (doelen) | Levels 1–2 groep 5, level 3 groep 6 | ✅ |
 | Plus/min range | Groep 5 tot 1000, groep 6 tot 10.000 (doelen); inwisselen with 4-digit numbers mid groep 6, written out (werkboek blok 7) | Level 3 = handy numbers (groep 6); random 4-digit sums groep 7 | ✅ adjusted twice (D10, D11: real use showed the first relabel was too steep) |
 | Plus/min strategies | Hoofdrekenen: rijgen, aanvullen, handig (350 + 200); groep 6 also **cijferen and kolomsgewijs** (werkboek) | Hints teach hoofdrekenen only | ⚠️ gap: for big numbers the school writes it out; a hint "schrijf onder elkaar" could follow later |
-| Delen | Groep 5 deeltafels t/m 10 and with rest; groep 6 splitsen (129 : 2 = 120 : 2 + 9 : 2) and 320 : 4 (doelen, werkboek) | Deeltafels, with rest, quotient ≤ 20 | ✅ (groep-6 types like 320 : 4 not yet: Phase 3) |
+| Delen | Groep 5 deeltafels t/m 10 and with rest; groep 6 splitsen (129 : 2 = 120 : 2 + 9 : 2) and 320 : 4 (doelen, werkboek) | Deeltafels, with rest, quotient ≤ 20 | ✅ 320 : 4 added as level 4 with the "kleine som" hint (D13); splitsen (129 : 2) not yet |
 | Symbols | `×`, `:` for delen, "rest" | Same | ✅ |
-| Breuken | Groep 6 introduction with strook, ¾ van 12 euro (doelen, werkboek) | Strook, stambreuk van | ✅ (¾ van: B-03b) |
+| Breuken | Groep 6 introduction with strook, ¾ van 12 euro (doelen, werkboek) | Strook, stambreuk van, and ¾ van as the highest level (D13) | ✅ |
 | Afronden | Groep 6 op honderdtallen en duizendtallen (doelen) | Tientallen/honderdtallen/duizendtallen | ✅ |
 | Groep 3 | Rekenrek/five-structure, splitsen, vriendjes van 10, + and − to 20 | Same (D9) | ✅ |
 | Not in the app yet | Groep 5–6: klokkijken (tot de minuut), geld, meten, verhoudingstabel, kalender/tijdbalk | — | Backlog (Phase 3 / S-02) |
@@ -138,7 +139,7 @@ These must be done before daily use. Without them the test won't tell us whether
 | ~~B-01~~ ✅ | Fraction answers: stacked teller/noemer input; equivalent fractions accepted (2/4 = ½); "5/8" typed in one box understood | Checking answers is the tricky part of fractions | M |
 | B-02 ◐ | Fraction pictures: **strook done** (the classroom breukenkast model); getallenlijn later with B-03b | This is the first time the app needs visuals, and the biggest new capability breuken requires | M–L |
 | B-03a ✅ | Breuken step 1 (groep-5 revision only, class hasn't started breuken): herkennen (halven/kwarten → derden/vijfden/achtsten) and deel van een hoeveelheid (½, ¼ → ⅓, ⅕, ⅒) | The agreed next priority | M |
-| B-03b | Breuken step 2, **when B-04 confirms the class has reached it**: vergelijken (3/8 vs 5/8), gelijkwaardig (1/3 = 2/6), niet-stambreuken (¾ van 20), zesden/tienden, getallenlijn. Reuses step 1's strook, stacked input and equivalence check | Don't run ahead of school | M |
+| B-03b ◐ | Breuken step 2, **when B-04 confirms the class has reached it**: vergelijken (3/8 vs 5/8), gelijkwaardig (1/3 = 2/6), ~~niet-stambreuken (¾ van 20)~~ ✅ done as a higher level (D13), zesden/tienden, getallenlijn. Reuses step 1's strook, stacked input and equivalence check | Don't run ahead of school | M |
 | B-04 | Find out when the class starts breuken this year (ask the teacher or check the weektaak) | Don't run ahead of school | — |
 | B-05 | Kommagetallen (after B-01 to B-03; needs R-02) | Completes the breuken domain | M |
 
@@ -147,7 +148,7 @@ These must be done before daily use. Without them the test won't tell us whether
 | ID | Item | Why it matters | Size |
 |---|---|---|---|
 | Q-01 | Measure fluency by answer speed for tafels, with **no** visible timer | "Automatised" means fast recall, not counting up | S–M |
-| Q-02 | Automatic correctness check: run every exercise generator thousands of times and verify answers and hints | Safety net before adding more domains | S–M |
+| ~~Q-02~~ ✅ | Automatic correctness check (`js/selftest.js`, also runnable on each iPad from the Ouder overzicht): run every exercise generator thousands of times and verify answers and hints | Safety net before adding more domains | S–M |
 | Q-04 | Better verhaalsommen: realistic amounts (not "8.734 appels"), two-step problems, geld/tijd as context | Word problems should feel real | M |
 | Q-05 | Richer getalbegrip: getallenlijn, place value, schatten | Groep-6 number sense is more than comparing and rounding | M |
 | Q-06 | Tafels 1–5 and mixed tables as maintenance review | Keep automatised facts fresh | S |

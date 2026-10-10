@@ -201,7 +201,14 @@ Hints.vermenigvuldigen_groot = function (level, ctx) {
 };
 
 Hints.delen_zonder_rest = function (level, ctx) {
-  const { dividend, divisor, quotient } = ctx;
+  const { dividend, divisor, quotient, zeros } = ctx;
+  if (zeros) {
+    // 320 : 4 "met de kleine som": 32 : 4 = 8, then the zero back.
+    const unit = 10 ** zeros;
+    if (level === 1) return `Reken met de kleine som: ${dividend / unit} : ${divisor}.`;
+    if (level === 2) return `${dividend / unit} : ${divisor} = ${quotient / unit}. Zet er nu ${'0'.repeat(zeros)} achter.`;
+    return `${formatNumberNL(dividend)} : ${divisor} = ${formatNumberNL(quotient)}`;
+  }
   if (level === 1) return `Welke tafel van ${divisor} kun je gebruiken?`;
   if (level === 2) return `Zoek het getal waarmee je ${divisor} moet vermenigvuldigen om bij ${formatNumberNL(dividend)} uit te komen.`;
   return `${formatNumberNL(dividend)} : ${divisor} = ${quotient}`;
@@ -250,9 +257,17 @@ Hints.breuk_herkennen = function (level, ctx) {
 };
 
 Hints.breuk_deel_van = function (level, ctx) {
-  const { noemer, amount } = ctx;
+  const { noemer, amount, teller = 1 } = ctx;
   const fraction = unitFractionText(noemer);
   const part = amount / noemer;
+  if (teller > 1) {
+    // ¾ van 12 in the school's two steps: one part first (¼ van 12 = 3), then 3 of those parts.
+    const whole = fractionText(teller, noemer);
+    const one = `${fraction} van ${formatNumberNL(amount)}`;
+    if (level === 1) return `Reken eerst ${one}.`;
+    if (level === 2) return `${one} = ${formatNumberNL(part)}. Je hebt ${teller} van die stukken: ${teller} × ${formatNumberNL(part)}.`;
+    return `${one} = ${formatNumberNL(part)}, dus ${whole} van ${formatNumberNL(amount)} = ${teller} × ${formatNumberNL(part)} = ${formatNumberNL(teller * part)}.`;
+  }
   if (level === 1) return `Om ${fraction} van ${formatNumberNL(amount)} te vinden, verdeel je ${formatNumberNL(amount)} in ${noemer} gelijke stukken.`;
   if (level === 2) return `Reken ${formatNumberNL(amount)} : ${noemer}. Hoe groot is één stuk?`;
   return `${formatNumberNL(amount)} : ${noemer} = ${formatNumberNL(part)}, dus ${fraction} van ${formatNumberNL(amount)} = ${formatNumberNL(part)}.`;
