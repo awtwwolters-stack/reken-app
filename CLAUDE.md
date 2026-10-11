@@ -1,6 +1,8 @@
 # Reken App — working notes for Claude
 
-An adaptive Dutch maths practice app for one family's children (groep 3, 5 and 6), used on shared iPads. `BACKLOG.md` is the source of truth for decisions (D1…), the order of next steps, the feedback log and how the app matches the school method. Read its "Now" section first.
+A playful, adaptive Dutch maths practice app for one family's own children (groep 3, 5 and 6 now), in the spirit of apps like Squla but fitted to these children and their school method. They share several iPads and continue where they were on any of them. For each child it answers: "Wat zijn de nuttigste 10–15 minuten rekenen voor dit kind op dit moment?"
+
+`BACKLOG.md` is the source of truth: read **"What we're building: goal and principles"** and **"Now"** first; it also holds the decisions (D1…), the feedback log and how the app matches the school method.
 
 ## The person you work with
 - A product person, not a developer; this is their first app. Explain in plain language, give a recommendation, and ask only about choices that change what the children or the parent experience.

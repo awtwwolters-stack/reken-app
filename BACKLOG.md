@@ -25,11 +25,30 @@ The sections "Where we are: V1" and "Roadmap (confirmed 2026-09-23)" below are h
 
 ---
 
-## What we're building (the vision)
+## What we're building: goal and principles
 
-An adaptive maths tutor that answers one question for each child: **"Wat zijn de nuttigste 10–15 minuten rekenen voor dit kind op dit moment?"** It complements school (De Wereld in Getallen) and doesn't compete with it. The child never picks what to practise. The app works out their level quietly while they practise, gives scaffolded help when they make a mistake, and can always explain its choices to a parent.
+**The goal.** A playful maths practice app for the family's own children, in the spirit of commercial apps like Squla but made for these children and their school. For each child it answers one question: **"Wat zijn de nuttigste 10–15 minuten rekenen voor dit kind op dit moment?"**
 
-It starts with one child (groep 6) and one domain (core arithmetic). Over time it grows to cover the rest of groep 6, then younger siblings, then the next school year's curriculum as they move up.
+**Who it is for.**
+- Four children, from groep 1 to groep 6 in 2026–27; three practise now (groep 3, 5 and 6).
+- They share several iPads and take whichever is free, so every child continues where they were on any iPad (D12).
+- The parent is not a developer: the app must stay simple enough to understand, explain and maintain.
+
+**What a child experiences.**
+- They pick their name and practise for 5–10 minutes. They never choose what to practise; the app does.
+- The sums fit their level: the app finds it quietly while they practise and aims for about 75–85% right the first time.
+- A mistake is never punished: hint → hint → worked solution → later a similar sum.
+- It is in Dutch, with the notation and strategies of their school (De Wereld in Getallen). The app complements school and never teaches a competing method.
+- Practising is rewarding: stars that are never lost, a week goal instead of a daily streak, animals to collect, an optional family reward (D7, D8). A story around the animals is the next step (M-02).
+
+**Principles behind every choice.**
+- **Simple over sophisticated:** explainable rules, no machine learning. The app can always say why it chose a sum (Ouder overzicht).
+- **Curriculum as data:** adding a groep or a topic is mostly adding data.
+- **Child-facing first:** what the child sees comes before parent tooling.
+- **Privacy:** only first name, groep, stars and results are kept; nothing about the children in the public repository.
+- **Real use steers:** build small, let the children use it, read the logs, then decide.
+
+**Success looks like:** a child starts on their own, finishes a session, gets sums that feel right for their groep, gets help that actually helps, and the next session is a little better targeted. For the groep-6 child the first aim is confidence.
 
 ## Where we are: V1 compared with the spec
 
