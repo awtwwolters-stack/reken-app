@@ -41,7 +41,7 @@ let session = null;
 let currentExercise = null;
 let activeProfileId = null;
 
-const SCREENS = ['profiles', 'start', 'soon', 'setup', 'session', 'pause', 'summary'];
+const SCREENS = ['profiles', 'start', 'park', 'story', 'soon', 'setup', 'session', 'pause', 'summary'];
 
 function el(id) {
   return document.getElementById(id);
@@ -54,7 +54,8 @@ function showScreen(name) {
   // During practice the card sits at the top, so question and answer stay above the iPad keyboard.
   // The pause screen counts as practice too: the parent link stays hidden there.
   document.body.classList.toggle('in-session', name === 'session' || name === 'pause');
-  if (name !== 'session') stopSpeaking();
+  stopSpeaking();
+  closeShopOffer();
 }
 
 function init() {
@@ -72,6 +73,19 @@ function init() {
   appState = loadState();
   el('start-button').addEventListener('click', startSession);
   el('play-again-button').addEventListener('click', showGreeting);
+  el('park-button').addEventListener('click', showPark);
+  el('summary-park-button').addEventListener('click', showPark);
+  el('park-back-button').addEventListener('click', showGreeting);
+  el('story-button').addEventListener('click', () => showStory(firstChapterToRead(activeProfile())));
+  el('story-prev-button').addEventListener('click', () => showStory(storyChapter - 1));
+  el('story-next-button').addEventListener('click', () => showStory(storyChapter + 1));
+  el('story-back-button').addEventListener('click', showPark);
+  el('story-speak-button').addEventListener('click', speakStory);
+  el('shop-buy-button').addEventListener('click', onBuy);
+  el('shop-save-button').addEventListener('click', onToggleSaveFor);
+  el('shop-close-button').addEventListener('click', closeShopOffer);
+  // A tap next to the sheet closes it, so nothing behind it can be tapped by accident.
+  el('shop-offer').addEventListener('click', (e) => { if (e.target === el('shop-offer')) closeShopOffer(); });
   buildAnswerInputs();
   el('submit-button').addEventListener('click', () => {
     onSubmit();
@@ -181,9 +195,10 @@ function visibleScreen() {
 function refreshAfterSync() {
   const screen = visibleScreen();
   if (screen === 'profiles') showProfiles();
-  else if (screen === 'start') {
-    if (activeProfile()) showGreeting();
-    else showProfiles();
+  else if (screen === 'start' || screen === 'park' || screen === 'story') {
+    if (!activeProfile()) showProfiles();
+    else if (screen === 'start') showGreeting();
+    else if (el('shop-offer').classList.contains('hidden')) renderPark(); // not while choosing to buy
   } else if (screen === 'setup') renderSetupList();
 }
 
@@ -285,15 +300,17 @@ function showGreeting() {
   el('greeting').textContent = `Hoi ${profile.name}! Klaar om te rekenen?`;
   renderWeek(el('week-dots'), el('week-message'), profile);
   const stars = profile.stars || 0;
-  el('star-total').textContent = `★ ${stars} sterren`;
-  renderStarGoal(el('goal-fill'), el('goal-text'), stars);
-  renderCollection(stars);
+  el('star-total').textContent = `★ ${walletStars(profile)} in je spaarpot`;
+  if (saveForItem(profile)) renderSaveGoal(el('goal-fill'), el('goal-text'), profile);
+  else renderStarGoal(el('goal-fill'), el('goal-text'), stars);
+  el('park-badge').classList.toggle('hidden', unreadChapters(profile) === 0);
+  // The family goal counts earned stars: buying in the park doesn't move it further away.
   const goal = profile.familyGoal;
   el('family-goal').classList.toggle('hidden', !goal);
   if (goal) {
     el('family-goal').textContent = stars >= goal.stars
       ? `Groot doel gehaald: ${goal.text}!`
-      : `Groot doel: ${goal.text} — nog ${goal.stars - stars} ★`;
+      : `Groot doel: ${goal.text} — nog ${goal.stars - stars} ★ verdienen`;
   }
   const weeks = weeksInARow(profile);
   el('weeks-in-row').textContent = `${weeks} weken op rij je weekdoel gehaald!`;
@@ -305,25 +322,27 @@ function renderStarGoal(fillEl, textEl, stars) {
   const goal = starGoal(stars);
   fillEl.style.width = `${Math.round(goal.progress * 100)}%`;
   if (!goal.next) {
-    textEl.textContent = 'Je hebt alle dieren verzameld!';
+    textEl.textContent = 'Alle dieren wonen in je park!';
     return;
   }
-  const character = COLLECTION[STAR_MILESTONES.indexOf(goal.next)];
-  textEl.textContent = `Nog ${goal.next - stars} ★ tot ${goal.next}: dan komt er een nieuw dier bij!`;
-  fillEl.title = character.name;
+  // Only stars still to earn: the earned total itself stays out of sight, next to the spaarpot.
+  textEl.textContent = `Verdien nog ${goal.next - stars} ★: dan komt er een nieuw dier en een nieuw hoofdstuk!`;
 }
 
-// "Mijn verzameling": unlocked characters, then a "?" for the next one.
-function renderCollection(stars) {
-  const container = el('collection');
-  container.innerHTML = '';
-  unlockedCharacters(stars).forEach((character) => {
-    container.appendChild(Object.assign(document.createElement('span'), {
-      className: 'character', textContent: character.emoji, title: character.name
-    }));
-  });
-  if (unlockedCharacters(stars).length < COLLECTION.length) {
-    container.appendChild(Object.assign(document.createElement('span'), { className: 'character next', textContent: '?' }));
+// The spaardoel: how far the spaarpot is towards the chosen item.
+function renderSaveGoal(fillEl, textEl, profile) {
+  const item = saveForItem(profile);
+  const wallet = walletStars(profile);
+  fillEl.style.width = `${Math.round(Math.min(1, wallet / item.price) * 100)}%`;
+  const refusal = buyRefusal(profile, item.id);
+  if (wallet < item.price) {
+    textEl.textContent = `Je spaart voor ${item.emoji} ${item.name}: nog ${item.price - wallet} ★`;
+  } else if (refusal === 'full') {
+    textEl.textContent = `Je hebt genoeg voor ${item.emoji} ${item.name}, maar je park is vol. Bij het volgende dier komt er ruimte.`;
+  } else {
+    textEl.textContent = refusal === null
+      ? `Je hebt genoeg voor ${item.emoji} ${item.name}! Koop hem in je park.`
+      : `Je hebt genoeg voor ${item.emoji} ${item.name}! Na het rekenen kun je hem kopen.`;
   }
 }
 
@@ -337,6 +356,195 @@ function renderWeek(dotsEl, messageEl, profile) {
     dotsEl.appendChild(dot);
   });
   messageEl.textContent = weekGoalMessage(profile);
+}
+
+// Mijn park (js/park.js): the animals and everything bought, on a grid the child arranges by
+// tapping one tile and then another. Looking is always possible; buying after practising today.
+let parkSelectedTile = null; // the tile tapped first when moving something
+let shopOfferItemId = null;
+let storyChapter = 0;
+
+function showPark() {
+  parkSelectedTile = null;
+  renderPark();
+  showScreen('park');
+  window.scrollTo(0, 0);
+}
+
+function renderPark(message = '') {
+  const profile = activeProfile();
+  el('park-title').textContent = `Het park van ${profile.name}`;
+  el('park-wallet').textContent = `★ ${walletStars(profile)} in je spaarpot`;
+  const unread = unreadChapters(profile);
+  const next = firstChapterToRead(profile);
+  el('story-button').textContent = unread > 0
+    ? `📖 Nieuw hoofdstuk: ${STORY[next].title}`
+    : '📖 Lees het verhaal';
+  el('story-button').classList.toggle('new', unread > 0);
+  renderParkGrid(profile);
+  el('park-message').textContent = message || (parkSelectedTile === null
+    ? 'Tik op iets in je park om het te verplaatsen.'
+    : 'Tik nu op de plek waar het heen moet.');
+  renderStarGoal(el('park-goal-fill'), el('park-goal-text'), profile.stars || 0);
+  renderShop(profile);
+}
+
+function renderParkGrid(profile) {
+  const grid = el('park-grid');
+  grid.innerHTML = '';
+  const park = parkOf(profile);
+  parkLayout(profile).forEach((piece, tile) => {
+    const button = Object.assign(document.createElement('button'), { type: 'button', className: 'park-tile' });
+    if (piece) {
+      const thing = piece.kind === 'animal' ? COLLECTION[piece.index] : parkItem(park.items[piece.index].id);
+      button.textContent = thing ? thing.emoji : '?';
+      button.setAttribute('aria-label', thing ? thing.name : 'onbekend');
+      if (piece.kind === 'animal') button.classList.add('animal');
+    }
+    if (tile === parkSelectedTile) button.classList.add('selected');
+    button.addEventListener('click', () => onParkTile(tile, piece));
+    grid.appendChild(button);
+  });
+}
+
+function onParkTile(tile, piece) {
+  if (parkSelectedTile === null) {
+    if (!piece) return;
+    parkSelectedTile = tile;
+    const name = piece.kind === 'animal' ? COLLECTION[piece.index].name : (parkItem(parkOf(activeProfile()).items[piece.index].id) || {}).name;
+    renderPark(`${name || 'Dit'}: tik nu op de plek waar het heen moet.`);
+    return;
+  }
+  if (tile !== parkSelectedTile && moveInPark(activeProfile(), parkSelectedTile, tile)) saveState(appState);
+  parkSelectedTile = null;
+  renderPark();
+}
+
+// "Na het rekenen": on a day this child finished a session.
+function renderShop(profile) {
+  const open = shopOpenToday(profile);
+  el('shop-status').textContent = open
+    ? 'De winkel is open! Tik op iets om het te kopen.'
+    : 'Kijken mag altijd. Kopen kan na het rekenen.';
+  const wallet = walletStars(profile);
+  const saveFor = parkOf(profile).saveFor;
+  const list = el('shop-items');
+  list.innerHTML = '';
+  const items = shopItems(profile);
+  items.forEach((item) => {
+    const button = Object.assign(document.createElement('button'), { type: 'button', className: 'shop-item' });
+    button.appendChild(Object.assign(document.createElement('span'), { className: 'shop-emoji', textContent: item.emoji }));
+    button.appendChild(Object.assign(document.createElement('span'), { className: 'shop-name', textContent: item.name }));
+    const short = item.price - wallet;
+    const priceText = short > 0 ? `${item.price} ★ · nog ${short}` : `${item.price} ★`;
+    button.appendChild(Object.assign(document.createElement('span'), { className: 'shop-price', textContent: priceText }));
+    if (short > 0 || !open) button.classList.add('muted-item');
+    if (item.id === saveFor) {
+      button.classList.add('save-for');
+      button.appendChild(Object.assign(document.createElement('span'), { className: 'shop-goal', textContent: '🎯 spaardoel' }));
+    }
+    button.addEventListener('click', () => openShopOffer(item.id));
+    list.appendChild(button);
+  });
+  const coming = PARK_ITEMS.length - items.length;
+  if (coming > 0) {
+    list.appendChild(Object.assign(document.createElement('p'), {
+      className: 'shop-coming', textContent: `Bij de volgende dieren komen er nog ${coming} nieuwe dingen in de winkel.`
+    }));
+  }
+}
+
+// What it costs and what is left over: the money lesson in one sum.
+function openShopOffer(itemId) {
+  const profile = activeProfile();
+  const item = parkItem(itemId);
+  const wallet = walletStars(profile);
+  const refusal = buyRefusal(profile, itemId);
+  const saving = parkOf(profile).saveFor === itemId;
+  let text;
+  if (refusal === null) {
+    const sum = [wallet, '−', item.price, '=', wallet - item.price].join('\u00a0'); // kept on one line
+    text = `${item.emoji} ${item.name} kopen voor ${item.price} ★? Je hebt ${wallet} ★. ${sum}, dus dan houd je ${wallet - item.price} ★ over.`;
+  } else if (refusal === 'full') {
+    text = 'Je park is vol! Bij het volgende dier komt er meer ruimte.';
+  } else if (wallet < item.price) {
+    text = `${item.emoji} ${item.name} kost ${item.price} ★. Je hebt ${wallet} ★, dus je komt nog ${item.price - wallet} ★ tekort. Sparen maar!`;
+  } else {
+    text = `${item.emoji} ${item.name} kost ${item.price} ★. Je hebt genoeg! Na het rekenen kun je het kopen.`;
+  }
+  shopOfferItemId = itemId;
+  el('shop-offer-text').textContent = text;
+  el('shop-buy-button').classList.toggle('hidden', refusal !== null);
+  // A spaardoel only for something you can't buy yet; one that is on can always be stopped.
+  el('shop-save-button').classList.toggle('hidden', !saving && wallet >= item.price);
+  el('shop-save-button').textContent = saving ? 'Stop met sparen' : '🎯 Hier spaar ik voor';
+  el('shop-close-button').textContent = refusal === null ? 'Nee' : 'Sluiten';
+  el('shop-offer').classList.remove('hidden');
+}
+
+function closeShopOffer() {
+  shopOfferItemId = null;
+  el('shop-offer').classList.add('hidden');
+}
+
+function onBuy() {
+  const itemId = shopOfferItemId;
+  closeShopOffer();
+  if (!itemId) return; // a second tap on "Ja, kopen"
+  const profile = activeProfile();
+  const tile = buyItem(profile, itemId);
+  if (tile === null) {
+    renderPark('Dat lukte niet. Kijk nog eens in de winkel.');
+    return;
+  }
+  saveState(appState);
+  const item = parkItem(itemId);
+  // The new thing stands ready to be moved: the next tap on a tile puts it there.
+  parkSelectedTile = tile;
+  renderPark(`Gekocht! ${item.emoji} staat in je park. Tik op een plek om het daar neer te zetten.`);
+  el('park-grid').scrollIntoView();
+}
+
+function onToggleSaveFor() {
+  const itemId = shopOfferItemId;
+  closeShopOffer();
+  if (!itemId) return;
+  const profile = activeProfile();
+  setSaveFor(profile, parkOf(profile).saveFor === itemId ? null : itemId);
+  saveState(appState);
+  renderPark();
+}
+
+// The first chapter not read yet, or the newest one to read again.
+function firstChapterToRead(profile) {
+  return Math.min(parkOf(profile).storyRead || 0, chaptersUnlocked(profile) - 1);
+}
+
+function showStory(chapter) {
+  const profile = activeProfile();
+  if (!profile) return showProfiles();
+  storyChapter = Math.max(0, Math.min(chapter, chaptersUnlocked(profile) - 1));
+  const before = parkOf(profile).storyRead || 0;
+  markChapterRead(profile, storyChapter);
+  if ((parkOf(profile).storyRead || 0) !== before) saveState(appState);
+  el('story-emoji').textContent = storyChapter === 0 ? '📜' : COLLECTION[storyChapter - 1].emoji;
+  el('story-title').textContent = `${storyChapter + 1}. ${STORY[storyChapter].title}`;
+  el('story-text').textContent = chapterText(storyChapter, profile.name);
+  const isLastUnlocked = storyChapter === chaptersUnlocked(profile) - 1;
+  const goal = starGoal(profile.stars || 0);
+  el('story-next-hint').textContent = !isLastUnlocked ? ''
+    : storyChapter === STORY.length - 1 ? 'Dit was het laatste hoofdstuk. Wordt vervolgd!'
+      : `Verdien nog ${goal.next - (profile.stars || 0)} ★ voor het volgende hoofdstuk.`;
+  el('story-prev-button').classList.toggle('hidden', storyChapter === 0);
+  el('story-next-button').classList.toggle('hidden', isLastUnlocked);
+  el('story-speak-button').classList.toggle('hidden', !canSpeakDutch());
+  showScreen('story');
+  window.scrollTo(0, 0);
+}
+
+function speakStory() {
+  if (!('speechSynthesis' in window) || !activeProfile()) return;
+  speakText(`${STORY[storyChapter].title}. ${chapterText(storyChapter, activeProfile().name)}`);
 }
 
 // Parent setup: add or edit a child. The parent picks the groep for this school year; it moves up
@@ -370,7 +578,9 @@ function showSetup(profileId) {
   el('profile-weekgoal').value = String(profile ? profile.weekGoal : DEFAULT_WEEK_GOAL);
   el('profile-goal-stars').value = profile && profile.familyGoal ? profile.familyGoal.stars : '';
   el('profile-goal-text').value = profile && profile.familyGoal ? profile.familyGoal.text : '';
-  el('profile-current-stars').textContent = profile ? `${profile.name} heeft nu ${profile.stars || 0} ★.` : '';
+  el('profile-current-stars').textContent = profile
+    ? `${profile.name} heeft ${profile.stars || 0} ★ verdiend (nu ${walletStars(profile)} ★ in de spaarpot).`
+    : '';
   el('profile-form-error').textContent = '';
   el('delete-profile-button').classList.toggle('hidden', !profile);
   el('delete-profile-button').textContent = profile ? `${profile.name} verwijderen` : '';
@@ -832,8 +1042,12 @@ function speakExercise() {
   const parts = [currentExercise.speech || toSpeech(currentExercise.prompt)];
   const feedback = el('feedback');
   if (feedback.textContent && !feedback.classList.contains('feedback-correct')) parts.push(toSpeech(feedback.textContent));
+  speakText(parts.join(' '));
+}
+
+function speakText(text) {
   stopSpeaking();
-  const utterance = new SpeechSynthesisUtterance(parts.join(' '));
+  const utterance = new SpeechSynthesisUtterance(text);
   utterance.lang = 'nl-NL';
   const voice = dutchVoice();
   if (voice) utterance.voice = voice;
@@ -1124,7 +1338,7 @@ function showSummary() {
   }
   profile.stars = (profile.stars || 0) + bonus;
   charactersUnlockedBetween(session.starsAtStart, profile.stars).forEach((character) => {
-    celebrations.push(`Nieuw in je verzameling: ${character.emoji} ${character.name}!`);
+    celebrations.push(`Nieuw in je park: ${character.emoji} ${character.name}! Er is een nieuw hoofdstuk.`);
   });
   if (familyGoalReachedBetween(profile.familyGoal, session.starsAtStart, profile.stars)) {
     celebrations.push(`Groot doel gehaald: ${profile.familyGoal.text}! Laat het aan je ouders zien.`);
@@ -1139,7 +1353,8 @@ function showSummary() {
 
   el('summary-score').textContent = `${totalCorrect} van de ${totalAttempts} goed`;
   el('summary-count').textContent = `${totalAttempts} ${totalAttempts === 1 ? 'som' : 'sommen'} gemaakt`;
-  el('summary-stars').textContent = `+${session.starsEarned + bonus} ★ verdiend · totaal ${profile.stars} ★`;
+  el('summary-stars').textContent = `+${session.starsEarned + bonus} ★ verdiend · ★ ${walletStars(profile)} in je spaarpot`;
+  el('summary-park-badge').classList.toggle('hidden', unreadChapters(profile) === 0);
   renderStarGoal(el('summary-goal-fill'), el('summary-goal-text'), profile.stars);
   renderCelebrations(celebrations);
   renderList('summary-strong', strong, 'Nog geen duidelijk sterke vaardigheden deze keer.');

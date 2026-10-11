@@ -87,7 +87,7 @@ function renderOverview(state, skillsById) {
       exercises.length ? `${Math.round((firstTry / exercises.length) * 100)}%` : '-',
       `${moves.up} omhoog, ${moves.down} omlaag`,
       levelVersusGroep(profile, skillsById),
-      `${profile.stars || 0} ★`
+      `${profile.stars || 0} ★ verdiend, ${walletStars(profile)} ★ in de spaarpot`
     ]));
   });
 }
@@ -212,8 +212,26 @@ function renderParentView() {
   const profileId = renderChildSelect(state);
   renderOverview(state, skillsById);
   renderBackupStatus(state);
+  renderStars(state, profileId);
   renderSessions(state, skillsById, profileId);
   renderSkills(state, profileId);
+}
+
+// Earned stars never go down; the spaarpot is what is left after buying in the park (js/park.js).
+function renderStars(state, profileId) {
+  const box = document.getElementById('parent-stars');
+  const profile = state.profiles[profileId];
+  if (!profile) {
+    box.textContent = '';
+    return;
+  }
+  const park = parkOf(profile);
+  const lastBought = park.items.slice(-5).reverse()
+    .map((bought) => { const item = parkItem(bought.id); return `${item ? `${item.emoji} ${item.name}` : bought.id} (${bought.price})`; });
+  box.textContent = `Sterren: ${profile.stars || 0} verdiend · ${spentStars(profile)} uitgegeven in het park · `
+    + `${walletStars(profile)} in de spaarpot. Verhaal: ${Math.min(park.storyRead || 0, STORY.length)} van ${STORY.length} hoofdstukken gelezen`
+    + ` (${chaptersUnlocked(profile)} vrijgespeeld).`
+    + (lastBought.length ? ` Laatst gekocht: ${lastBought.join(', ')}.` : ' Nog niets gekocht.');
 }
 
 // Keeps the current choice; otherwise all children together. Returns the chosen profile id (or ALL_CHILDREN).

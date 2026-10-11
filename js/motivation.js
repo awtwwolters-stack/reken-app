@@ -1,11 +1,12 @@
-// Encouragement that only ever gives: stars are never lost, and the weekly goal replaces a
+// Encouragement that only ever gives: earned stars are never lost, and the weekly goal replaces a
 // daily streak (research: losing a streak hurts children more than extending it motivates).
+// Spending happens in the park (js/park.js) and only empties the spaarpot, never the earned total.
 
 const WEEKDAY_LABELS = ['ma', 'di', 'wo', 'do', 'vr', 'za', 'zo'];
 const STAR_BONUS = { sessionDone: 5, levelUp: 3, weekGoal: 10 };
 // Close together at first so the first characters come quickly (~30 stars per session), slower later.
 const STAR_MILESTONES = [25, 50, 100, 150, 200, 300, 400, 500, 650, 800, 1000, 1250, 1500, 2000];
-// One character per milestone; the seed of the later story/character idea.
+// One character per milestone: it moves into the child's park and brings a story chapter (js/park.js).
 const COLLECTION = [
   { emoji: '\u{1F98A}', name: 'Vos Fien' }, { emoji: '\u{1F989}', name: 'Uil Otto' },
   { emoji: '\u{1F422}', name: 'Schildpad Tuur' }, { emoji: '\u{1F419}', name: 'Octopus Olly' },
