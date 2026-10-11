@@ -8,11 +8,12 @@ Size: **S** = small change · **M** = one focused build session · **L** = sever
 
 ## Now (2026-10-11)
 
-**Live: version 2026-10-11.25.** Three children (groep 3, 5 and 6) practise on shared iPads, synced through the family's own Firebase project (D12).
+**Live: version 2026-10-11.26.** Three children (groep 3, 5 and 6) practise on shared iPads, synced through the family's own Firebase project (D12).
 
 **Open checks (need a real iPad or real use):**
 - Tap "Controleer de app op dit apparaat" (Ouder overzicht) on the old iPad (iOS 15) and send a photo of the result.
 - One clock sum in landscape with the keyboard up: clock on the left, answer boxes and hint on the right, no scrolling.
+- After a week with D16: does the groep-3 child stay on the half-dots level for min and splitsen instead of going up and down, and does the groep-5 child finish sessions again?
 - After a week with D15: does the groep-6 child finish sessions again (a backup pasted in chat)? In the overview per child: more "afgerond", fewer stops right after a worked solution.
 
 **Next steps, in the agreed order (D13):**
@@ -20,13 +21,13 @@ Size: **S** = small change · **M** = one focused build session · **L** = sever
 2. ~~Klokkijken~~ ✅ (D14)
 3. **From the backup of 2026-10-11 (before motivation, the parent's order):**
    - ~~Groep-6 child: levels and confidence~~ ✅ (D15)
-   - Groep-3 child: an in-between level for min and splitsen where the picture stays for part of the sums (he does 90% with dots, 12% without, and went up and down five times); far too long numbers from keyboard-mashing don't count as a mistake.
-   - Groep-5 child: a mastered skill at most once per session (one session was 80% tafels at 96%; no finished session since 3 October).
+   - ~~Groep-3 child: in-between level with half the pictures; keyboard-mashing isn't a mistake~~ ✅ (D16)
+   - ~~Groep-5 child: a mastered skill once per session~~ ✅ (D16)
    - A new topic opens with a short explanation (the groep-6 child doesn't know how to write a strook as a fraction).
 4. **Motivation: the animals in a story, spending stars (M-02).** Needs choices from the parent first (which story, what stars can buy).
 5. Later, when the class and the data say so: tijdsduur (groep 6), kommagetallen (B-05), a hint "reken onder elkaar" for big plus/min sums, the rest of breuken step 2 (B-03b), geld, the youngest child (S-04).
 
-The sections "Where we are: V1" and "Roadmap (confirmed 2026-09-23)" below are history; decisions D9–D15 replaced that order.
+The sections "Where we are: V1" and "Roadmap (confirmed 2026-09-23)" below are history; decisions D9–D16 replaced that order.
 
 ---
 
@@ -93,6 +94,7 @@ The sections "Where we are: V1" and "Roadmap (confirmed 2026-09-23)" below are h
 | D13 | **Order of the next steps (2026-10-10):** rest of groep 6 (small part) → klokkijken → motivation (story, spending stars); kommagetallen and "reken onder elkaar" wait for the class and for the groep-6 child's data. **¾ van 12 is built as a higher level** instead of waiting for the class (replaces "wait for B-04" for this item): a child only reaches it by climbing, and the hint explains it with the strook. **Self-check with every new kind of sum** (`js/selftest.js`, button in the Ouder overzicht): three faults had only shown up on the real iPads (iOS 15 start-up, landscape layout never switching on, stale page copy) | Run the self-check before every release; ask the parent to tap it on the old iPad after bigger changes |
 | D14 | **Klokkijken (2026-10-10):** three skills in the category Klok: hele uren for groep 3 (one answer box), the wijzerklok in five levels (hele/halve uren → kwartieren → 5 minuten → to the minute → with dagdeel) and tijd in woorden (kwart voor 4, 10 voor half 4). Answers as uur : minuten. At a wijzerklok 3:15 and 15:15 both count; **with a dagdeel only the 24-hour time counts** (the parent asked for 24-hour where it becomes digital). Tijdsduur follows later | The landscape layout now puts the hint in the right column so a clock keeps its size (170 px instead of 120) |
 | D15 | **Confidence before climbing (2026-10-11):** (1) the quick start rule (3 right in a row) lifts a child no higher than the level of their own groep; above it only the steady rule (8 answers, 90% right and fast) moves up. (2) Levels the quick start already put above the own groep, without 5 fast right answers there, go back to the own-groep level the next time that skill comes up. (3) A worked solution lowers the level by one at once. (4) A session opens with 2 sums from skills the child does well, and the sum after a worked solution is one too | Costs: a strong child reaches the level above their groep later (after 8 good answers instead of 3). Also: Ouder overzicht shows all children together, the name in every session row, and a table per child for the last 7 days |
+| D16 | **Smaller steps and less of the same (2026-10-11):** (1) splitsen and min tot 20 get a level in between where half of the sums keep the dot picture (`"dots": 0.5`). (2) An answer at least two digits longer than the right one (a hand on the keyboard) is not counted as a mistake: a friendly line, and the child tries again. (3) A mastered skill (at the highest level the child can reach, 8 answers 90% right and fast) comes up once per session, and a session holds at most one such skill | Levels are stored by number, so the new level shifted the higher levels of those two skills up by one; only the groep-3 child had progress there, and for him level 2 now means half dots (intended). Plussommen kept its levels |
 | D8 | **Stars get a direction (2026-09-24):** visible next goal, a character collection (one animal per milestone, the seed of M-02), and an optional family reward set by the parent. Auto-continue 1.5 s after a correct answer | Stars stay never-spent; spending comes with M-02 |
 
 ## Roadmap (confirmed 2026-09-23)

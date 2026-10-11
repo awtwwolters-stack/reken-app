@@ -16,6 +16,9 @@ const CONFIDENT_CHOICES = 3;
 const PRAISE_FIRST_TRY = ['Goed!', 'Netjes!', 'Yes, die heb je!', 'Knap gedaan!', 'Precies!'];
 const PRAISE_WITH_HELP = ['Goed, dat lukte!', 'Mooi, je hebt hem nu!', 'Zo is hij goed!'];
 const INVALID_NUMBER_MESSAGE = 'Typ alleen een getal, bijvoorbeeld 4520 of 4.520.';
+// An answer this many digits longer than the right one is a hand on the keyboard, not an attempt.
+const MASH_EXTRA_DIGITS = 2;
+const MASH_MESSAGE = 'Dat zijn wel heel veel cijfers! Probeer het nog eens.';
 // Prompts longer than this are sentences (verhaalsommen) and get a smaller font.
 const LONG_PROMPT_CHARS = 30;
 // Text shrinks in these steps, down to this share of its normal size, until the card fits.
@@ -443,6 +446,7 @@ function startSession() {
     previousSkillId: null,
     followUps: [], // [{ skillId, dueAt }] fresh exercise to check understanding after a shown solution
     followUpQueued: new Set(),
+    masteredAsked: [], // mastered skills that already came up: once per session is enough
     hintLevel: 0,
     hadMistake: false,
     results: {} // skillId -> { attempts, correctFirstTry }
@@ -477,7 +481,7 @@ function nextExercise() {
     pick = { skillId: followUp.skillId, reason: 'controle na uitleg' };
   }
   if (!pick) {
-    pick = pickNextSkill(session.skillIds, childSkillsById, profileSkillStates(), session.previousSkillId, session.groep);
+    pick = pickNextSkill(session.skillIds, childSkillsById, profileSkillStates(), session.previousSkillId, session.groep, session.masteredAsked);
   }
   renderExercise(pick);
 }
@@ -489,6 +493,7 @@ function renderExercise(pick) {
   const ceilingChange = [applyCeiling(skill, skillState, session.groep), applyFastClimbCorrection(skill, skillState, session.groep)]
     .filter(Boolean).join('; ') || null;
   const tierConfig = tierConfigFor(skill, skillState.tier);
+  if (isMastered(skill, skillState, session.groep) && !session.masteredAsked.includes(skill.id)) session.masteredAsked.push(skill.id);
 
   currentExercise = freshExercise(skill, tierConfig);
   currentExercise.pickReason = pick.reason;
@@ -868,6 +873,14 @@ function onSubmit() {
     return;
   }
 
+  if (looksLikeMashing(values)) {
+    el('feedback').textContent = MASH_MESSAGE;
+    el('feedback').className = 'feedback feedback-hint';
+    clearAnswerFields();
+    fitSessionToScreen();
+    return;
+  }
+
   currentExercise.answersGiven.push(formatAnswer(values));
   if (isCorrect(values)) {
     concludeExercise(true);
@@ -880,6 +893,13 @@ function onSubmit() {
       showHint();
     }
   }
+}
+
+// Far too many digits (a young child drumming on the keyboard) is not a wrong answer.
+function looksLikeMashing(values) {
+  const numbers = (object) => Object.values(object).filter((v) => typeof v === 'number').map(Math.abs);
+  const limit = 10 ** (String(Math.trunc(Math.max(1, ...numbers(currentExercise.correctAnswer)))).length + MASH_EXTRA_DIGITS);
+  return numbers(values).some((v) => v >= limit);
 }
 
 function showHint() {

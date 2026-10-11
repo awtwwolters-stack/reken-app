@@ -216,6 +216,14 @@ function applyFastClimbCorrection(skill, skillState, groep) {
   return reason;
 }
 
+// Mastered: at the highest level this child can reach, and (nearly) always right and fast there.
+// More of the same teaches nothing and bores: such a skill comes up once per session.
+function isMastered(skill, skillState, groep) {
+  const results = skillState.recentResults;
+  return skillState.tier >= groepCeilingTier(skill, groep) && results.length >= STEADY_UP_MIN_ANSWERS
+    && results.filter(isFastCorrect).length / results.length >= STEADY_UP_RATE;
+}
+
 // Skills this child is clearly good at right now, best first: for the first sums of a session and
 // for the sum right after a worked solution, so practice opens with (and returns to) success.
 const CONFIDENT_MIN_ANSWERS = 4;
@@ -273,10 +281,14 @@ function selectSessionSkills(curriculumSkills, profileSkillStates, groep) {
   const entries = classifyAll(curriculumSkills, profileSkillStates, groep);
   const picks = [];
   const perCategory = {};
+  const mastered = (entry) => isMastered(entry.skill, entry.state, groep);
 
-  function canAdd(entry, respectCategoryCap = true) {
+  // The caps (2 per category, 1 mastered skill) give way only when a session can't be filled otherwise.
+  function canAdd(entry, respectCaps = true) {
     if (picks.includes(entry) || picks.length >= MAX_SESSION_SKILLS) return false;
-    return !respectCategoryCap || (perCategory[entry.skill.category] || 0) < MAX_SKILLS_PER_CATEGORY;
+    if (!respectCaps) return true;
+    if (mastered(entry) && picks.some(mastered)) return false;
+    return (perCategory[entry.skill.category] || 0) < MAX_SKILLS_PER_CATEGORY;
   }
   function add(entry) {
     picks.push(entry);
@@ -335,8 +347,10 @@ function selectSessionSkills(curriculumSkills, profileSkillStates, groep) {
 // Picks the next exercise's skill among the session's skills, weighted by the skill's
 // *current* bucket (so a skill that turns weak mid-session gets more practice), never
 // the same skill twice in a row. Returns { skillId, bucket, reason }.
-function pickNextSkill(sessionSkillIds, skillsById, profileSkillStates, previousSkillId, groep) {
-  let candidates = sessionSkillIds.filter((id) => id !== previousSkillId);
+// `skipIds`: mastered skills that already came up this session (skipped while there is another choice).
+function pickNextSkill(sessionSkillIds, skillsById, profileSkillStates, previousSkillId, groep, skipIds = []) {
+  let candidates = sessionSkillIds.filter((id) => id !== previousSkillId && !skipIds.includes(id));
+  if (candidates.length === 0) candidates = sessionSkillIds.filter((id) => id !== previousSkillId);
   if (candidates.length === 0) candidates = sessionSkillIds;
 
   const weighted = candidates.map((id) => {
