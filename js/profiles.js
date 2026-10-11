@@ -58,12 +58,16 @@ function canPractise(profile) {
   return !hasFinishedPrimarySchool(profile) && skillsForGroep(CURRICULUM.skills, practiceGroep(profile)).length > 0;
 }
 
-// Young children (still learning to read) get sessions of 5 minutes and a 🔊 button.
+// Young children (still learning to read) get sessions of 5 minutes and a 🔊 button. The others
+// practise 8 minutes: 10 proved long (the parent's call after two weeks of real use; many
+// sessions were stopped before the end).
 const YOUNG_READER_MAX_GROEP = 4;
 const SHORT_SESSION_MAX_GROEP = 3;
+const SHORT_SESSION_MINUTES = 5;
+const SESSION_MINUTES = 8;
 
 function sessionMinutes(profile) {
-  return practiceGroep(profile) <= SHORT_SESSION_MAX_GROEP ? 5 : 10;
+  return practiceGroep(profile) <= SHORT_SESSION_MAX_GROEP ? SHORT_SESSION_MINUTES : SESSION_MINUTES;
 }
 
 function offersReadAloud(profile) {

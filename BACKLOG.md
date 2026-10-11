@@ -8,7 +8,7 @@ Size: **S** = small change · **M** = one focused build session · **L** = sever
 
 ## Now (2026-10-11)
 
-**Version 2026-10-11.31 (Mijn park, D18).** Three children (groep 3, 5 and 6) practise on shared iPads, synced through the family's own Firebase project (D12).
+**Version 2026-10-11.32 (Mijn park, D18).** Three children (groep 3, 5 and 6) practise on shared iPads, synced through the family's own Firebase project (D12).
 
 **Open checks (need a real iPad or real use):**
 - Tap "Controleer de app op dit apparaat" (Ouder overzicht) on the old iPad (iOS 15) and send a photo of the result.
@@ -82,7 +82,7 @@ The sections "Where we are: V1" and "Roadmap (confirmed 2026-09-23)" below are h
 | | Decision | Consequence |
 |---|---|---|
 | D1 | **Device:** iPad only | The app must be hosted as a web page (R-01). No syncing between devices needed. A progress backup still matters earlier, because Safari can clear stored data → Q-03 moved up |
-| D2 | **Session length:** time-based, about 10 minutes | Finishes after the current exercise once the time is up. No visible clock; a progress bar instead → R-06 |
+| D2 | **Session length:** time-based, about 10 minutes (**8 minutes since 2026-10-11**, the parent's call; groep 3 keeps 5) | Finishes after the current exercise once the time is up. No visible clock; a progress bar instead → R-06 |
 | D3 | **Session shape:** focused, 4–6 skills | Several exercises per skill; weak skills get extra repetitions → R-05 |
 | D4 | **Breuken:** built in parallel with the test period | Breuken work starts right after Phase 0 |
 | D5 | **Hosting:** GitHub Pages, public repository (free) | No login needed on the iPad, so the child never uses a parent's account. The code is backed up online. Family details stay out of the repo |
