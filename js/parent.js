@@ -31,10 +31,72 @@ function helpText(ex) {
   return ex.solutionShown ? `${hints} + uitleg getoond` : `${hints}, toen goed`;
 }
 
+const ALL_CHILDREN = 'all';
+const OVERVIEW_DAYS = 7;
+
+// Named children only ('' for the old unnamed test profile and removed children).
+function childName(state, profileId) {
+  const profile = state.profiles[profileId];
+  return profile && profile.name ? profile.name : '';
+}
+
+// "niveau 2 → 3: ..." (several joined by "; "): how often a level went up and down.
+function levelMoves(exercises) {
+  let up = 0;
+  let down = 0;
+  exercises.forEach((ex) => {
+    const matches = (ex.levelChange || '').match(/niveau \d+ → \d+/g) || [];
+    matches.forEach((m) => {
+      const [from, to] = m.match(/\d+/g).map(Number);
+      if (to > from) up += 1; else down += 1;
+    });
+  });
+  return { up, down };
+}
+
+// Where a child stands compared with their own groep: the average over practised skills of
+// (level - the level that fits the start of their groep).
+function levelVersusGroep(profile, skillsById) {
+  const groep = practiceGroep(profile);
+  const practised = Object.entries(profile.skills || {}).filter(([id, st]) => skillsById[id] && st.totalAttempts > 0);
+  if (practised.length === 0) return '-';
+  const average = (list) => list.reduce((a, b) => a + b, 0) / list.length;
+  const level = average(practised.map(([, st]) => st.tier));
+  const versus = average(practised.map(([id, st]) => st.tier - groepStartTier(skillsById[id], groep)));
+  const nl = (n) => n.toLocaleString('nl-NL', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+  const place = Math.abs(versus) < 0.25 ? `op het niveau van groep ${groep}` : `${nl(Math.abs(versus))} ${versus > 0 ? 'boven' : 'onder'} groep ${groep}`;
+  return `${nl(level)} (${place})`;
+}
+
+// One row per child for the last week: how much they practised and which way their levels moved.
+function renderOverview(state, skillsById) {
+  const tbody = document.getElementById('overview-body');
+  tbody.innerHTML = '';
+  const since = Date.now() - OVERVIEW_DAYS * 24 * 60 * 60 * 1000;
+  listProfiles(state).forEach(({ id, profile }) => {
+    const sessions = (state.sessions || []).filter((s) => s.profileId === id && Array.isArray(s.exercises) && s.exercises.length > 0 && new Date(s.startedAt).getTime() >= since);
+    const exercises = sessions.flatMap((s) => s.exercises);
+    const firstTry = exercises.filter((e) => e.firstTryCorrect).length;
+    const moves = levelMoves(exercises);
+    tbody.appendChild(tableRow([
+      profile.name,
+      currentGroep(profile),
+      `${sessions.length} (${sessions.filter((s) => s.completed).length} afgerond)`,
+      Math.round(sessions.reduce((n, s) => n + (s.activeSeconds || 0), 0) / 60),
+      exercises.length,
+      exercises.length ? `${Math.round((firstTry / exercises.length) * 100)}%` : '-',
+      `${moves.up} omhoog, ${moves.down} omlaag`,
+      levelVersusGroep(profile, skillsById),
+      `${profile.stars || 0} ★`
+    ]));
+  });
+}
+
 function renderSessions(state, skillsById, profileId) {
   const container = document.getElementById('parent-sessions');
   container.innerHTML = '';
-  const sessions = (state.sessions || []).filter((s) => s.profileId === profileId).reverse();
+  const everyone = profileId === ALL_CHILDREN;
+  const sessions = (state.sessions || []).filter((s) => everyone ? childName(state, s.profileId) : s.profileId === profileId).reverse();
   if (sessions.length === 0) {
     container.appendChild(node('p', 'Nog geen sessies gedaan.'));
     return;
@@ -54,7 +116,10 @@ function renderSessions(state, skillsById, profileId) {
     const minutes = Math.round((s.activeSeconds || 0) / 60);
     const firstTry = exercises.filter((e) => e.firstTryCorrect).length;
     const pct = exercises.length ? Math.round((firstTry / exercises.length) * 100) : 0;
-    const summary = node('summary', `${formatDate(s.startedAt)} — ${minutes} min, ${exercises.length} ${exercises.length === 1 ? 'som' : 'sommen'}, ${pct}% meteen goed — `);
+    // The child's name first: with several children the list is scanned by who did what.
+    const summary = node('summary', '');
+    summary.appendChild(node('strong', childName(state, s.profileId)));
+    summary.appendChild(document.createTextNode(` — ${formatDate(s.startedAt)} — ${minutes} min, ${exercises.length} ${exercises.length === 1 ? 'som' : 'sommen'}, ${pct}% meteen goed — `));
     summary.appendChild(s.completed ? node('span', 'afgerond') : node('strong', `gestopt na ${minutes} min`, 'stopped'));
     details.appendChild(summary);
 
@@ -90,6 +155,9 @@ function levelText(skill, skillState, groep) {
 }
 
 function renderSkills(state, profileId) {
+  document.getElementById('skills-section').classList.toggle('hidden', profileId === ALL_CHILDREN);
+  document.getElementById('skills-choose-child').classList.toggle('hidden', profileId !== ALL_CHILDREN);
+  if (profileId === ALL_CHILDREN) return;
   const profile = state.profiles[profileId];
   const profileSkills = (profile && profile.skills) || {};
   const tbody = document.getElementById('parent-table-body');
@@ -142,20 +210,22 @@ function renderParentView() {
   const state = loadState();
   const skillsById = Object.fromEntries(CURRICULUM.skills.map((s) => [s.id, s]));
   const profileId = renderChildSelect(state);
+  renderOverview(state, skillsById);
   renderBackupStatus(state);
   renderSessions(state, skillsById, profileId);
   renderSkills(state, profileId);
 }
 
-// Keeps the current choice; otherwise the child who practised last. Returns the chosen profile id.
+// Keeps the current choice; otherwise all children together. Returns the chosen profile id (or ALL_CHILDREN).
 function renderChildSelect(state) {
   const select = document.getElementById('child-select');
   const previous = select.value;
   const profiles = listProfiles(state);
   select.innerHTML = '';
+  select.appendChild(Object.assign(document.createElement('option'), { value: ALL_CHILDREN, textContent: 'Alle kinderen' }));
   profiles.forEach(({ id, profile }) => select.appendChild(Object.assign(document.createElement('option'), { value: id, textContent: profile.name })));
-  const ids = profiles.map((p) => p.id);
-  select.value = [previous, state.lastProfileId, ids[0]].find((id) => id && ids.includes(id)) || '';
+  const ids = [ALL_CHILDREN].concat(profiles.map((p) => p.id));
+  select.value = ids.includes(previous) ? previous : ALL_CHILDREN;
   return select.value;
 }
 

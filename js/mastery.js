@@ -69,8 +69,13 @@ function isFastCorrect(result) {
 }
 
 // `ceiling` is the highest level this child may reach (groepCeilingTier); `slow` marks a right
-// answer that took longer than SLOW_ANSWER_MS.
-function recordAnswer(skill, skillState, wasCorrect, ceiling = maxTier(skill), slow = false) {
+// answer that took longer than SLOW_ANSWER_MS. `limits`:
+// - calibrationTop: the quick start rule (3 right in a row) lifts a child no higher than this, the
+//   level of their own groep. Real use showed why: a child who started well was carried two
+//   groepen up in ten minutes, met sums she couldn't do, and started quitting. Above the own
+//   groep only the steady rule (8 answers, 90% right and fast) moves up.
+// - solutionShown: the worked solution was needed, so the level goes down one at once.
+function recordAnswer(skill, skillState, wasCorrect, ceiling = maxTier(skill), slow = false, limits = {}) {
   const calibrating = isCalibrating(skillState);
   skillState.recentResults.push(wasCorrect && slow ? SLOW_CORRECT : wasCorrect);
   if (skillState.recentResults.length > RESULT_WINDOW) {
@@ -84,12 +89,18 @@ function recordAnswer(skill, skillState, wasCorrect, ceiling = maxTier(skill), s
   let direction = 0;
   let why = '';
 
-  if (calibrating) {
+  const calibrationTop = limits.calibrationTop === undefined ? Infinity : limits.calibrationTop;
+  if (limits.solutionShown) {
+    direction = -1;
+    why = 'de uitleg was nodig';
+  } else if (calibrating) {
     const lastUp = results.slice(-CALIBRATION_UP_STREAK);
     const wrongInLastThree = results.slice(-3).filter((r) => !r).length;
     if (lastUp.length === CALIBRATION_UP_STREAK && lastUp.every(isFastCorrect)) {
-      direction = 1;
-      why = `${CALIBRATION_UP_STREAK} keer op rij goed tijdens het bepalen van het niveau`;
+      if (skillState.tier < calibrationTop) {
+        direction = 1;
+        why = `${CALIBRATION_UP_STREAK} keer op rij goed tijdens het bepalen van het niveau`;
+      }
     } else if (wrongInLastThree >= 2) {
       direction = -1;
       why = '2 van de laatste 3 niet in één keer goed tijdens het bepalen van het niveau';
@@ -108,7 +119,7 @@ function recordAnswer(skill, skillState, wasCorrect, ceiling = maxTier(skill), s
   const to = Math.min(top, Math.max(MIN_TIER, from + direction));
   if (to === from) return null;
 
-  if (calibrating && direction === -1) skillState.calibrationDone = true;
+  if (direction === -1) skillState.calibrationDone = true;
   skillState.tier = to;
   // Answers given at the old level say nothing about the new one: collect fresh evidence.
   skillState.recentResults = [];
@@ -180,6 +191,42 @@ function applyCeiling(skill, skillState, groep) {
   const reason = `niveau ${from} → ${ceiling}: maximaal één groep boven groep ${groep}`;
   skillState.lastTierChange = { at: Date.now(), from, to: ceiling, reason };
   return reason;
+}
+
+// A level above the child's own groep that the quick start rule reached, without enough fast right
+// answers there to show it fits, goes back to the own-groep level. Checked once per skill, when
+// the child next practises it (not when data loads: with cloud sync a device holding an older
+// copy must never rewrite a profile on its own). Returns the reason, or null.
+const PROVEN_FAST_RIGHT = 5;
+
+function applyFastClimbCorrection(skill, skillState, groep) {
+  if (skillState.climbChecked) return null;
+  skillState.climbChecked = true;
+  const own = groepStartTier(skill, groep);
+  const change = skillState.lastTierChange;
+  const byQuickStart = !!change && /tijdens het bepalen/.test(change.reason) && change.to > change.from;
+  const proven = skillState.recentResults.filter(isFastCorrect).length >= PROVEN_FAST_RIGHT;
+  if (skillState.tier <= own || !byQuickStart || proven) return null;
+  const from = skillState.tier;
+  skillState.tier = own;
+  skillState.recentResults = [];
+  skillState.calibrationDone = true;
+  const reason = `niveau ${from} → ${own}: de snelle start gaat niet hoger dan groep ${groep}`;
+  skillState.lastTierChange = { at: Date.now(), from, to: own, reason };
+  return reason;
+}
+
+// Skills this child is clearly good at right now, best first: for the first sums of a session and
+// for the sum right after a worked solution, so practice opens with (and returns to) success.
+const CONFIDENT_MIN_ANSWERS = 4;
+const CONFIDENT_RATE = 0.8;
+
+function confidentSkillIds(profileSkillStates, skillsById, excludeIds = []) {
+  return Object.entries(profileSkillStates)
+    .filter(([id, state]) => skillsById[id] && !excludeIds.includes(id)
+      && state.recentResults.length >= CONFIDENT_MIN_ANSWERS && successRate(state) >= CONFIDENT_RATE)
+    .sort(([, a], [, b]) => successRate(b) - successRate(a) || b.recentResults.length - a.recentResults.length)
+    .map(([id]) => id);
 }
 
 // Start one level below the groep estimate (GENTLE_START_LEVELS). Once enough skills have

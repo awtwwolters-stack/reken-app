@@ -9,6 +9,9 @@ const AUTO_NEXT_MS = 1500;
 const MAX_COUNTED_MS_PER_EXERCISE = 90 * 1000;
 // A category counts as "Sterk" in the summary when at least this share was right the first time.
 const SUMMARY_STRONG_RATE = 0.8;
+// A session opens with this many sums from skills the child is good at (picked among the best few).
+const WARM_UP_SUMS = 2;
+const CONFIDENT_CHOICES = 3;
 
 const PRAISE_FIRST_TRY = ['Goed!', 'Netjes!', 'Yes, die heb je!', 'Knap gedaan!', 'Precies!'];
 const PRAISE_WITH_HELP = ['Goed, dat lukte!', 'Mooi, je hebt hem nu!', 'Zo is hij goed!'];
@@ -454,10 +457,26 @@ function nextExercise() {
     (f) => f.dueAt <= session.exerciseCount && f.skillId !== session.previousSkillId
   );
   let pick;
-  if (dueIndex >= 0) {
+  // Confidence first: a session opens with sums the child is good at, and right after a worked
+  // solution comes one they can do. (Children quit after a sum that went wrong, most of all when
+  // it was the first of the session.)
+  const warmingUp = session.exerciseCount < WARM_UP_SUMS;
+  if (warmingUp || session.justStruggled) {
+    const confident = confidentSkillIds(profileSkillStates(), childSkillsById, [session.previousSkillId]);
+    const choice = confident.slice(0, CONFIDENT_CHOICES);
+    if (choice.length) {
+      pick = {
+        skillId: pickRandom(choice),
+        reason: warmingUp ? 'opwarmen met iets dat je goed kunt' : 'na de uitleg eerst een som die je goed kunt'
+      };
+    }
+  }
+  session.justStruggled = false;
+  if (!pick && dueIndex >= 0) {
     const [followUp] = session.followUps.splice(dueIndex, 1);
     pick = { skillId: followUp.skillId, reason: 'controle na uitleg' };
-  } else {
+  }
+  if (!pick) {
     pick = pickNextSkill(session.skillIds, childSkillsById, profileSkillStates(), session.previousSkillId, session.groep);
   }
   renderExercise(pick);
@@ -467,7 +486,8 @@ function renderExercise(pick) {
   const skill = curriculumById[pick.skillId];
   const skillState = currentSkillState(skill);
   // A level above the child's ceiling (e.g. reached before the ceiling existed) comes down first.
-  const ceilingChange = applyCeiling(skill, skillState, session.groep);
+  const ceilingChange = [applyCeiling(skill, skillState, session.groep), applyFastClimbCorrection(skill, skillState, session.groep)]
+    .filter(Boolean).join('; ') || null;
   const tierConfig = tierConfigFor(skill, skillState.tier);
 
   currentExercise = freshExercise(skill, tierConfig);
@@ -891,7 +911,11 @@ function concludeExercise(solved) {
   // Right but slow (pauses excluded): counts as right, but not towards a level up. Not for word
   // problems: reading the story takes time too.
   const slow = recordedCorrect && spentMs > SLOW_ANSWER_MS && currentExercise.prompt.length <= LONG_PROMPT_CHARS;
-  const levelChange = recordAnswer(skill, skillState, recordedCorrect, groepCeilingTier(skill, session.groep), slow);
+  const levelChange = recordAnswer(skill, skillState, recordedCorrect, groepCeilingTier(skill, session.groep), slow, {
+    calibrationTop: groepStartTier(skill, session.groep),
+    solutionShown: !solved
+  });
+  session.justStruggled = !solved;
   if (skillState.tier > currentExercise.tier) session.levelUps.push(skill.category);
   // A star for every sum finished correctly, also after a hint: getting there counts.
   if (solved) {
