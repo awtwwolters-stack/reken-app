@@ -224,6 +224,15 @@ function isMastered(skill, skillState, groep) {
     && results.filter(isFastCorrect).length / results.length >= STEADY_UP_RATE;
 }
 
+// Does this skill first get a worked example? Once for a skill the child doesn't yet do well
+// (new, or practised without the app ever having shown how), and again - once per session, the
+// caller's job - while it clearly goes badly. A skill that goes well never gets one.
+function needsExample(skillState) {
+  const results = skillState.recentResults;
+  const goesWell = results.length >= CONFIDENT_MIN_ANSWERS && successRate(skillState) >= CONFIDENT_RATE;
+  return (!skillState.introSeen && !goesWell) || isClearlyStruggling(skillState);
+}
+
 // Skills this child is clearly good at right now, best first: for the first sums of a session and
 // for the sum right after a worked solution, so practice opens with (and returns to) success.
 const CONFIDENT_MIN_ANSWERS = 4;

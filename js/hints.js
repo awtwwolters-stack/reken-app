@@ -253,7 +253,9 @@ Hints.breuk_herkennen = function (level, ctx) {
   const { teller, noemer } = ctx;
   if (level === 1) return 'Tel in hoeveel gelijke stukken de strook verdeeld is. Dat getal komt onder de streep: de noemer.';
   if (level === 2) return `De strook heeft ${noemer} gelijke stukken, dus de noemer is ${noemer}. Hoeveel stukken zijn er gekleurd? Dat komt boven de streep.`;
-  return `${teller} van de ${noemer} stukken zijn gekleurd: ${teller}/${noemer}.`;
+  // Both places named: real use showed a child typing the two numbers the wrong way round.
+  const coloured = teller === 1 ? '1 stuk is gekleurd' : `${teller} stukken zijn gekleurd`;
+  return `De strook heeft ${noemer} gelijke stukken: de ${noemer} komt onder de streep. ${coloured}: de ${teller} komt boven de streep. Dat is ${teller}/${noemer}.`;
 };
 
 Hints.breuk_deel_van = function (level, ctx) {

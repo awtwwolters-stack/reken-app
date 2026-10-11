@@ -8,7 +8,7 @@ Size: **S** = small change · **M** = one focused build session · **L** = sever
 
 ## Now (2026-10-11)
 
-**Live: version 2026-10-11.26.** Three children (groep 3, 5 and 6) practise on shared iPads, synced through the family's own Firebase project (D12).
+**Live: version 2026-10-11.27.** Three children (groep 3, 5 and 6) practise on shared iPads, synced through the family's own Firebase project (D12).
 
 **Open checks (need a real iPad or real use):**
 - Tap "Controleer de app op dit apparaat" (Ouder overzicht) on the old iPad (iOS 15) and send a photo of the result.
@@ -23,11 +23,11 @@ Size: **S** = small change · **M** = one focused build session · **L** = sever
    - ~~Groep-6 child: levels and confidence~~ ✅ (D15)
    - ~~Groep-3 child: in-between level with half the pictures; keyboard-mashing isn't a mistake~~ ✅ (D16)
    - ~~Groep-5 child: a mastered skill once per session~~ ✅ (D16)
-   - A new topic opens with a short explanation (the groep-6 child doesn't know how to write a strook as a fraction).
+   - ~~A topic opens with a worked example~~ ✅ (D17)
 4. **Motivation: the animals in a story, spending stars (M-02).** Needs choices from the parent first (which story, what stars can buy).
 5. Later, when the class and the data say so: tijdsduur (groep 6), kommagetallen (B-05), a hint "reken onder elkaar" for big plus/min sums, the rest of breuken step 2 (B-03b), geld, the youngest child (S-04).
 
-The sections "Where we are: V1" and "Roadmap (confirmed 2026-09-23)" below are history; decisions D9–D16 replaced that order.
+The sections "Where we are: V1" and "Roadmap (confirmed 2026-09-23)" below are history; decisions D9–D17 replaced that order.
 
 ---
 
@@ -95,6 +95,7 @@ The sections "Where we are: V1" and "Roadmap (confirmed 2026-09-23)" below are h
 | D14 | **Klokkijken (2026-10-10):** three skills in the category Klok: hele uren for groep 3 (one answer box), the wijzerklok in five levels (hele/halve uren → kwartieren → 5 minuten → to the minute → with dagdeel) and tijd in woorden (kwart voor 4, 10 voor half 4). Answers as uur : minuten. At a wijzerklok 3:15 and 15:15 both count; **with a dagdeel only the 24-hour time counts** (the parent asked for 24-hour where it becomes digital). Tijdsduur follows later | The landscape layout now puts the hint in the right column so a clock keeps its size (170 px instead of 120) |
 | D15 | **Confidence before climbing (2026-10-11):** (1) the quick start rule (3 right in a row) lifts a child no higher than the level of their own groep; above it only the steady rule (8 answers, 90% right and fast) moves up. (2) Levels the quick start already put above the own groep, without 5 fast right answers there, go back to the own-groep level the next time that skill comes up. (3) A worked solution lowers the level by one at once. (4) A session opens with 2 sums from skills the child does well, and the sum after a worked solution is one too | Costs: a strong child reaches the level above their groep later (after 8 good answers instead of 3). Also: Ouder overzicht shows all children together, the name in every session row, and a table per child for the last 7 days |
 | D16 | **Smaller steps and less of the same (2026-10-11):** (1) splitsen and min tot 20 get a level in between where half of the sums keep the dot picture (`"dots": 0.5`). (2) An answer at least two digits longer than the right one (a hand on the keyboard) is not counted as a mistake: a friendly line, and the child tries again. (3) A mastered skill (at the highest level the child can reach, 8 answers 90% right and fast) comes up once per session, and a session holds at most one such skill | Levels are stored by number, so the new level shifted the higher levels of those two skills up by one; only the groep-3 child had progress there, and for him level 2 now means half dots (intended). Plussommen kept its levels |
+| D17 | **A worked example before the sum (2026-10-11):** the same kind of sum with its worked solution and picture, to look at ("Nu ik!"), not to answer. Shown once for every skill that doesn't go well yet (new, or under 80% right), and once per session for a skill that clearly goes badly (under 60% of 5 answers). It doesn't count as a sum: no time, star or level. The strook solution now names both places (onder de streep, boven de streep) | Existing children get these examples spread over their next sessions, once per skill that isn't going well. Skills that go well never show one. A child who can't read gets the picture and the 🔊 button |
 | D8 | **Stars get a direction (2026-09-24):** visible next goal, a character collection (one animal per milestone, the seed of M-02), and an optional family reward set by the parent. Auto-continue 1.5 s after a correct answer | Stars stay never-spent; spending comes with M-02 |
 
 ## Roadmap (confirmed 2026-09-23)

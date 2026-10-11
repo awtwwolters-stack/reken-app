@@ -18,6 +18,9 @@ const PRAISE_WITH_HELP = ['Goed, dat lukte!', 'Mooi, je hebt hem nu!', 'Zo is hi
 const INVALID_NUMBER_MESSAGE = 'Typ alleen een getal, bijvoorbeeld 4520 of 4.520.';
 // An answer this many digits longer than the right one is a hand on the keyboard, not an attempt.
 const MASH_EXTRA_DIGITS = 2;
+const EXAMPLE_NEW = 'Kijk eerst even mee, zo gaat deze som:';
+const EXAMPLE_AGAIN = 'Even samen kijken, zo gaat deze som:';
+const EXAMPLE_BUTTON = 'Nu ik!';
 const MASH_MESSAGE = 'Dat zijn wel heel veel cijfers! Probeer het nog eens.';
 // Prompts longer than this are sentences (verhaalsommen) and get a smaller font.
 const LONG_PROMPT_CHARS = 30;
@@ -447,6 +450,8 @@ function startSession() {
     followUps: [], // [{ skillId, dueAt }] fresh exercise to check understanding after a shown solution
     followUpQueued: new Set(),
     masteredAsked: [], // mastered skills that already came up: once per session is enough
+    examplesShown: [], // skills whose worked example was shown this session
+    pendingPick: null, // the sum waiting behind a worked example
     hintLevel: 0,
     hadMistake: false,
     results: {} // skillId -> { attempts, correctFirstTry }
@@ -483,7 +488,37 @@ function nextExercise() {
   if (!pick) {
     pick = pickNextSkill(session.skillIds, childSkillsById, profileSkillStates(), session.previousSkillId, session.groep, session.masteredAsked);
   }
-  renderExercise(pick);
+  const skillState = currentSkillState(curriculumById[pick.skillId]);
+  if (needsExample(skillState) && !session.examplesShown.includes(pick.skillId)) showExample(pick, skillState);
+  else renderExercise(pick);
+}
+
+// A worked example before the sum itself: the same kind of sum with its solution and picture, to
+// look at, not to answer. It doesn't count as a sum (no time, no star, no level).
+function showExample(pick, skillState) {
+  const skill = curriculumById[pick.skillId];
+  const firstTime = !skillState.introSeen;
+  skillState.introSeen = true;
+  session.examplesShown.push(skill.id);
+  session.pendingPick = pick;
+
+  currentExercise = freshExercise(skill, tierConfigFor(skill, skillState.tier));
+  currentExercise.answersGiven = [];
+  session.hintLevel = 0;
+  session.awaitingNext = false;
+  stopSpeaking();
+  updateSpeakButton();
+  renderPrompt(currentExercise);
+  renderVisual(currentExercise.hintVisual || currentExercise.visual);
+  const solution = getHint(currentExercise.exerciseType, MAX_HINT_LEVEL, currentExercise.hintContext);
+  el('feedback').textContent = `${firstTime ? EXAMPLE_NEW : EXAMPLE_AGAIN} ${solution}`;
+  el('feedback').className = 'feedback feedback-hint'; // the hint colour: nothing went wrong here
+  el('answer-area').classList.add('hidden');
+  el('next-button').textContent = EXAMPLE_BUTTON;
+  el('next-button').classList.remove('hidden');
+  el('next-button').focus();
+  window.scrollTo(0, 0);
+  fitSessionToScreen();
 }
 
 function renderExercise(pick) {
@@ -861,7 +896,7 @@ function isCorrect(values) {
 }
 
 function onSubmit() {
-  if (session.awaitingNext) return; // already answered correctly; the next sum is on its way
+  if (session.awaitingNext || session.pendingPick) return; // already answered correctly, or a worked example is showing
   const { values, complete, valid } = readAnswer();
   // An empty field or something that isn't a number is not a wrong answer - it shouldn't count against mastery.
   if (!complete) return;
@@ -1041,6 +1076,13 @@ function onNext() {
   clearTimeout(session.autoNextTimer);
   session.autoNextTimer = null;
   if (el('next-button').classList.contains('hidden')) return;
+  if (session.pendingPick) {
+    // The worked example has been looked at: now the child's own sum of that kind.
+    const pick = session.pendingPick;
+    session.pendingPick = null;
+    renderExercise(pick);
+    return;
+  }
   if (sessionTimeReached()) {
     showSummary();
   } else {
