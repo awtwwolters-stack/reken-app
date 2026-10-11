@@ -8,7 +8,7 @@ Size: **S** = small change · **M** = one focused build session · **L** = sever
 
 ## Now (2026-10-11)
 
-**Live: version 2026-10-11.27.** Three children (groep 3, 5 and 6) practise on shared iPads, synced through the family's own Firebase project (D12).
+**Live: version 2026-10-11.28.** Three children (groep 3, 5 and 6) practise on shared iPads, synced through the family's own Firebase project (D12).
 
 **Open checks (need a real iPad or real use):**
 - Tap "Controleer de app op dit apparaat" (Ouder overzicht) on the old iPad (iOS 15) and send a photo of the result.

@@ -488,7 +488,12 @@ function nextExercise() {
   if (!pick) {
     pick = pickNextSkill(session.skillIds, childSkillsById, profileSkillStates(), session.previousSkillId, session.groep, session.masteredAsked);
   }
-  const skillState = currentSkillState(curriculumById[pick.skillId]);
+  const skill = curriculumById[pick.skillId];
+  const skillState = currentSkillState(skill);
+  // A level above the child's ceiling (e.g. reached before the ceiling existed) comes down first,
+  // before the example too: it must show a sum of the level the child is about to get.
+  pick.ceilingChange = [applyCeiling(skill, skillState, session.groep), applyFastClimbCorrection(skill, skillState, session.groep)]
+    .filter(Boolean).join('; ') || null;
   if (needsExample(skillState) && !session.examplesShown.includes(pick.skillId)) showExample(pick, skillState);
   else renderExercise(pick);
 }
@@ -524,15 +529,12 @@ function showExample(pick, skillState) {
 function renderExercise(pick) {
   const skill = curriculumById[pick.skillId];
   const skillState = currentSkillState(skill);
-  // A level above the child's ceiling (e.g. reached before the ceiling existed) comes down first.
-  const ceilingChange = [applyCeiling(skill, skillState, session.groep), applyFastClimbCorrection(skill, skillState, session.groep)]
-    .filter(Boolean).join('; ') || null;
   const tierConfig = tierConfigFor(skill, skillState.tier);
   if (isMastered(skill, skillState, session.groep) && !session.masteredAsked.includes(skill.id)) session.masteredAsked.push(skill.id);
 
   currentExercise = freshExercise(skill, tierConfig);
   currentExercise.pickReason = pick.reason;
-  currentExercise.ceilingChange = ceilingChange;
+  currentExercise.ceilingChange = pick.ceilingChange;
   currentExercise.tier = skillState.tier;
   currentExercise.answersGiven = [];
   session.hintLevel = 0;
