@@ -89,6 +89,59 @@ function timeWordsProblems() {
     .map(([uur, minuten, woorden]) => `Tijd in woorden: ${tijdTekst(uur, minuten)} hoort "${woorden}" te zijn, maar is "${tijdInWoorden(uur, minuten)}"`);
 }
 
+// The park (js/park.js): shop and story data, and a simulated child buying until refused.
+function parkProblems(today = new Date()) {
+  const problems = [];
+  const ids = new Set();
+  PARK_ITEMS.forEach((item) => {
+    if (ids.has(item.id)) problems.push(`Park: "${item.id}" staat dubbel in de winkel`);
+    ids.add(item.id);
+    if (!(Number.isInteger(item.price) && item.price > 0)) problems.push(`Park: ${item.name} heeft geen goede prijs (${item.price})`);
+    if (!(Number.isInteger(item.chapter) && item.chapter >= 0 && item.chapter < STORY.length)) problems.push(`Park: ${item.name} hoort bij geen bestaand hoofdstuk`);
+    if (!item.emoji || !item.name) problems.push(`Park: "${item.id}" mist een plaatje of naam`);
+  });
+  if (STORY.length !== COLLECTION.length + 1) problems.push(`Verhaal: ${STORY.length} hoofdstukken voor ${COLLECTION.length} dieren`);
+  STORY.forEach((chapter, i) => {
+    const text = chapter.title && chapter.text ? chapterText(i, 'Sam') : '';
+    if (!text) problems.push(`Verhaal: hoofdstuk ${i + 1} mist een titel of tekst`);
+    else if (/[{}]|\b(undefined|null|NaN)\b/.test(text)) problems.push(`Verhaal: hoofdstuk ${i + 1} bevat een fout`);
+    // Each chapter is about its own animal: "Vos Fien" is called Fien in the story.
+    const animal = i > 0 && COLLECTION[i - 1] ? COLLECTION[i - 1].name.split(' ').pop() : null;
+    if (animal && !text.includes(animal)) problems.push(`Verhaal: hoofdstuk ${i + 1} noemt ${animal} niet`);
+  });
+
+  // A child with stars but no session today may look, not buy; without stars nothing is affordable.
+  const looker = { stars: 500, practiceDays: [] };
+  if (buyRefusal(looker, 'tulp', today) !== 'closed') problems.push('Park: kopen lukt zonder vandaag te rekenen');
+  const poor = { stars: 0, practiceDays: [dateKey(today)] };
+  if (buyRefusal(poor, 'tulp', today) !== 'tooExpensive') problems.push('Park: kopen lukt zonder genoeg sterren');
+  if (buyRefusal(poor, 'eiland', today) !== 'locked') problems.push('Park: iets uit een later hoofdstuk is al te koop');
+
+  // A rich child buys the cheapest thing in the shop until the park is full.
+  const rich = { stars: 5000, practiceDays: [dateKey(today)] };
+  const cheapest = shopItems(rich).reduce((a, b) => (b.price < a.price ? b : a));
+  let refusal = null;
+  for (let i = 0; i < 200 && !refusal; i++) {
+    refusal = buyRefusal(rich, cheapest.id, today);
+    if (!refusal && buyItem(rich, cheapest.id, today) === null) refusal = 'buyItem weigerde';
+    if (walletStars(rich) < 0) return problems.concat('Park: de spaarpot komt onder nul');
+  }
+  if (refusal !== 'full') problems.push(`Park: kopen stopte met "${refusal}" in plaats van "vol"`);
+  if (parkOf(rich).items.length !== maxParkItems(rich)) problems.push('Park: het park liep niet precies vol');
+  const tiles = parkLayout(rich);
+  if (tiles.filter(Boolean).length !== parkOf(rich).items.length + animalsInPark(rich)) problems.push('Park: niet alles heeft een eigen plek');
+  if (walletStars(rich) !== rich.stars - parkOf(rich).items.length * cheapest.price) problems.push('Park: de spaarpot klopt niet met wat er gekocht is');
+  // Moving swaps two tiles, is stored, and loses nothing.
+  const last = tiles.length - 1;
+  const piece = (p) => (p ? `${p.kind}${p.index}` : '-');
+  const before = tiles.map(piece);
+  moveInPark(rich, 0, last);
+  const after = parkLayout(rich).map(piece);
+  if (after[last] !== before[0] || after[0] !== before[last]) problems.push('Park: verplaatsen zet de dingen niet op hun nieuwe plek');
+  if (JSON.stringify(before.slice().sort()) !== JSON.stringify(after.slice().sort())) problems.push('Park: verplaatsen laat iets verdwijnen');
+  return problems;
+}
+
 function deviceReport() {
   const report = [];
   const speech = 'speechSynthesis' in window;
@@ -104,7 +157,7 @@ function deviceReport() {
 
 // Returns { skills, levels, sums, problems: ['Tafel van 6 niveau 2: ...'], device: [...] }.
 function runSelfTest() {
-  const problems = timeWordsProblems();
+  const problems = timeWordsProblems().concat(parkProblems());
   let levels = 0;
   let sums = 0;
   const skills = CURRICULUM.skills.filter((s) => s.implemented);

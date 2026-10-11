@@ -1,24 +1,25 @@
 # Reken App — Backlog
 
-_Last updated: 2026-10-10 · Status: see "Now" below._
+_Last updated: 2026-10-11 · Status: see "Now" below._
 
 Size: **S** = small change · **M** = one focused build session · **L** = several sessions
 
 ---
 
-## Now (2026-10-10)
+## Now (2026-10-11)
 
-**Live: version 2026-10-10.24.** Three children (groep 3, 5 and 6) practise on shared iPads, synced through the family's own Firebase project (D12).
+**Version 2026-10-11.1 (Mijn park, D15).** Three children (groep 3, 5 and 6) practise on shared iPads, synced through the family's own Firebase project (D12).
 
 **Open checks (need a real iPad or real use):**
 - Tap "Controleer de app op dit apparaat" (Ouder overzicht) on the old iPad (iOS 15) and send a photo of the result.
 - One clock sum in landscape with the keyboard up: clock on the left, answer boxes and hint on the right, no scrolling.
+- **Mijn park:** the parent reads the 15 story chapters (park → 📖) before the children see them. Then watch: do the children linger in the park instead of practising? Do they save for big things, or spend everything at once? Does the groep-3 child understand the spaarpot? Photo of "Controleer de app op dit apparaat" on the old iPad (park emoji, voice).
 - The groep-6 child's first sessions, then a backup pasted in chat: is the gentle start enough? In simulation a child who finds it hard settles at 67–69% right, just under the 75–85% target. For klokkijken she starts at "to the minute"; one level lower is possible on request.
 
 **Next steps, in the agreed order (D13):**
 1. ~~Rest of groep 6, small part~~ ✅ (320 : 4, ¾ van 12, self-check)
 2. ~~Klokkijken~~ ✅ (D14)
-3. **Motivation: the animals in a story, spending stars (M-02).** Needs choices from the parent first (which story, what stars can buy).
+3. ~~Motivation: the animals in a story, spending stars (M-02)~~ ✅ Mijn park (D15)
 4. Later, when the class and the data say so: tijdsduur (groep 6), kommagetallen (B-05), a hint "reken onder elkaar" for big plus/min sums, the rest of breuken step 2 (B-03b), geld, the youngest child (S-04).
 
 The sections "Where we are: V1" and "Roadmap (confirmed 2026-09-23)" below are history; decisions D9–D14 replaced that order.
@@ -39,13 +40,13 @@ The sections "Where we are: V1" and "Roadmap (confirmed 2026-09-23)" below are h
 - The sums fit their level: the app finds it quietly while they practise and aims for about 75–85% right the first time.
 - A mistake is never punished: hint → hint → worked solution → later a similar sum.
 - It is in Dutch, with the notation and strategies of their school (De Wereld in Getallen). The app complements school and never teaches a competing method.
-- Practising is rewarding: stars that are never lost, a week goal instead of a daily streak, animals to collect, an optional family reward (D7, D8). A story around the animals is the next step (M-02).
+- Practising is rewarding: earned stars that are never lost, a week goal instead of a daily streak, an optional family reward (D7, D8), and their own animal park: the animals move in with a running story, and stars from the spaarpot buy things for the park (D15).
 
 **Principles behind every choice.**
 - **Simple over sophisticated:** explainable rules, no machine learning. The app can always say why it chose a sum (Ouder overzicht).
 - **Curriculum as data:** adding a groep or a topic is mostly adding data.
 - **Child-facing first:** what the child sees comes before parent tooling.
-- **Privacy:** only first name, groep, stars and results are kept; nothing about the children in the public repository.
+- **Privacy:** only first name, groep, stars, results and the child's park are kept; nothing about the children in the public repository.
 - **Real use steers:** build small, let the children use it, read the logs, then decide.
 
 **Success looks like:** a child starts on their own, finishes a session, gets sums that feel right for their groep, gets help that actually helps, and the next session is a little better targeted. For the groep-6 child the first aim is confidence.
@@ -87,6 +88,7 @@ The sections "Where we are: V1" and "Roadmap (confirmed 2026-09-23)" below are h
 | D12 | **Cloud sync between iPads (2026-09-30):** the children take whichever iPad is free. Firebase (free Spark plan, EU `europe-west4`; Supabase pauses free projects after 7 idle days); the parent signs in once per iPad with Google (an e-mail link would open in Safari, not Chrome). One cloud document per child, so children on different iPads never conflict; the same child on two iPads at once: last save wins. Offline-first: localStorage stays the working copy. **Privacy:** only name, groep, stars and results; **no birth date** any more - the groep moves up by itself every 1 August (`groep` + `groepSchoolYear`). Access is limited by `firestore.rules`; the app warns if the rule is open | The parent creates the Firebase project; the config goes in `js/cloud-config.js` (not secret). Until then sync is off and nothing changes |
 | D13 | **Order of the next steps (2026-10-10):** rest of groep 6 (small part) → klokkijken → motivation (story, spending stars); kommagetallen and "reken onder elkaar" wait for the class and for the groep-6 child's data. **¾ van 12 is built as a higher level** instead of waiting for the class (replaces "wait for B-04" for this item): a child only reaches it by climbing, and the hint explains it with the strook. **Self-check with every new kind of sum** (`js/selftest.js`, button in the Ouder overzicht): three faults had only shown up on the real iPads (iOS 15 start-up, landscape layout never switching on, stale page copy) | Run the self-check before every release; ask the parent to tap it on the old iPad after bigger changes |
 | D14 | **Klokkijken (2026-10-10):** three skills in the category Klok: hele uren for groep 3 (one answer box), the wijzerklok in five levels (hele/halve uren → kwartieren → 5 minuten → to the minute → with dagdeel) and tijd in woorden (kwart voor 4, 10 voor half 4). Answers as uur : minuten. At a wijzerklok 3:15 and 15:15 both count; **with a dagdeel only the 24-hour time counts** (the parent asked for 24-hour where it becomes digital). Tijdsduur follows later | The landscape layout now puts the hint in the right column so a clock keeps its size (170 px instead of 120) |
+| D15 | **Mijn park (2026-10-11), M-02:** every child gets their **own park** (a 6-wide grid that grows a row with every animal, up to 10). **Stars are really spent** (the parent's choice: learning to handle money), which replaces "stars are never spent" from D7/D8. To keep "nothing earned is lost": `stars` stays the earned total, and the animals, story chapters and family goal follow it; buying only empties the **spaarpot** (earned minus the prices of everything bought; the price paid is stored per item). **Looking is always possible, buying only on a day the child finished a session.** A **spaardoel** ("Ik spaar voor de fontein") shows on the start screen. A **running story**, "Het vergeten park" (15 short chapters, one per animal, each ending with a hint about the next; 🔊 for everyone). 36 shop items, 3–250 ★, two or three new ones per chapter; buying shows the sum ("165 − 90 = 75"). The park (items, tiles, chapters read) is kept in the child's cloud document too: nothing personal | Existing stars all go into the spaarpot at launch. The story ends at 2000 ★ (about 4 months at the weekdoel): a season 2 is needed then (M-03). Park time isn't in the log yet; the parent watches whether it competes with practising |
 | D8 | **Stars get a direction (2026-09-24):** visible next goal, a character collection (one animal per milestone, the seed of M-02), and an optional family reward set by the parent. Auto-continue 1.5 s after a correct answer | Stars stay never-spent; spending comes with M-02 |
 
 ## Roadmap (confirmed 2026-09-23)
@@ -207,7 +209,8 @@ These must be done before daily use. Without them the test won't tell us whether
 | ID | Item | Size |
 |---|---|---|
 | ~~M-01~~ ✅ | Light motivation (D7): stars (never lost), level-up celebrations, milestones, weekdoel week dots, weeks-in-a-row shown only as good news, effort praise | S |
-| M-02 ◐ | Story/character progression (your stated preference) — **started:** the character collection (D8). Next: characters in a story, stars becoming spendable | L |
+| ~~M-02~~ ✅ | Story/character progression: Mijn park with a running story and a spaarpot (D15) | L |
+| M-03 | Season 2 of the story, before the first child reaches 2000 ★ (about February 2027): new chapters, new animals or a new place, new shop items. Decide with what the children liked in season 1 | M |
 
 ## LATER — Phase 5: siblings and moving up a year
 
