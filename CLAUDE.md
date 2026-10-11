@@ -13,6 +13,7 @@ A playful, adaptive Dutch maths practice app for one family's own children (groe
 ## Privacy (the repository is public)
 - Never put children's names, birth dates or pasted backups in the repository, commits or `BACKLOG.md`. Write "the groep-6 child".
 - Backups pasted in chat are read only, never saved to the project.
+- Exception the parent allowed: the grandparents' story names in `js/park.js` (Opa Kip, Opa Haan, opa Peter, oma Elly).
 - Cloud data holds only first name, groep, stars, results and the child's park (what was bought, where it stands, chapters read). Access is limited by `firestore.rules`.
 
 ## How the app is built

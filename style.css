@@ -161,7 +161,7 @@ h3 { font-size: 1.1rem; color: var(--primary-dark); margin-bottom: 8px; }
 .park-tile.animal { background: #a6d696; }
 .park-tile.selected { outline: 4px solid #e0a800; outline-offset: -4px; background: #fff6e0; }
 .park-message { margin: 8px 0 4px; font-size: 0.95rem; color: var(--primary-dark); min-height: 1.2em; }
-.shop-title { margin: 20px 0 4px; }
+.shop-title { margin: 20px 0 4px; font-size: 1.25rem; }
 .shop-status { margin: 0 0 10px; font-weight: 600; color: #8a6500; }
 .shop-items { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
 .shop-item {

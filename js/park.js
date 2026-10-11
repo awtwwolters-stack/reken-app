@@ -23,6 +23,8 @@ const PARK_ITEMS = [
   { id: 'rots', emoji: '🪨', name: 'Rots', price: 5, chapter: 0 },
   { id: 'boom', emoji: '🌳', name: 'Boom', price: 8, chapter: 0 },
   { id: 'bankje', emoji: '🪑', name: 'Bankje', price: 10, chapter: 0 },
+  { id: 'kip', emoji: '🐔', name: 'Kip', price: 6, chapter: 0 },
+  { id: 'haan', emoji: '🐓', name: 'Haan', price: 6, chapter: 0 },
   { id: 'paddenstoel', emoji: '🍄', name: 'Paddenstoel', price: 4, chapter: 1 },
   { id: 'boomstam', emoji: '🪵', name: 'Boomstam', price: 6, chapter: 1 },
   { id: 'den', emoji: '🌲', name: 'Dennenboom', price: 8, chapter: 1 },
@@ -58,11 +60,14 @@ const PARK_ITEMS = [
 
 // "Het vergeten park". Chapter 0 opens the park; chapter n arrives with animal n (COLLECTION[n - 1]
 // in motivation.js) and ends with a hint about the next animal, to make the child curious.
-// {naam} becomes the child's name. Short sentences: the youngest listen with 🔊.
+// {naam} becomes the child's name. Short sentences: the youngest listen with 🔊. The children's own
+// grandparents play along (the parent's choice, D18): Opa Kip and Opa Haan built the park and hid
+// the treasure hunt, opa Peter and oma Elly keep the shop. They are alive and well in the story:
+// the park "slept", nobody grew old or went away.
 const STORY = [
   {
     title: 'Het roestige hek',
-    text: 'Achter een oude muur vindt {naam} een roestig hek. Het piept als je het openduwt. Daarachter ligt een park vol onkruid, maar er is geen dier te zien. Op de grond ligt een briefje: "Dit park was ooit vol dieren. Maak het weer mooi, dan komen ze terug. Elk dier neemt iets mee. Groetjes, Opa Bram, de oude parkwachter." Ineens schiet er iets roods de struiken in. Was dat een staart?'
+    text: 'Achter een oude muur vindt {naam} een roestig hek. Het piept als je het openduwt. Daarachter ligt een park vol onkruid, maar er is geen dier te zien. Op de grond ligt een briefje: "Dit park slaapt al heel lang. Maak het weer mooi, dan komen de dieren terug. Elk dier neemt iets mee. Groetjes, Opa Kip en Opa Haan." Vlak bij het hek staat een klein winkeltje. "Welkom!" roepen opa Peter en oma Elly. "Hier kun je spullen kopen voor je park, met de sterren die je verdient." Ineens schiet er iets roods de struiken in. Was dat een staart?'
   },
   {
     title: 'Een vos in de struiken',
@@ -70,23 +75,23 @@ const STORY = [
   },
   {
     title: 'Oehoe!',
-    text: 'In de oude boom zit een uil met grote ogen. "Ik ben Otto," zegt hij. "Laat dat papiertje eens zien." Otto kijkt er heel lang naar. "Dit is een stukje van een kaart! Opa Bram heeft hem in veertien stukjes gescheurd. Elk dier heeft er één." Otto geeft {naam} het tweede stukje. Nog twaalf te gaan! Die middag beweegt er iets heel langzaam door het hoge gras. Iets met een schild...'
+    text: 'In de oude boom zit een uil met grote ogen. "Ik ben Otto," zegt hij. "Laat dat papiertje eens zien." Otto kijkt er heel lang naar. "Dit is een stukje van een kaart! Opa Kip en Opa Haan hebben hem in veertien stukjes geknipt. Elk dier heeft er één." Otto geeft {naam} het tweede stukje. Nog twaalf te gaan! Die middag beweegt er iets heel langzaam door het hoge gras. Iets met een schild...'
   },
   {
     title: 'De oudste bewoner',
-    text: 'Heel, heel langzaam komt er een schildpad aan. "Hallo {naam}. Ik ben Tuur, en ik ben al honderd jaar oud." Tuur kende Opa Bram nog. "Vroeger was het hier zo druk," vertelt hij. "Overal dieren, bloemen en lachende kinderen. Maar toen Opa Bram oud werd, werd het park stil." Tuur geeft het derde stukje van de kaart. Bij de oude vijver komen ineens belletjes omhoog. Blub, blub, blub...'
+    text: 'Heel, heel langzaam komt er een schildpad aan. "Hallo {naam}. Ik ben Tuur, en ik ben al honderd jaar oud." Tuur kent Opa Kip en Opa Haan van vroeger. "Zij hebben dit park gebouwd," vertelt hij. "Toen lieten ze het slapen, tot er een kind zou komen dat het weer wakker maakt. En ze verstopten een schat!" Tuur geeft het derde stukje van de kaart. Bij de oude vijver komen ineens belletjes omhoog. Blub, blub, blub...'
   },
   {
     title: 'Belletjes in de vijver',
-    text: 'Uit het water steekt een paarse arm. En nog een. En nog een! "Hoi! Ik ben Olly," zegt een octopus. "Ik heb acht armen, maar mijn vijver is bijna leeg." Misschien kan {naam} een nieuwe vijver kopen in de winkel? Olly geeft het vierde stukje van de kaart. Er staan golven op getekend. Die nacht klinkt er een harde brul door het park. ROAAAR!'
+    text: 'Uit het water steekt een paarse arm. En nog een. En nog een! "Hoi! Ik ben Olly," zegt een octopus. "Ik heb acht armen, maar mijn vijver is bijna leeg." Misschien heeft het winkeltje van opa Peter en oma Elly een nieuwe vijver? Olly geeft het vierde stukje van de kaart. Er staan golven op getekend. Die nacht klinkt er een harde brul door het park. ROAAAR!'
   },
   {
     title: 'Wie brult daar?',
-    text: 'Achter een rots zit een grote leeuw. Hij ziet er stoer uit. "Ik ben Leo," bromt hij. Dan fluistert hij: "Maar ik ben stiekem een beetje bang in het donker. Daarom brul ik zo hard." {naam} belooft dat er lampjes komen in het park. Leo is zo blij dat hij het vijfde stukje van de kaart geeft. Even later ritselt het in het bamboe. Wie eet daar zo luid?'
+    text: 'Achter een rots zit een grote leeuw. Hij ziet er stoer uit. "Ik ben Leo," bromt hij. Dan fluistert hij: "Maar ik ben stiekem een beetje bang in het donker. Daarom brul ik zo hard." {naam} belooft dat er lampjes komen. Oma Elly heeft vast lantaarns in het winkeltje. Leo is zo blij dat hij het vijfde stukje van de kaart geeft. Even later ritselt het in het bamboe. Wie eet daar zo luid?'
   },
   {
     title: 'Een slaperige gast',
-    text: 'In het bamboe zit een panda. Hij eet, en eet, en valt dan in slaap. Midden in een hap! "Oh, hallo," gaapt hij. "Ik ben Pim." Pim slaapt op het zesde stukje van de kaart, als een kussentje. {naam} mag het hebben, maar dan wil Pim wel een echt bed. Boven het hek steekt ineens een heel lange nek uit. Wie is er zo groot?'
+    text: 'In het bamboe zit een panda. Hij eet, en eet, en valt dan in slaap. Midden in een hap! "Oh, hallo," gaapt hij. "Ik ben Pim." Pim slaapt op het zesde stukje van de kaart, als een kussentje. {naam} mag het hebben, maar dan wil Pim wel een echt bed. Opa Peter weet er vast een. Boven het hek steekt ineens een heel lange nek uit. Wie is er zo groot?'
   },
   {
     title: 'Uitzicht vanaf de top',
@@ -98,11 +103,11 @@ const STORY = [
   },
   {
     title: 'Het kistje',
-    text: 'Onder de bladeren zit een egeltje. "Sorry voor het prikken," zegt ze. "Ik ben Eef, en ik graaf graag." Eef graaft en graaft en vindt iets hards: een oud houten kistje! Op het deksel staat: "Voor wie het park weer mooi maakt." Maar het kistje zit op slot. Eef geeft het negende stukje van de kaart. Bij de vijver klinkt het: kwaak, kwaak!'
+    text: 'Onder de bladeren zit een egeltje. "Sorry voor het prikken," zegt ze. "Ik ben Eef, en ik graaf graag." Eef graaft en graaft en vindt iets hards: een oud houten kistje! Op het deksel staat: "Voor wie het park weer wakker maakt. Opa Kip en Opa Haan." Maar het kistje zit op slot. Eef geeft het negende stukje van de kaart. Bij de vijver klinkt het: kwaak, kwaak!'
   },
   {
     title: 'Waar is de sleutel?',
-    text: 'Op een blad in de vijver zit een kikker. "Ik ben Koos," kwaakt hij. "Ik weet iets over dat kistje! Opa Bram verstopte de sleutel waar het glinstert." Maar waar glinstert het in het park? Koos springt weg en laat het tiende stukje van de kaart achter. \'s Avonds glinstert er iets in het gras. Zilveren glitters, als kleine sterretjes...'
+    text: 'Op een blad in de vijver zit een kikker. "Ik ben Koos," kwaakt hij. "Ik weet iets over dat kistje! Opa Kip en Opa Haan verstopten de sleutel waar het glinstert." Maar waar glinstert het in het park? Koos springt weg en laat het tiende stukje van de kaart achter. \'s Avonds glinstert er iets in het gras. Zilveren glitters, als kleine sterretjes...'
   },
   {
     title: 'Glitters in het gras',
@@ -117,8 +122,8 @@ const STORY = [
     text: 'Honderden vlinders dansen door het park. De mooiste heet Vera. "Volg ons!" zegt ze, en de vlinders vliegen naar het strand. Vera geeft {naam} het dertiende stukje. "Het laatste stukje heeft het grootste dier van allemaal," fluistert ze. Ver op zee spuit een hoge straal water omhoog. Psssjjj!'
   },
   {
-    title: 'Het geheim van Opa Bram',
-    text: 'Een enorme walvis zwemt naar het strand. "Hallo {naam}, ik ben Wim," zegt hij met een diepe stem. "Ik heb lang op je gewacht." Wim geeft het laatste stukje. De kaart is compleet! Het kruisje staat bij de oudste boom. Daar glinstert iets in de grond: de sleutel! Het kistje gaat open. Er zit een brief in: "Lieve {naam}, het park is van jou. Het echte geheim? Jij hebt het zelf gebouwd, ster voor ster. Opa Bram." Wordt vervolgd...'
+    title: 'Het geheim van het park',
+    text: 'Een enorme walvis zwemt naar het strand. "Hallo {naam}, ik ben Wim," zegt hij met een diepe stem. "Ik heb lang op je gewacht." Wim geeft het laatste stukje. De kaart is compleet! Het kruisje staat bij de oudste boom. Daar glinstert iets in de grond: de sleutel! Het kistje gaat open. Er zit een gouden medaille in en een brief: "Lieve {naam}, jij hebt het park wakker gemaakt, ster voor ster. Nu is het van jou! Opa Kip en Opa Haan." Dan piept het hek. Daar zijn Opa Kip, Opa Haan, opa Peter en oma Elly! "Wat een prachtig park," zegt oma Elly. "Zullen we een feestje vieren?" Wordt vervolgd...'
   }
 ];
 
