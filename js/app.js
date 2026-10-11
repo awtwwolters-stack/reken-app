@@ -9,10 +9,19 @@ const AUTO_NEXT_MS = 1500;
 const MAX_COUNTED_MS_PER_EXERCISE = 90 * 1000;
 // A category counts as "Sterk" in the summary when at least this share was right the first time.
 const SUMMARY_STRONG_RATE = 0.8;
+// A session opens with this many sums from skills the child is good at (picked among the best few).
+const WARM_UP_SUMS = 2;
+const CONFIDENT_CHOICES = 3;
 
 const PRAISE_FIRST_TRY = ['Goed!', 'Netjes!', 'Yes, die heb je!', 'Knap gedaan!', 'Precies!'];
 const PRAISE_WITH_HELP = ['Goed, dat lukte!', 'Mooi, je hebt hem nu!', 'Zo is hij goed!'];
 const INVALID_NUMBER_MESSAGE = 'Typ alleen een getal, bijvoorbeeld 4520 of 4.520.';
+// An answer this many digits longer than the right one is a hand on the keyboard, not an attempt.
+const MASH_EXTRA_DIGITS = 2;
+const EXAMPLE_NEW = 'Kijk eerst even mee, zo gaat deze som:';
+const EXAMPLE_AGAIN = 'Even samen kijken, zo gaat deze som:';
+const EXAMPLE_BUTTON = 'Nu ik!';
+const MASH_MESSAGE = 'Dat zijn wel heel veel cijfers! Probeer het nog eens.';
 // Prompts longer than this are sentences (verhaalsommen) and get a smaller font.
 const LONG_PROMPT_CHARS = 30;
 // Text shrinks in these steps, down to this share of its normal size, until the card fits.
@@ -650,6 +659,9 @@ function startSession() {
     previousSkillId: null,
     followUps: [], // [{ skillId, dueAt }] fresh exercise to check understanding after a shown solution
     followUpQueued: new Set(),
+    masteredAsked: [], // mastered skills that already came up: once per session is enough
+    examplesShown: [], // skills whose worked example was shown this session
+    pendingPick: null, // the sum waiting behind a worked example
     hintLevel: 0,
     hadMistake: false,
     results: {} // skillId -> { attempts, correctFirstTry }
@@ -664,25 +676,75 @@ function nextExercise() {
     (f) => f.dueAt <= session.exerciseCount && f.skillId !== session.previousSkillId
   );
   let pick;
-  if (dueIndex >= 0) {
+  // Confidence first: a session opens with sums the child is good at, and right after a worked
+  // solution comes one they can do. (Children quit after a sum that went wrong, most of all when
+  // it was the first of the session.)
+  const warmingUp = session.exerciseCount < WARM_UP_SUMS;
+  if (warmingUp || session.justStruggled) {
+    const confident = confidentSkillIds(profileSkillStates(), childSkillsById, [session.previousSkillId]);
+    const choice = confident.slice(0, CONFIDENT_CHOICES);
+    if (choice.length) {
+      pick = {
+        skillId: pickRandom(choice),
+        reason: warmingUp ? 'opwarmen met iets dat je goed kunt' : 'na de uitleg eerst een som die je goed kunt'
+      };
+    }
+  }
+  session.justStruggled = false;
+  if (!pick && dueIndex >= 0) {
     const [followUp] = session.followUps.splice(dueIndex, 1);
     pick = { skillId: followUp.skillId, reason: 'controle na uitleg' };
-  } else {
-    pick = pickNextSkill(session.skillIds, childSkillsById, profileSkillStates(), session.previousSkillId, session.groep);
   }
-  renderExercise(pick);
+  if (!pick) {
+    pick = pickNextSkill(session.skillIds, childSkillsById, profileSkillStates(), session.previousSkillId, session.groep, session.masteredAsked);
+  }
+  const skill = curriculumById[pick.skillId];
+  const skillState = currentSkillState(skill);
+  // A level above the child's ceiling (e.g. reached before the ceiling existed) comes down first,
+  // before the example too: it must show a sum of the level the child is about to get.
+  pick.ceilingChange = [applyCeiling(skill, skillState, session.groep), applyFastClimbCorrection(skill, skillState, session.groep)]
+    .filter(Boolean).join('; ') || null;
+  if (needsExample(skillState) && !session.examplesShown.includes(pick.skillId)) showExample(pick, skillState);
+  else renderExercise(pick);
+}
+
+// A worked example before the sum itself: the same kind of sum with its solution and picture, to
+// look at, not to answer. It doesn't count as a sum (no time, no star, no level).
+function showExample(pick, skillState) {
+  const skill = curriculumById[pick.skillId];
+  const firstTime = !skillState.introSeen;
+  skillState.introSeen = true;
+  session.examplesShown.push(skill.id);
+  session.pendingPick = pick;
+
+  currentExercise = freshExercise(skill, tierConfigFor(skill, skillState.tier));
+  currentExercise.answersGiven = [];
+  session.hintLevel = 0;
+  session.awaitingNext = false;
+  stopSpeaking();
+  updateSpeakButton();
+  renderPrompt(currentExercise);
+  renderVisual(currentExercise.hintVisual || currentExercise.visual);
+  const solution = getHint(currentExercise.exerciseType, MAX_HINT_LEVEL, currentExercise.hintContext);
+  el('feedback').textContent = `${firstTime ? EXAMPLE_NEW : EXAMPLE_AGAIN} ${solution}`;
+  el('feedback').className = 'feedback feedback-hint'; // the hint colour: nothing went wrong here
+  el('answer-area').classList.add('hidden');
+  el('next-button').textContent = EXAMPLE_BUTTON;
+  el('next-button').classList.remove('hidden');
+  el('next-button').focus();
+  window.scrollTo(0, 0);
+  fitSessionToScreen();
 }
 
 function renderExercise(pick) {
   const skill = curriculumById[pick.skillId];
   const skillState = currentSkillState(skill);
-  // A level above the child's ceiling (e.g. reached before the ceiling existed) comes down first.
-  const ceilingChange = applyCeiling(skill, skillState, session.groep);
   const tierConfig = tierConfigFor(skill, skillState.tier);
+  if (isMastered(skill, skillState, session.groep) && !session.masteredAsked.includes(skill.id)) session.masteredAsked.push(skill.id);
 
   currentExercise = freshExercise(skill, tierConfig);
   currentExercise.pickReason = pick.reason;
-  currentExercise.ceilingChange = ceilingChange;
+  currentExercise.ceilingChange = pick.ceilingChange;
   currentExercise.tier = skillState.tier;
   currentExercise.answersGiven = [];
   session.hintLevel = 0;
@@ -1050,12 +1112,20 @@ function isCorrect(values) {
 }
 
 function onSubmit() {
-  if (session.awaitingNext) return; // already answered correctly; the next sum is on its way
+  if (session.awaitingNext || session.pendingPick) return; // already answered correctly, or a worked example is showing
   const { values, complete, valid } = readAnswer();
   // An empty field or something that isn't a number is not a wrong answer - it shouldn't count against mastery.
   if (!complete) return;
   if (!valid) {
     el('feedback').textContent = { fraction: INVALID_FRACTION_MESSAGE, time: INVALID_TIME_MESSAGE }[currentExercise.answerLayout] || INVALID_NUMBER_MESSAGE;
+    el('feedback').className = 'feedback feedback-hint';
+    clearAnswerFields();
+    fitSessionToScreen();
+    return;
+  }
+
+  if (looksLikeMashing(values)) {
+    el('feedback').textContent = MASH_MESSAGE;
     el('feedback').className = 'feedback feedback-hint';
     clearAnswerFields();
     fitSessionToScreen();
@@ -1074,6 +1144,13 @@ function onSubmit() {
       showHint();
     }
   }
+}
+
+// Far too many digits (a young child drumming on the keyboard) is not a wrong answer.
+function looksLikeMashing(values) {
+  const numbers = (object) => Object.values(object).filter((v) => typeof v === 'number').map(Math.abs);
+  const limit = 10 ** (String(Math.trunc(Math.max(1, ...numbers(currentExercise.correctAnswer)))).length + MASH_EXTRA_DIGITS);
+  return numbers(values).some((v) => v >= limit);
 }
 
 function showHint() {
@@ -1105,7 +1182,11 @@ function concludeExercise(solved) {
   // Right but slow (pauses excluded): counts as right, but not towards a level up. Not for word
   // problems: reading the story takes time too.
   const slow = recordedCorrect && spentMs > SLOW_ANSWER_MS && currentExercise.prompt.length <= LONG_PROMPT_CHARS;
-  const levelChange = recordAnswer(skill, skillState, recordedCorrect, groepCeilingTier(skill, session.groep), slow);
+  const levelChange = recordAnswer(skill, skillState, recordedCorrect, groepCeilingTier(skill, session.groep), slow, {
+    calibrationTop: groepStartTier(skill, session.groep),
+    solutionShown: !solved
+  });
+  session.justStruggled = !solved;
   if (skillState.tier > currentExercise.tier) session.levelUps.push(skill.category);
   // A star for every sum finished correctly, also after a hint: getting there counts.
   if (solved) {
@@ -1211,6 +1292,13 @@ function onNext() {
   clearTimeout(session.autoNextTimer);
   session.autoNextTimer = null;
   if (el('next-button').classList.contains('hidden')) return;
+  if (session.pendingPick) {
+    // The worked example has been looked at: now the child's own sum of that kind.
+    const pick = session.pendingPick;
+    session.pendingPick = null;
+    renderExercise(pick);
+    return;
+  }
   if (sessionTimeReached()) {
     showSummary();
   } else {

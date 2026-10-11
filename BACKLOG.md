@@ -8,21 +8,27 @@ Size: **S** = small change · **M** = one focused build session · **L** = sever
 
 ## Now (2026-10-11)
 
-**Version 2026-10-11.1 (Mijn park, D15).** Three children (groep 3, 5 and 6) practise on shared iPads, synced through the family's own Firebase project (D12).
+**Version 2026-10-11.29 (Mijn park, D18).** Three children (groep 3, 5 and 6) practise on shared iPads, synced through the family's own Firebase project (D12).
 
 **Open checks (need a real iPad or real use):**
 - Tap "Controleer de app op dit apparaat" (Ouder overzicht) on the old iPad (iOS 15) and send a photo of the result.
 - One clock sum in landscape with the keyboard up: clock on the left, answer boxes and hint on the right, no scrolling.
 - **Mijn park:** the parent reads the 15 story chapters (park → 📖) before the children see them. Then watch: do the children linger in the park instead of practising? Do they save for big things, or spend everything at once? Does the groep-3 child understand the spaarpot? Photo of "Controleer de app op dit apparaat" on the old iPad (park emoji, voice).
-- The groep-6 child's first sessions, then a backup pasted in chat: is the gentle start enough? In simulation a child who finds it hard settles at 67–69% right, just under the 75–85% target. For klokkijken she starts at "to the minute"; one level lower is possible on request.
+- After a week with D16: does the groep-3 child stay on the half-dots level for min and splitsen instead of going up and down, and does the groep-5 child finish sessions again?
+- After a week with D15: does the groep-6 child finish sessions again (a backup pasted in chat)? In the overview per child: more "afgerond", fewer stops right after a worked solution.
 
 **Next steps, in the agreed order (D13):**
 1. ~~Rest of groep 6, small part~~ ✅ (320 : 4, ¾ van 12, self-check)
 2. ~~Klokkijken~~ ✅ (D14)
-3. ~~Motivation: the animals in a story, spending stars (M-02)~~ ✅ Mijn park (D15)
-4. Later, when the class and the data say so: tijdsduur (groep 6), kommagetallen (B-05), a hint "reken onder elkaar" for big plus/min sums, the rest of breuken step 2 (B-03b), geld, the youngest child (S-04).
+3. **From the backup of 2026-10-11 (before motivation, the parent's order):**
+   - ~~Groep-6 child: levels and confidence~~ ✅ (D15)
+   - ~~Groep-3 child: in-between level with half the pictures; keyboard-mashing isn't a mistake~~ ✅ (D16)
+   - ~~Groep-5 child: a mastered skill once per session~~ ✅ (D16)
+   - ~~A topic opens with a worked example~~ ✅ (D17)
+4. ~~Motivation: the animals in a story, spending stars (M-02)~~ ✅ Mijn park (D18)
+5. Later, when the class and the data say so: tijdsduur (groep 6), kommagetallen (B-05), a hint "reken onder elkaar" for big plus/min sums, the rest of breuken step 2 (B-03b), geld, the youngest child (S-04).
 
-The sections "Where we are: V1" and "Roadmap (confirmed 2026-09-23)" below are history; decisions D9–D14 replaced that order.
+The sections "Where we are: V1" and "Roadmap (confirmed 2026-09-23)" below are history; decisions D9–D18 replaced that order.
 
 ---
 
@@ -40,7 +46,7 @@ The sections "Where we are: V1" and "Roadmap (confirmed 2026-09-23)" below are h
 - The sums fit their level: the app finds it quietly while they practise and aims for about 75–85% right the first time.
 - A mistake is never punished: hint → hint → worked solution → later a similar sum.
 - It is in Dutch, with the notation and strategies of their school (De Wereld in Getallen). The app complements school and never teaches a competing method.
-- Practising is rewarding: earned stars that are never lost, a week goal instead of a daily streak, an optional family reward (D7, D8), and their own animal park: the animals move in with a running story, and stars from the spaarpot buy things for the park (D15).
+- Practising is rewarding: earned stars that are never lost, a week goal instead of a daily streak, an optional family reward (D7, D8), and their own animal park: the animals move in with a running story, and stars from the spaarpot buy things for the park (D18).
 
 **Principles behind every choice.**
 - **Simple over sophisticated:** explainable rules, no machine learning. The app can always say why it chose a sum (Ouder overzicht).
@@ -88,7 +94,10 @@ The sections "Where we are: V1" and "Roadmap (confirmed 2026-09-23)" below are h
 | D12 | **Cloud sync between iPads (2026-09-30):** the children take whichever iPad is free. Firebase (free Spark plan, EU `europe-west4`; Supabase pauses free projects after 7 idle days); the parent signs in once per iPad with Google (an e-mail link would open in Safari, not Chrome). One cloud document per child, so children on different iPads never conflict; the same child on two iPads at once: last save wins. Offline-first: localStorage stays the working copy. **Privacy:** only name, groep, stars and results; **no birth date** any more - the groep moves up by itself every 1 August (`groep` + `groepSchoolYear`). Access is limited by `firestore.rules`; the app warns if the rule is open | The parent creates the Firebase project; the config goes in `js/cloud-config.js` (not secret). Until then sync is off and nothing changes |
 | D13 | **Order of the next steps (2026-10-10):** rest of groep 6 (small part) → klokkijken → motivation (story, spending stars); kommagetallen and "reken onder elkaar" wait for the class and for the groep-6 child's data. **¾ van 12 is built as a higher level** instead of waiting for the class (replaces "wait for B-04" for this item): a child only reaches it by climbing, and the hint explains it with the strook. **Self-check with every new kind of sum** (`js/selftest.js`, button in the Ouder overzicht): three faults had only shown up on the real iPads (iOS 15 start-up, landscape layout never switching on, stale page copy) | Run the self-check before every release; ask the parent to tap it on the old iPad after bigger changes |
 | D14 | **Klokkijken (2026-10-10):** three skills in the category Klok: hele uren for groep 3 (one answer box), the wijzerklok in five levels (hele/halve uren → kwartieren → 5 minuten → to the minute → with dagdeel) and tijd in woorden (kwart voor 4, 10 voor half 4). Answers as uur : minuten. At a wijzerklok 3:15 and 15:15 both count; **with a dagdeel only the 24-hour time counts** (the parent asked for 24-hour where it becomes digital). Tijdsduur follows later | The landscape layout now puts the hint in the right column so a clock keeps its size (170 px instead of 120) |
-| D15 | **Mijn park (2026-10-11), M-02:** every child gets their **own park** (a 6-wide grid that grows a row with every animal, up to 10). **Stars are really spent** (the parent's choice: learning to handle money), which replaces "stars are never spent" from D7/D8. To keep "nothing earned is lost": `stars` stays the earned total, and the animals, story chapters and family goal follow it; buying only empties the **spaarpot** (earned minus the prices of everything bought; the price paid is stored per item). **Looking is always possible, buying only on a day the child finished a session.** A **spaardoel** ("Ik spaar voor de fontein") shows on the start screen. A **running story**, "Het vergeten park" (15 short chapters, one per animal, each ending with a hint about the next; 🔊 for everyone). 36 shop items, 3–250 ★, two or three new ones per chapter; buying shows the sum ("165 − 90 = 75"). The park (items, tiles, chapters read) is kept in the child's cloud document too: nothing personal | Existing stars all go into the spaarpot at launch. The story ends at 2000 ★ (about 4 months at the weekdoel): a season 2 is needed then (M-03). Park time isn't in the log yet; the parent watches whether it competes with practising |
+| D15 | **Confidence before climbing (2026-10-11):** (1) the quick start rule (3 right in a row) lifts a child no higher than the level of their own groep; above it only the steady rule (8 answers, 90% right and fast) moves up. (2) Levels the quick start already put above the own groep, without 5 fast right answers there, go back to the own-groep level the next time that skill comes up. (3) A worked solution lowers the level by one at once. (4) A session opens with 2 sums from skills the child does well, and the sum after a worked solution is one too | Costs: a strong child reaches the level above their groep later (after 8 good answers instead of 3). Also: Ouder overzicht shows all children together, the name in every session row, and a table per child for the last 7 days |
+| D16 | **Smaller steps and less of the same (2026-10-11):** (1) splitsen and min tot 20 get a level in between where half of the sums keep the dot picture (`"dots": 0.5`). (2) An answer at least two digits longer than the right one (a hand on the keyboard) is not counted as a mistake: a friendly line, and the child tries again. (3) A mastered skill (at the highest level the child can reach, 8 answers 90% right and fast) comes up once per session, and a session holds at most one such skill | Levels are stored by number, so the new level shifted the higher levels of those two skills up by one; only the groep-3 child had progress there, and for him level 2 now means half dots (intended). Plussommen kept its levels |
+| D17 | **A worked example before the sum (2026-10-11):** the same kind of sum with its worked solution and picture, to look at ("Nu ik!"), not to answer. Shown once for every skill that doesn't go well yet (new, or under 80% right), and once per session for a skill that clearly goes badly (under 60% of 5 answers). It doesn't count as a sum: no time, star or level. The strook solution now names both places (onder de streep, boven de streep) | Existing children get these examples spread over their next sessions, once per skill that isn't going well. Skills that go well never show one. A child who can't read gets the picture and the 🔊 button |
+| D18 | **Mijn park (2026-10-11), M-02:** every child gets their **own park** (a 6-wide grid that grows a row with every animal, up to 10). **Stars are really spent** (the parent's choice: learning to handle money), which replaces "stars are never spent" from D7/D8. To keep "nothing earned is lost": `stars` stays the earned total, and the animals, story chapters and family goal follow it; buying only empties the **spaarpot** (earned minus the prices of everything bought; the price paid is stored per item). **Looking is always possible, buying only on a day the child finished a session.** A **spaardoel** ("Ik spaar voor de fontein") shows on the start screen. A **running story**, "Het vergeten park" (15 short chapters, one per animal, each ending with a hint about the next; 🔊 for everyone). 36 shop items, 3–250 ★, two or three new ones per chapter; buying shows the sum ("165 − 90 = 75"). The park (items, tiles, chapters read) is kept in the child's cloud document too: nothing personal | Existing stars all go into the spaarpot at launch. The story ends at 2000 ★ (about 4 months at the weekdoel): a season 2 is needed then (M-03). Park time isn't in the log yet; the parent watches whether it competes with practising |
 | D8 | **Stars get a direction (2026-09-24):** visible next goal, a character collection (one animal per milestone, the seed of M-02), and an optional family reward set by the parent. Auto-continue 1.5 s after a correct answer | Stars stay never-spent; spending comes with M-02 |
 
 ## Roadmap (confirmed 2026-09-23)
@@ -129,6 +138,10 @@ Driven by **triggers, not dates**: several steps depend on what the test shows o
 | 2026-09-29 | Logs, groep-5 child: 3 sessions, 81% / 85% / 86% right first time | 4-digit subtraction with inwisselen (4.850 − 3.966, 4.121 − 2.756): 162–239 s, worked solution shown twice. School teaches this mid groep 6, written out | D11: handy-numbers level in between; random 4-digit sums groep 7 |
 | 2026-09-29 | Same child: delen met rest right every time, but 116–193 s per sum | Correct answers moved the level up regardless of time | D11: slow right answers don't count towards a level up (watch whether the pause button already explains the slowness) |
 | 2026-09-29 | Logs, groep-3 child: 20 of 21 right first time, levels climbing | The one miss: `10 = 7 + ?` answered "10" first, i.e. read left to right as "the answer is 10" | D11: split picture instead of the formula |
+| 2026-10-11 | Backup, groep-6 child: two full sessions at 89% and 86%, then seven stopped ones | The quick start lifted seven skills in ten minutes, three to groep-7 levels (optellen to 50.000, aftrekken with inwisselen). Six of the seven stops came right after a failed or very slow sum, one of them the first sum of the session | D15 |
+| 2026-10-11 | Backup, groep-3 child: practises daily | Min tot 20: 90% with dots, 12% without; five level changes up and down. Splitsen went from 5/17 to 6/6 after the split picture | Next: an in-between level (see Now) |
+| 2026-10-11 | Backup, groep-5 child: no finished session since 3 October | Tafels 95–100% in 3–5 s; one session of 85 sums was 80% tafels | Next: mastered skills at most once per session (see Now) |
+| 2026-10-11 | Parent: hard to scan who did what in Ouder overzicht | Sessions were listed per chosen child only | All children in one list with the name first; a 7-day table per child |
 | 2026-09-28 | Groep-3 and groep-5 siblings excited and want to practise | Groep-3 goals (De Wereld in Getallen and SLO sources): counting to 20 with the five-structure, splitsen incl. vriendjes van 10, + and − to 10 then 20 | D9: groep-3 skills with dot pictures, 5-minute sessions, 🔊; simulated groep-3 child: levels settle at the child's real level, 0 repeats in 100 sums |
 
 ## Aansluiting lesmethode (checked 2026-09-29)
@@ -209,7 +222,7 @@ These must be done before daily use. Without them the test won't tell us whether
 | ID | Item | Size |
 |---|---|---|
 | ~~M-01~~ ✅ | Light motivation (D7): stars (never lost), level-up celebrations, milestones, weekdoel week dots, weeks-in-a-row shown only as good news, effort praise | S |
-| ~~M-02~~ ✅ | Story/character progression: Mijn park with a running story and a spaarpot (D15) | L |
+| ~~M-02~~ ✅ | Story/character progression: Mijn park with a running story and a spaarpot (D18) | L |
 | M-03 | Season 2 of the story, before the first child reaches 2000 ★ (about February 2027): new chapters, new animals or a new place, new shop items. Decide with what the children liked in season 1 | M |
 
 ## LATER — Phase 5: siblings and moving up a year

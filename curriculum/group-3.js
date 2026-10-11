@@ -2,7 +2,10 @@
 // the five-structure, splitsen incl. the "vriendjes van 10", and + and - to 10, then to 20.
 // Only tier 1 is labelled groep 3 (the start of the school year): a groep-3 child starts there
 // and calibration moves them up. Higher tiers are what the class reaches by the end of groep 3.
-// "dots": the dot picture is shown with the question; otherwise it appears as the first hint.
+// "dots": the dot picture is shown with the question (true: always, 0.5: half of the sums);
+// otherwise it appears as the first hint. Levels are stored by number: adding one in between
+// moves children above it one step down, so only do that where real use asks for it.
+// Splitsen and min have the half-dots level because a child did 90% with dots and 12% without.
 CURRICULUM.skills.push(
   {
     "id": "tellen_tot_20",
@@ -47,8 +50,9 @@ CURRICULUM.skills.push(
     "prerequisites": [],
     "tiers": [
       { "tier": 1, "groep": 3, "min": 3, "max": 10, "dots": true },
-      { "tier": 2, "groep": 4, "min": 3, "max": 10, "tenShare": 0.4 },
-      { "tier": 3, "groep": 4, "min": 11, "max": 20, "tenShare": 0.6 }
+      { "tier": 2, "groep": 4, "min": 3, "max": 10, "dots": 0.5 },
+      { "tier": 3, "groep": 4, "min": 3, "max": 10, "tenShare": 0.4 },
+      { "tier": 4, "groep": 4, "min": 11, "max": 20, "tenShare": 0.6 }
     ]
   },
   {
@@ -80,9 +84,10 @@ CURRICULUM.skills.push(
     "prerequisites": [],
     "tiers": [
       { "tier": 1, "groep": 3, "range": "tot10", "dots": true },
-      { "tier": 2, "groep": 4, "range": "tot10" },
-      { "tier": 3, "groep": 4, "range": "tot20" },
-      { "tier": 4, "groep": 4, "range": "over10" }
+      { "tier": 2, "groep": 4, "range": "tot10", "dots": 0.5 },
+      { "tier": 3, "groep": 4, "range": "tot10" },
+      { "tier": 4, "groep": 4, "range": "tot20" },
+      { "tier": 5, "groep": 4, "range": "over10" }
     ]
   }
 );

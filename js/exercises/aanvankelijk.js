@@ -13,9 +13,15 @@ function singleAnswer(value) {
   return { answerFields: [{ key: 'antwoord', label: null }], correctAnswer: { antwoord: value } };
 }
 
-// The picture shows with the question on "dots" tiers; otherwise it appears as the first hint.
+// "dots" on a tier: true = every sum has the picture, a share (0.5) = that part of the sums has
+// it: the step between "always with dots" and "never", which proved too big in one go.
+function showsDots(tierConfig) {
+  return tierConfig.dots === true || Math.random() < (tierConfig.dots || 0);
+}
+
+// The picture shows with the question on "dots" sums; otherwise it appears as the first hint.
 function withDots(tierConfig, visual) {
-  return tierConfig.dots ? { visual } : { hintVisual: visual };
+  return showsDots(tierConfig) ? { visual } : { hintVisual: visual };
 }
 
 Exercises.tellen = function (tierConfig, skill) {
@@ -72,14 +78,15 @@ Exercises.splitsen = function (tierConfig, skill) {
   const answer = whole - part;
   const splits = { type: 'splits', whole, part };
   const dots = dotsVisual({ count: part, kind: 'a' }, { count: answer, kind: 'hidden' });
+  const dotsShown = showsDots(tierConfig);
   return {
     skillId: skill.id,
     exerciseType: 'splitsen',
     prompt: `${whole} = ${part} + ?`,
     promptParts: [], // the split picture is the question
     speech: `Splits ${whole}. ${part} en hoeveel?`,
-    visual: tierConfig.dots ? [splits, dots] : splits,
-    ...(tierConfig.dots ? {} : { hintVisual: [splits, dots] }),
+    visual: dotsShown ? [splits, dots] : splits,
+    ...(dotsShown ? {} : { hintVisual: [splits, dots] }),
     ...singleAnswer(answer),
     hintContext: { whole, part, answer }
   };

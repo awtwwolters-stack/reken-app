@@ -1,4 +1,4 @@
-// "Mijn park" (BACKLOG D15, M-02): every child builds their own animal park with the stars they
+// "Mijn park" (BACKLOG D18, M-02): every child builds their own animal park with the stars they
 // earn, and a running story tells why the animals come back.
 //
 // Two kinds of stars: profile.stars counts every star ever earned and never goes down; the animals
