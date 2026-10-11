@@ -89,6 +89,64 @@ function timeWordsProblems() {
     .map(([uur, minuten, woorden]) => `Tijd in woorden: ${tijdTekst(uur, minuten)} hoort "${woorden}" te zijn, maar is "${tijdInWoorden(uur, minuten)}"`);
 }
 
+// Tempo-ronde (js/tempo.js): every sum is read back from its text and recalculated, and a
+// simulated child plays rounds to check the locks, the record and the stars.
+function tempoSumProblem(sum) {
+  const answer = sum.correctAnswer.antwoord;
+  const filled = sum.prompt.replace('?', answer);
+  const parts = filled.match(/^(\d+) ([×:]) (\d+) = (\d+)$/);
+  if (!parts || filled !== sum.solved) return 'de som is niet te lezen';
+  const [a, b, c] = [Number(parts[1]), Number(parts[3]), Number(parts[4])];
+  if (parts[2] === '×' ? a * b !== c : b * c !== a) return `het antwoord ${answer} klopt niet`;
+  const factors = parts[2] === '×' ? [a, b] : [b, c];
+  if (!factors.every((f) => Number.isInteger(f) && f >= TEMPO_FACTOR_MIN && f <= TEMPO_FACTOR_MAX)) return 'de som valt buiten de tafels';
+  return null;
+}
+
+function tempoProblems() {
+  const problems = [];
+  TEMPO_KINDS.forEach((kind) => {
+    let previous = null;
+    let found = null;
+    for (let i = 0; i < SELFTEST_SUMS_PER_LEVEL && !found; i++) {
+      try {
+        const sum = tempoSum(kind.id, previous);
+        found = tempoSumProblem(sum) || (sum.prompt === previous ? 'dezelfde som twee keer achter elkaar' : null);
+        if (found) found += ` bij "${sum.prompt}"`;
+        previous = sum.prompt;
+      } catch (e) {
+        found = `de som kan niet gemaakt worden (${e.message})`;
+      }
+    }
+    if (found) problems.push(`Tempo, ${kind.name}: ${found}`);
+  });
+
+  const open = (profile) => tempoKindsFor(profile).filter((k) => k.open).length;
+  const child = (groep) => ({ groep, groepSchoolYear: schoolYearOf(), stars: 0 });
+  if (open(child(TEMPO_ALL_OPEN_GROEP)) !== TEMPO_KINDS.length) problems.push('Tempo: groep 6 heeft niet alle soorten open');
+  const young = child(TEMPO_MIN_GROEP);
+  if (open(young) !== 1) problems.push('Tempo: groep 5 begint niet met alleen de tafels');
+  const first = recordTempoRound(young, 'tafels', TEMPO_UNLOCK_SCORE, 0);
+  if (!first.first || first.isRecord || first.stars !== TEMPO_STARS.done) problems.push('Tempo: de eerste ronde telt als record of geeft verkeerde sterren');
+  if (open(young) !== 1) problems.push('Tempo: de volgende soort gaat te vroeg open');
+  const lower = recordTempoRound(young, 'tafels', TEMPO_UNLOCK_SCORE - 1, 2);
+  if (lower.isRecord || young.tempo.tafels.best !== TEMPO_UNLOCK_SCORE) problems.push('Tempo: een lagere score verandert het record');
+  if (open(young) !== 1) problems.push('Tempo: een score onder de drempel telt mee voor het slotje');
+  const higher = recordTempoRound(young, 'tafels', TEMPO_UNLOCK_SCORE + 1, 0);
+  if (!higher.isRecord || higher.stars !== TEMPO_STARS.done + TEMPO_STARS.record) problems.push('Tempo: een hogere score is geen record');
+  if (open(young) !== 2) problems.push('Tempo: de volgende soort gaat niet open na genoeg goede rondes');
+  if (young.stars !== 3 * TEMPO_STARS.done + TEMPO_STARS.record) problems.push(`Tempo: de sterren kloppen niet (${young.stars})`);
+  if (recordTempoRound(young, 'tafels', 0, 0).stars !== 0) problems.push('Tempo: een ronde zonder goede som geeft sterren');
+  if ((young.practiceDays || []).length) problems.push('Tempo: een ronde telt als oefendag');
+
+  const misses = tempoMisses([
+    { solved: 'a', correct: true, ms: TEMPO_SLOW_MS + 1 }, { solved: 'b', correct: true, ms: 1000 },
+    { solved: 'c', correct: false, ms: 1000 }, { solved: 'd', correct: true, ms: TEMPO_SLOW_MS + 2000 }
+  ]);
+  if (misses.join() !== 'c,d,a') problems.push(`Tempo: de sommen na afloop kloppen niet (${misses.join()})`);
+  return problems;
+}
+
 // The park (js/park.js): shop and story data, and a simulated child buying until refused.
 function parkProblems(today = new Date()) {
   const problems = [];
@@ -157,7 +215,7 @@ function deviceReport() {
 
 // Returns { skills, levels, sums, problems: ['Tafel van 6 niveau 2: ...'], device: [...] }.
 function runSelfTest() {
-  const problems = timeWordsProblems().concat(parkProblems());
+  const problems = timeWordsProblems().concat(parkProblems(), tempoProblems());
   let levels = 0;
   let sums = 0;
   const skills = CURRICULUM.skills.filter((s) => s.implemented);

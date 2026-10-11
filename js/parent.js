@@ -213,6 +213,7 @@ function renderParentView() {
   renderOverview(state, skillsById);
   renderBackupStatus(state);
   renderStars(state, profileId);
+  renderTempo(state, profileId);
   renderSessions(state, skillsById, profileId);
   renderSkills(state, profileId);
 }
@@ -232,6 +233,17 @@ function renderStars(state, profileId) {
     + `${walletStars(profile)} in de spaarpot. Verhaal: ${Math.min(park.storyRead || 0, STORY.length)} van ${STORY.length} hoofdstukken gelezen`
     + ` (${chaptersUnlocked(profile)} vrijgespeeld).`
     + (lastBought.length ? ` Laatst gekocht: ${lastBought.join(', ')}.` : ' Nog niets gekocht.');
+}
+
+// Tempo-ronde (js/tempo.js): per kind the record and the latest scores, oldest first.
+function renderTempo(state, profileId) {
+  const box = document.getElementById('parent-tempo');
+  const profile = state.profiles[profileId];
+  const played = profile ? TEMPO_KINDS.filter((kind) => tempoEntry(profile, kind.id).rounds.length > 0) : [];
+  box.textContent = played.length === 0 ? '' : `Tempo-ronde (goed in ${TEMPO_ROUNDS} minuten): ` + played.map((kind) => {
+    const entry = tempoEntry(profile, kind.id);
+    return `${kind.name}: record ${entry.best}, laatste ${entry.rounds.slice(-5).map((r) => r.score).join(', ')}`;
+  }).join(' · ') + '.';
 }
 
 // Keeps the current choice; otherwise all children together. Returns the chosen profile id (or ALL_CHILDREN).

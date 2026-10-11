@@ -32,6 +32,8 @@ const REFIT_DELAYS_MS = [350, 800];
 const FIT_STEP = 0.05;
 const MIN_FIT = 0.6;
 const INVALID_TIME_MESSAGE = 'Typ het uur in het eerste vakje en de minuten in het tweede, bijvoorbeeld 3 en 15.';
+// After a tempo round ends, "Start!" appears where the child was just tapping: ignore taps this long.
+const TEMPO_START_GUARD_MS = 800;
 const INVALID_FRACTION_MESSAGE = 'Typ boven de streep een getal en onder de streep een getal.';
 
 let appState = null;
@@ -40,8 +42,9 @@ let childSkillsById = {}; // the active child's own skills (skillsForGroep), see
 let session = null;
 let currentExercise = null;
 let activeProfileId = null;
+let tempo = null; // a running Tempo-ronde (js/tempo.js); it uses the session screen
 
-const SCREENS = ['profiles', 'start', 'park', 'story', 'soon', 'setup', 'session', 'pause', 'summary'];
+const SCREENS = ['profiles', 'start', 'park', 'story', 'tempo', 'tempo-result', 'soon', 'setup', 'session', 'pause', 'summary'];
 
 function el(id) {
   return document.getElementById(id);
@@ -54,6 +57,7 @@ function showScreen(name) {
   // During practice the card sits at the top, so question and answer stay above the iPad keyboard.
   // The pause screen counts as practice too: the parent link stays hidden there.
   document.body.classList.toggle('in-session', name === 'session' || name === 'pause');
+  document.body.classList.toggle('tempo-round', !!tempo && name === 'session');
   stopSpeaking();
   closeShopOffer();
 }
@@ -94,6 +98,11 @@ function init() {
   });
   el('next-button').addEventListener('click', onNext);
   el('pause-button').addEventListener('click', pauseSession);
+  el('tempo-button').addEventListener('click', showTempoMenu);
+  el('tempo-back-button').addEventListener('click', showGreeting);
+  el('tempo-stop-button').addEventListener('click', stopTempo);
+  el('tempo-again-button').addEventListener('click', () => startTempo(el('tempo-again-button').dataset.kind));
+  el('tempo-done-button').addEventListener('click', showTempoMenu);
   el('resume-button').addEventListener('click', resumeSession);
   // Switching to another app or locking the iPad pauses too, so coming back is calm, not mid-sum.
   document.addEventListener('visibilitychange', () => { if (document.hidden) pauseSession(); });
@@ -107,7 +116,7 @@ function init() {
       window.speechSynthesis.addEventListener('voiceschanged', updateSpeakButton);
     }
   });
-  ['submit-button', 'next-button', 'speak-button'].forEach((id) => el(id).addEventListener('mousedown', (e) => e.preventDefault()));
+  ['submit-button', 'next-button', 'speak-button', 'tempo-stop-button'].forEach((id) => el(id).addEventListener('mousedown', (e) => e.preventDefault()));
   optionalFeature(() => {
     if (!window.visualViewport) return;
     // When the keyboard opens or the iPad turns: question back at the top, and resized to fit.
@@ -199,7 +208,8 @@ function refreshAfterSync() {
     if (!activeProfile()) showProfiles();
     else if (screen === 'start') showGreeting();
     else if (el('shop-offer').classList.contains('hidden')) renderPark(); // not while choosing to buy
-  } else if (screen === 'setup') renderSetupList();
+  } else if (screen === 'tempo') showTempoMenu(); // records and locks from another iPad
+  else if (screen === 'setup') renderSetupList();
 }
 
 // The small line under the app: version, children on this iPad and the cloud's state.
@@ -304,6 +314,7 @@ function showGreeting() {
   if (saveForItem(profile)) renderSaveGoal(el('goal-fill'), el('goal-text'), profile);
   else renderStarGoal(el('goal-fill'), el('goal-text'), stars);
   el('park-badge').classList.toggle('hidden', unreadChapters(profile) === 0);
+  el('tempo-button').classList.toggle('hidden', !offersTempo(profile));
   // The family goal counts earned stars: buying in the park doesn't move it further away.
   const goal = profile.familyGoal;
   el('family-goal').classList.toggle('hidden', !goal);
@@ -765,7 +776,13 @@ function renderExercise(pick) {
   // Focus the first box before hiding any unused box: if the focused box were hidden first, the iPad
   // closes the keyboard, and it can't reopen it when this runs from the auto-continue timer.
   answerInputs[0].focus();
+  layoutAnswerFields();
+  window.scrollTo(0, 0);
+  fitSessionToScreen();
+}
 
+// The boxes this sum needs, emptied: one, or two with a breukstreep or a ":" between them.
+function layoutAnswerFields() {
   const isFraction = currentExercise.answerLayout === 'fraction';
   const isTime = currentExercise.answerLayout === 'time';
   el('answer-fields').classList.toggle('fraction', isFraction);
@@ -783,8 +800,6 @@ function renderExercise(pick) {
     if (isFraction || isTime) input.setAttribute('aria-label', field.key); // teller / noemer, uur / minuten
     else input.removeAttribute('aria-label');
   });
-  window.scrollTo(0, 0);
-  fitSessionToScreen();
 }
 
 // The answer boxes are created once and reused for every sum. On the iPad the keyboard only opens
@@ -815,6 +830,12 @@ function activeInputs() {
 }
 
 function onAnswerKeydown(e, input) {
+  if (tempo) {
+    if (e.key !== 'Enter') return;
+    e.preventDefault();
+    onTempoSubmit();
+    return;
+  }
   if (session.awaitingNext) {
     // During the pause after a correct answer: Enter moves on now; other typing is ignored.
     e.preventDefault();
@@ -1112,6 +1133,10 @@ function isCorrect(values) {
 }
 
 function onSubmit() {
+  if (tempo) {
+    onTempoSubmit();
+    return;
+  }
   if (session.awaitingNext || session.pendingPick) return; // already answered correctly, or a worked example is showing
   const { values, complete, valid } = readAnswer();
   // An empty field or something that isn't a number is not a wrong answer - it shouldn't count against mastery.
@@ -1253,6 +1278,11 @@ function concludeExercise(solved) {
 
 // Pause: nothing runs on (no auto-continue, no time counted) until the child taps Verder.
 function pauseSession() {
+  // A Tempo-ronde can't be paused (the clock is the point): leaving the app drops the round.
+  if (tempo) {
+    stopTempo();
+    return;
+  }
   if (!session || session.pausedAt || el('screen-session').classList.contains('hidden')) return;
   clearTimeout(session.autoNextTimer);
   session.autoNextTimer = null;
@@ -1288,6 +1318,10 @@ function updateProgress() {
 }
 
 function onNext() {
+  if (tempo) { // the Start! button of a Tempo-ronde
+    startTempoRound();
+    return;
+  }
   // A tap during the auto-continue pause and the timer must not both advance.
   clearTimeout(session.autoNextTimer);
   session.autoNextTimer = null;
@@ -1337,12 +1371,7 @@ function showSummary() {
     celebrations.push(`Weekdoel gehaald! +${STAR_BONUS.weekGoal} ★`);
   }
   profile.stars = (profile.stars || 0) + bonus;
-  charactersUnlockedBetween(session.starsAtStart, profile.stars).forEach((character) => {
-    celebrations.push(`Nieuw in je park: ${character.emoji} ${character.name}! Er is een nieuw hoofdstuk.`);
-  });
-  if (familyGoalReachedBetween(profile.familyGoal, session.starsAtStart, profile.stars)) {
-    celebrations.push(`Groot doel gehaald: ${profile.familyGoal.text}! Laat het aan je ouders zien.`);
-  }
+  celebrations.push(...starCelebrations(profile, session.starsAtStart));
   if (session.solvedWithHelp > 0) {
     const n = session.solvedWithHelp;
     celebrations.push(`Je hebt ${n} ${n === 1 ? 'som' : 'sommen'} opgelost met een hint: goed doorgezet!`);
@@ -1356,7 +1385,7 @@ function showSummary() {
   el('summary-stars').textContent = `+${session.starsEarned + bonus} ★ verdiend · ★ ${walletStars(profile)} in je spaarpot`;
   el('summary-park-badge').classList.toggle('hidden', unreadChapters(profile) === 0);
   renderStarGoal(el('summary-goal-fill'), el('summary-goal-text'), profile.stars);
-  renderCelebrations(celebrations);
+  renderCelebrations('summary-celebrations', celebrations);
   renderList('summary-strong', strong, 'Nog geen duidelijk sterke vaardigheden deze keer.');
   renderList('summary-practice', needsPractice, 'Niets om extra te oefenen — sterk gedaan!');
   renderWeek(el('summary-week-dots'), el('summary-week-message'), profile);
@@ -1364,8 +1393,18 @@ function showSummary() {
   showScreen('summary');
 }
 
-function renderCelebrations(items) {
-  const list = el('summary-celebrations');
+// What the stars earned since `starsBefore` brought: a new animal in the park, the family goal.
+function starCelebrations(profile, starsBefore) {
+  const lines = charactersUnlockedBetween(starsBefore, profile.stars)
+    .map((character) => `Nieuw in je park: ${character.emoji} ${character.name}! Er is een nieuw hoofdstuk.`);
+  if (familyGoalReachedBetween(profile.familyGoal, starsBefore, profile.stars)) {
+    lines.push(`Groot doel gehaald: ${profile.familyGoal.text}! Laat het aan je ouders zien.`);
+  }
+  return lines;
+}
+
+function renderCelebrations(listId, items) {
+  const list = el(listId);
   list.innerHTML = '';
   items.forEach((text) => list.appendChild(Object.assign(document.createElement('li'), { textContent: text })));
 }
@@ -1385,6 +1424,156 @@ function renderList(elementId, items, emptyText) {
     li.textContent = name;
     container.appendChild(li);
   });
+}
+
+// ---- Tempo-ronde (rules in js/tempo.js) ----
+
+function showTempoMenu() {
+  if (!activeProfile()) { // the child was removed on another iPad meanwhile
+    showProfiles();
+    return;
+  }
+  const container = el('tempo-kinds');
+  container.innerHTML = '';
+  tempoKindsFor(activeProfile()).forEach(({ kind, open, best, lockText }) => {
+    const button = Object.assign(document.createElement('button'), { type: 'button', className: 'tempo-kind', disabled: !open });
+    button.appendChild(Object.assign(document.createElement('span'), { className: 'tempo-kind-name', textContent: `${open ? '' : '🔒 '}${kind.name}` }));
+    button.appendChild(Object.assign(document.createElement('span'), { className: 'tempo-kind-example', textContent: kind.example }));
+    const status = !open ? lockText : best === null ? 'Nog geen record' : `Record: ${best}`;
+    button.appendChild(Object.assign(document.createElement('span'), { className: 'tempo-kind-status', textContent: status }));
+    if (open) button.addEventListener('click', () => startTempo(kind.id));
+    container.appendChild(button);
+  });
+  showScreen('tempo');
+}
+
+function startTempo(kindId) {
+  appState = loadState(); // as startSession: pick up a backup restored in another tab
+  if (!activeProfile()) {
+    showProfiles();
+    return;
+  }
+  tempo = { kindId, round: 1, running: false, timer: null, endsAt: 0, readyAt: 0, sumStartedAt: 0, score: 0, answers: [] };
+  showScreen('session');
+  showTempoGetReady();
+}
+
+// Before each round: a tap on Start. That tap is also what lets the iPad open the keyboard.
+function showTempoGetReady() {
+  const kind = TEMPO_KINDS.find((k) => k.id === tempo.kindId);
+  el('exercise-prompt').classList.remove('long');
+  el('exercise-prompt').textContent = `${kind.name} · ronde ${tempo.round} van ${TEMPO_ROUNDS}`;
+  renderVisual(null);
+  el('feedback').textContent = tempo.round === 1
+    ? '1 minuut. Maak zoveel sommen als je kunt!'
+    : 'Even ademhalen. Dan nog 1 minuut!';
+  el('feedback').className = 'feedback feedback-hint';
+  el('progress-fill').style.width = '100%';
+  el('answer-area').classList.add('hidden');
+  el('next-button').textContent = 'Start!';
+  el('next-button').classList.remove('hidden');
+  window.scrollTo(0, 0);
+  fitSessionToScreen();
+}
+
+function startTempoRound() {
+  if (tempo.running || Date.now() < tempo.readyAt) return;
+  tempo.running = true;
+  tempo.endsAt = Date.now() + TEMPO_ROUND_MS;
+  el('feedback').textContent = '';
+  el('feedback').className = 'feedback';
+  el('next-button').classList.add('hidden');
+  el('answer-area').classList.remove('hidden');
+  el('submit-button').classList.remove('hidden');
+  nextTempoSum();
+  answerInputs[0].focus();
+  layoutAnswerFields();
+  tempo.timer = setInterval(tickTempo, 200);
+  window.scrollTo(0, 0);
+  fitSessionToScreen();
+}
+
+function tickTempo() {
+  const left = tempo.endsAt - Date.now();
+  el('progress-fill').style.width = `${Math.max(0, (left / TEMPO_ROUND_MS) * 100)}%`;
+  if (left <= 0) endTempoRound();
+}
+
+function nextTempoSum() {
+  currentExercise = tempoSum(tempo.kindId, currentExercise && currentExercise.prompt);
+  tempo.sumStartedAt = Date.now();
+  renderPrompt(currentExercise);
+  answerInputs[0].value = '';
+}
+
+// No right or wrong on screen and no hint: straight on to the next sum, as on the paper test.
+function onTempoSubmit() {
+  if (!tempo.running || Date.now() >= tempo.endsAt) return; // time is up, the timer just hasn't ticked yet
+  const typed = answerInputs[0].value.trim();
+  if (typed === '') return;
+  const value = parseDutchInteger(typed);
+  // Not a number, or far too many digits (drumming on the keyboard): not an answer.
+  if (Number.isNaN(value) || looksLikeMashing({ antwoord: value })) {
+    answerInputs[0].value = '';
+    return;
+  }
+  const correct = value === currentExercise.correctAnswer.antwoord;
+  if (correct) tempo.score += 1;
+  tempo.answers.push({ solved: currentExercise.solved, correct, ms: Date.now() - tempo.sumStartedAt });
+  nextTempoSum();
+}
+
+// Time is up: a sum that was half typed doesn't count.
+function endTempoRound() {
+  clearInterval(tempo.timer);
+  tempo.timer = null;
+  tempo.running = false;
+  if (tempo.round < TEMPO_ROUNDS) {
+    tempo.round += 1;
+    tempo.readyAt = Date.now() + TEMPO_START_GUARD_MS;
+    showTempoGetReady();
+  } else {
+    showTempoResult();
+  }
+}
+
+// ✕, or the app going to the background: the round is dropped and simply doesn't count.
+function stopTempo() {
+  if (!tempo) return;
+  clearInterval(tempo.timer);
+  tempo = null;
+  if (document.activeElement) document.activeElement.blur(); // keyboard down
+  showTempoMenu();
+}
+
+function showTempoResult() {
+  const { kindId, score, answers } = tempo;
+  tempo = null;
+  if (document.activeElement) document.activeElement.blur();
+  const profile = activeProfile();
+  if (!profile) {
+    showProfiles();
+    return;
+  }
+  const starsBefore = profile.stars || 0;
+  const result = recordTempoRound(profile, kindId, score, answers.filter((a) => !a.correct).length);
+  saveState(appState);
+
+  el('tempo-score').textContent = `${score} goed in ${TEMPO_ROUNDS} minuten`;
+  el('tempo-record').textContent = result.first ? 'Dat is nu je record. Kun je het verbeteren?'
+    : result.isRecord ? `Nieuw record! Het was ${result.previousBest}.`
+      : score > 0 && score === result.previousBest ? `Precies je record van ${result.previousBest}!`
+        : `Je record is ${result.previousBest}.`;
+  el('tempo-record').classList.toggle('is-record', result.isRecord);
+  el('tempo-stars').textContent = result.stars
+    ? `+${result.stars} ★ verdiend · ★ ${walletStars(profile)} in je spaarpot`
+    : '';
+  renderCelebrations('tempo-celebrations', starCelebrations(profile, starsBefore));
+  const misses = tempoMisses(answers);
+  el('tempo-misses-block').classList.toggle('hidden', misses.length === 0);
+  renderList('tempo-misses', misses, '');
+  el('tempo-again-button').dataset.kind = kindId;
+  showScreen('tempo-result');
 }
 
 // Another tab (the parent view) changed the saved data, e.g. restored a backup: adopt it

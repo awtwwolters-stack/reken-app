@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="nl" data-version="2026-10-11.32">
+<html lang="nl" data-version="2026-10-11.33">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
@@ -10,7 +10,7 @@
   <link rel="icon" type="image/png" href="icons/favicon.png">
   <meta name="apple-mobile-web-app-title" content="Rekenen">
   <meta name="theme-color" content="#2f9e83">
-  <link rel="stylesheet" href="style.css?v=2026-10-11.32">
+  <link rel="stylesheet" href="style.css?v=2026-10-11.33">
 </head>
 <body>
   <main class="card">
@@ -42,6 +42,8 @@
       <p id="family-goal" class="family-goal hidden"></p>
       <p id="weeks-in-row" class="weeks-in-row hidden"></p>
       <button id="start-button" class="big-button">Start mijn oefeningen</button>
+      <!-- The tafels against the clock, from groep 5 (js/tempo.js, BACKLOG D19). -->
+      <button id="tempo-button" class="park-button hidden" type="button">⏱ Tempo-ronde</button>
       <button id="park-button" class="park-button" type="button">🏞️ Mijn park <span id="park-badge" class="badge hidden">Nieuw hoofdstuk!</span></button>
       <button id="switch-profile-button" class="link-button" type="button">Ik ben iemand anders</button>
     </section>
@@ -70,6 +72,28 @@
           <button id="shop-close-button" class="big-button secondary" type="button">Sluiten</button>
         </div>
       </div>
+    </section>
+
+    <!-- Tempo-ronde: choose a kind; the round itself runs in the session screen below. -->
+    <section id="screen-tempo" class="screen hidden">
+      <h1>Tempo-ronde</h1>
+      <p>2 rondes van 1 minuut. Hoeveel sommen heb jij goed?</p>
+      <div id="tempo-kinds" class="tempo-kinds"></div>
+      <button id="tempo-back-button" class="big-button secondary" type="button">Terug</button>
+    </section>
+
+    <section id="screen-tempo-result" class="screen hidden">
+      <h1>Klaar!</h1>
+      <p id="tempo-score" class="summary-score"></p>
+      <p id="tempo-record" class="tempo-record"></p>
+      <p id="tempo-stars" class="summary-stars"></p>
+      <ul id="tempo-celebrations" class="celebrations"></ul>
+      <div id="tempo-misses-block" class="tempo-misses">
+        <h3>Deze kosten je nog tijd</h3>
+        <ul id="tempo-misses"></ul>
+      </div>
+      <button id="tempo-again-button" class="big-button" type="button">Nog een keer</button>
+      <button id="tempo-done-button" class="big-button secondary" type="button">Terug</button>
     </section>
 
     <section id="screen-story" class="screen hidden">
@@ -144,6 +168,8 @@
       <div class="session-top">
         <div class="progress" aria-hidden="true"><div id="progress-fill" class="progress-fill"></div></div>
         <button id="pause-button" class="pause-button" type="button" aria-label="Pauze">⏸</button>
+        <!-- Instead of pause during a Tempo-ronde: stopping drops the round, it doesn't count. -->
+        <button id="tempo-stop-button" class="pause-button tempo-stop" type="button" aria-label="Stop">✕</button>
       </div>
       <div class="prompt-row">
         <h2 id="exercise-prompt" class="prompt"></h2>
@@ -224,29 +250,30 @@
     })();
   </script>
 
-  <script src="js/utils.js?v=2026-10-11.32"></script>
-  <script src="js/storage.js?v=2026-10-11.32"></script>
-  <script src="js/profiles.js?v=2026-10-11.32"></script>
-  <script src="js/motivation.js?v=2026-10-11.32"></script>
-  <script src="js/park.js?v=2026-10-11.32"></script>
-  <script src="js/mastery.js?v=2026-10-11.32"></script>
-  <script src="js/hints.js?v=2026-10-11.32"></script>
-  <script src="curriculum/group-6.js?v=2026-10-11.32"></script>
-  <script src="curriculum/group-3.js?v=2026-10-11.32"></script>
-  <script src="curriculum/klok.js?v=2026-10-11.32"></script>
-  <script src="js/exercises/optellen.js?v=2026-10-11.32"></script>
-  <script src="js/exercises/aftrekken.js?v=2026-10-11.32"></script>
-  <script src="js/exercises/tafel.js?v=2026-10-11.32"></script>
-  <script src="js/exercises/vermenigvuldigen_groot.js?v=2026-10-11.32"></script>
-  <script src="js/exercises/delen_zonder_rest.js?v=2026-10-11.32"></script>
-  <script src="js/exercises/delen_met_rest.js?v=2026-10-11.32"></script>
-  <script src="js/exercises/getalbegrip.js?v=2026-10-11.32"></script>
-  <script src="js/exercises/verhaalsom.js?v=2026-10-11.32"></script>
-  <script src="js/exercises/breuken.js?v=2026-10-11.32"></script>
-  <script src="js/exercises/aanvankelijk.js?v=2026-10-11.32"></script>
-  <script src="js/exercises/klok.js?v=2026-10-11.32"></script>
-  <script src="js/app.js?v=2026-10-11.32"></script>
-  <script src="js/cloud-config.js?v=2026-10-11.32"></script>
-  <script type="module" src="js/cloud.js?v=2026-10-11.32"></script>
+  <script src="js/utils.js?v=2026-10-11.33"></script>
+  <script src="js/storage.js?v=2026-10-11.33"></script>
+  <script src="js/profiles.js?v=2026-10-11.33"></script>
+  <script src="js/motivation.js?v=2026-10-11.33"></script>
+  <script src="js/park.js?v=2026-10-11.33"></script>
+  <script src="js/mastery.js?v=2026-10-11.33"></script>
+  <script src="js/tempo.js?v=2026-10-11.33"></script>
+  <script src="js/hints.js?v=2026-10-11.33"></script>
+  <script src="curriculum/group-6.js?v=2026-10-11.33"></script>
+  <script src="curriculum/group-3.js?v=2026-10-11.33"></script>
+  <script src="curriculum/klok.js?v=2026-10-11.33"></script>
+  <script src="js/exercises/optellen.js?v=2026-10-11.33"></script>
+  <script src="js/exercises/aftrekken.js?v=2026-10-11.33"></script>
+  <script src="js/exercises/tafel.js?v=2026-10-11.33"></script>
+  <script src="js/exercises/vermenigvuldigen_groot.js?v=2026-10-11.33"></script>
+  <script src="js/exercises/delen_zonder_rest.js?v=2026-10-11.33"></script>
+  <script src="js/exercises/delen_met_rest.js?v=2026-10-11.33"></script>
+  <script src="js/exercises/getalbegrip.js?v=2026-10-11.33"></script>
+  <script src="js/exercises/verhaalsom.js?v=2026-10-11.33"></script>
+  <script src="js/exercises/breuken.js?v=2026-10-11.33"></script>
+  <script src="js/exercises/aanvankelijk.js?v=2026-10-11.33"></script>
+  <script src="js/exercises/klok.js?v=2026-10-11.33"></script>
+  <script src="js/app.js?v=2026-10-11.33"></script>
+  <script src="js/cloud-config.js?v=2026-10-11.33"></script>
+  <script type="module" src="js/cloud.js?v=2026-10-11.33"></script>
 </body>
 </html>
