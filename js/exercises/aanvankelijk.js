@@ -13,15 +13,14 @@ function singleAnswer(value) {
   return { answerFields: [{ key: 'antwoord', label: null }], correctAnswer: { antwoord: value } };
 }
 
-// "dots" on a tier: true = every sum has the picture, a share (0.5) = that part of the sums has
-// it: the step between "always with dots" and "never", which proved too big in one go.
-function showsDots(tierConfig) {
-  return tierConfig.dots === true || Math.random() < (tierConfig.dots || 0);
-}
-
-// The picture shows with the question on "dots" sums; otherwise it appears as the first hint.
-function withDots(tierConfig, visual) {
-  return showsDots(tierConfig) ? { visual } : { hintVisual: visual };
+// "dots" on a tier: true = the full picture shows with the question; "start" = only the starting
+// number as plain dots (the child does the taking away or splitting in their head) and the full
+// picture comes as the first hint; absent = no picture until the first hint. "start" is the step
+// between "always with dots" and "never", which proved too big in one go.
+function withDots(tierConfig, visual, startVisual) {
+  if (tierConfig.dots === true) return { visual };
+  if (tierConfig.dots === 'start' && startVisual) return { visual: startVisual, hintVisual: visual };
+  return { hintVisual: visual };
 }
 
 Exercises.tellen = function (tierConfig, skill) {
@@ -78,15 +77,15 @@ Exercises.splitsen = function (tierConfig, skill) {
   const answer = whole - part;
   const splits = { type: 'splits', whole, part };
   const dots = dotsVisual({ count: part, kind: 'a' }, { count: answer, kind: 'hidden' });
-  const dotsShown = showsDots(tierConfig);
+  const picture = withDots(tierConfig, [splits, dots], [splits, dotsVisual({ count: whole, kind: 'a' })]);
   return {
     skillId: skill.id,
     exerciseType: 'splitsen',
     prompt: `${whole} = ${part} + ?`,
     promptParts: [], // the split picture is the question
     speech: `Splits ${whole}. ${part} en hoeveel?`,
-    visual: dotsShown ? [splits, dots] : splits,
-    ...(dotsShown ? {} : { hintVisual: [splits, dots] }),
+    visual: splits,
+    ...picture,
     ...singleAnswer(answer),
     hintContext: { whole, part, answer }
   };
@@ -140,7 +139,7 @@ Exercises.min_tot_20 = function (tierConfig, skill) {
     exerciseType: 'min_tot_20',
     prompt: `${a} - ${b} = ?`,
     speech: `Hoeveel is ${a} min ${b}?`,
-    ...withDots(tierConfig, dotsVisual({ count: a - b, kind: 'a' }, { count: b, kind: 'gone' })),
+    ...withDots(tierConfig, dotsVisual({ count: a - b, kind: 'a' }, { count: b, kind: 'gone' }), dotsVisual({ count: a, kind: 'a' })),
     ...singleAnswer(a - b),
     hintContext: { a, b }
   };
