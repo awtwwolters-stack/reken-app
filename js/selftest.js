@@ -91,35 +91,50 @@ function timeWordsProblems() {
 
 // Tempo-ronde (js/tempo.js): every sum is read back from its text and recalculated, and a
 // simulated child plays rounds to check the locks, the record and the stars.
-function tempoSumProblem(sum) {
+// `tables`: the tafels this child may get (tempoTables).
+function tempoSumProblem(sum, tables) {
   const answer = sum.correctAnswer.antwoord;
   const filled = sum.prompt.replace('?', answer);
   const parts = filled.match(/^(\d+) ([×:]) (\d+) = (\d+)$/);
   if (!parts || filled !== sum.solved) return 'de som is niet te lezen';
   const [a, b, c] = [Number(parts[1]), Number(parts[3]), Number(parts[4])];
   if (parts[2] === '×' ? a * b !== c : b * c !== a) return `het antwoord ${answer} klopt niet`;
-  const factors = parts[2] === '×' ? [a, b] : [b, c];
-  if (!factors.every((f) => Number.isInteger(f) && f >= TEMPO_FACTOR_MIN && f <= TEMPO_FACTOR_MAX)) return 'de som valt buiten de tafels';
+  // "7 × 6" and "42 : 6 = 7" are both the tafel van 6, times 7.
+  const table = b;
+  const multiplier = parts[2] === '×' ? a : c;
+  if (!tables.includes(table) || !(multiplier >= TEMPO_FACTOR_MIN && multiplier <= tempoMultiplierMax(table))) return 'de som valt buiten de tafels';
   return null;
 }
 
 function tempoProblems() {
   const problems = [];
-  TEMPO_KINDS.forEach((kind) => {
-    let previous = null;
-    let found = null;
-    for (let i = 0; i < SELFTEST_SUMS_PER_LEVEL && !found; i++) {
-      try {
-        const sum = tempoSum(kind.id, previous);
-        found = tempoSumProblem(sum) || (sum.prompt === previous ? 'dezelfde som twee keer achter elkaar' : null);
-        if (found) found += ` bij "${sum.prompt}"`;
-        previous = sum.prompt;
-      } catch (e) {
-        found = `de som kan niet gemaakt worden (${e.message})`;
+  // A child who hasn't practised the tafels of 11 and 12 yet, and one who has (D21).
+  const plain = tempoTables({ skills: {} });
+  const early = tempoTables({ skills: { vermenigvuldigen_tafel_12: { tier: TEMPO_EXTRA_FROM_TIER - 1, totalAttempts: 9 } } });
+  const withExtra = tempoTables({ skills: { vermenigvuldigen_tafel_11: { tier: TEMPO_EXTRA_FROM_TIER, totalAttempts: 30 }, vermenigvuldigen_tafel_12: { tier: TEMPO_EXTRA_FROM_TIER + 1, totalAttempts: 40 } } });
+  if (plain.some((t) => t > TEMPO_FACTOR_MAX) || early.some((t) => t > TEMPO_FACTOR_MAX)) problems.push('Tempo: de tafels van 11 en 12 komen al voordat ze tot × 12 geoefend zijn');
+  if (!withExtra.includes(11) || !withExtra.includes(12)) problems.push('Tempo: de tafels van 11 en 12 komen niet na het oefenen');
+  [plain, withExtra].forEach((tables) => {
+    TEMPO_KINDS.forEach((kind) => {
+      let previous = null;
+      let found = null;
+      for (let i = 0; i < SELFTEST_SUMS_PER_LEVEL && !found; i++) {
+        try {
+          const sum = tempoSum(kind.id, previous, tables);
+          found = tempoSumProblem(sum, tables) || (sum.prompt === previous ? 'dezelfde som twee keer achter elkaar' : null);
+          if (found) found += ` bij "${sum.prompt}"`;
+          previous = sum.prompt;
+        } catch (e) {
+          found = `de som kan niet gemaakt worden (${e.message})`;
+        }
       }
-    }
-    if (found) problems.push(`Tempo, ${kind.name}: ${found}`);
+      if (found) problems.push(`Tempo, ${kind.name}: ${found}`);
+    });
   });
+  // With 11 and 12 practised, 12 × 12 can come up: the multiplier of those tafels goes to 12.
+  let twelveTimesTwelve = false;
+  for (let i = 0; i < 3000 && !twelveTimesTwelve; i++) twelveTimesTwelve = tempoSum('tafels', null, withExtra).prompt === '12 × 12 = ?';
+  if (!twelveTimesTwelve) problems.push('Tempo: 12 × 12 komt nooit voor');
 
   const open = (profile) => tempoKindsFor(profile).filter((k) => k.open).length;
   const child = (groep) => ({ groep, groepSchoolYear: schoolYearOf(), stars: 0 });
@@ -310,6 +325,24 @@ function syncProblems(now = new Date(2026, 9, 25, 12).getTime()) {
   return problems;
 }
 
+// The tafels of 11 and 12 (D21) only while the tafels 6-9 go well, also after they have started.
+function extraTafelProblems() {
+  const problems = [];
+  const skill = CURRICULUM.skills.find((s) => s.id === 'vermenigvuldigen_tafel_12');
+  if (!skill) return ['Tafel van 12: staat niet in het curriculum'];
+  const state = (results, attempts = 20) => ({ tier: 2, recentResults: results, totalAttempts: attempts, lastPracticed: Date.now(), calibrationDone: true, lastTierChange: null });
+  const good = Array(8).fill(true);
+  const shaky = [true, false, true, false, true, true, false, true]; // 63%: not "clearly struggling", not going well
+  const prereqs = (seven) => ({ vermenigvuldigen_tafel_6: state(good), vermenigvuldigen_tafel_7: seven, vermenigvuldigen_tafel_8: state(good), vermenigvuldigen_tafel_9: state(good) });
+  const fresh = state([], 0);
+  const started = state(good);
+  if (classifySkill(skill, fresh, prereqs(state(good))).bucket !== 'nieuw') problems.push('Tafel van 12: komt niet als de tafels 6 t/m 9 goed gaan');
+  if (classifySkill(skill, fresh, prereqs(state(shaky))).bucket !== 'later') problems.push('Tafel van 12: komt al terwijl de tafel van 7 nog niet goed gaat');
+  if (classifySkill(skill, started, prereqs(state(shaky))).bucket !== 'later') problems.push('Tafel van 12: gaat door terwijl de tafel van 7 niet meer goed gaat');
+  if (classifySkill(skill, fresh, prereqs(undefined)).bucket !== 'later') problems.push('Tafel van 12: komt al zonder de tafel van 7 geoefend te hebben');
+  return problems;
+}
+
 function deviceReport() {
   const report = [];
   const speech = 'speechSynthesis' in window;
@@ -325,7 +358,7 @@ function deviceReport() {
 
 // Returns { skills, levels, sums, problems: ['Tafel van 6 niveau 2: ...'], device: [...] }.
 function runSelfTest() {
-  const problems = timeWordsProblems().concat(parkProblems(), tempoProblems(), syncProblems());
+  const problems = timeWordsProblems().concat(parkProblems(), tempoProblems(), syncProblems(), extraTafelProblems());
   let levels = 0;
   let sums = 0;
   const skills = CURRICULUM.skills.filter((s) => s.implemented);

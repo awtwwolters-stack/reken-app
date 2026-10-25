@@ -1508,7 +1508,7 @@ function tickTempo() {
 }
 
 function nextTempoSum() {
-  currentExercise = tempoSum(tempo.kindId, currentExercise && currentExercise.prompt);
+  currentExercise = tempoSum(tempo.kindId, currentExercise && currentExercise.prompt, tempoTables(activeProfile()));
   tempo.sumStartedAt = Date.now();
   renderPrompt(currentExercise);
   answerInputs[0].value = '';

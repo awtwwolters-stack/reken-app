@@ -51,6 +51,13 @@ function daysSince(timestamp) {
 }
 
 // At the right level a child still misses ~1 in 5, so "struggling" needs clearly more than that.
+// Practised, and the recent answers (when there are enough to tell) mostly right.
+const GOES_WELL_RATE = 0.75;
+function goesWell(skillState) {
+  if (!skillState || !skillState.totalAttempts) return false;
+  return skillState.recentResults.length < WEAK_MIN_ANSWERS || successRate(skillState) >= GOES_WELL_RATE;
+}
+
 function isClearlyStruggling(skillState) {
   const rate = successRate(skillState);
   return skillState.recentResults.length >= WEAK_MIN_ANSWERS && rate < WEAK_RATE;
@@ -133,6 +140,12 @@ function recordAnswer(skill, skillState, wasCorrect, ceiling = maxTier(skill), s
 function classifySkill(skill, skillState, allSkillStates) {
   const rate = successRate(skillState);
   const overdue = daysSince(skillState.lastPracticed) >= DAYS_UNTIL_DUE_FOR_REVIEW;
+
+  // Extra practice beyond the method (the tafels of 11 and 12, D21) waits whenever one of its
+  // prerequisites doesn't go well, also after it has started: it never pushes those out.
+  if (skill.onlyWhenPrerequisitesGoWell && !skill.prerequisites.every((id) => goesWell(allSkillStates[id]))) {
+    return { bucket: 'later', reason: 'wacht tot de voorkennis goed gaat' };
+  }
 
   if (skillState.totalAttempts === 0) {
     // A prerequisite only blocks a skill on clear evidence of struggle (the same bar as

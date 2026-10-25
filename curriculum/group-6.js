@@ -8,6 +8,9 @@
 // 473 - 298: "handig"); any 4-digit numbers with inwisselen come mid groep 6, written out (cijferen),
 // so they stay groep 7 for hoofdrekenen. Delen: groep 5 deeltafels t/m 10 and with rest, larger
 // numbers from the second half of groep 5 (same doelen).
+// The tafels of 11 and 12 are extra, beyond the method (which automates t/m 10): the parent's choice
+// (BACKLOG D21). They come only while the tafels 6-9 go well (onlyWhenPrerequisitesGoWell, see
+// js/mastery.js), so they never push those out.
 // A skill's maximum level is the number of entries in its `tiers`.
 // "groepen": [from, to] - a child only practises skills whose range includes their groep.
 const CURRICULUM = {
@@ -153,6 +156,44 @@ const CURRICULUM = {
         { "tier": 1, "groep": 4, "multiplierMax": 5 },
         { "tier": 2, "groep": 5, "multiplierMax": 10 },
         { "tier": 3, "groep": 6, "multiplierMax": 10, "askMissingFactor": true }
+      ]
+    },
+    {
+      "id": "vermenigvuldigen_tafel_11",
+      "name": "Tafel van 11",
+      "category": "Tafels",
+      "domain": "bewerkingen",
+      "description": "De tafel van 11, tot en met 12 × 11 (extra, D21).",
+      "exerciseType": "tafel",
+      "table": 11,
+      "implemented": true,
+      "groepen": [5, 8],
+      "prerequisites": ["vermenigvuldigen_tafel_6", "vermenigvuldigen_tafel_7", "vermenigvuldigen_tafel_8", "vermenigvuldigen_tafel_9"],
+      "onlyWhenPrerequisitesGoWell": true,
+      "tiers": [
+        { "tier": 1, "groep": 5, "multiplierMax": 5 },
+        { "tier": 2, "groep": 5, "multiplierMax": 10 },
+        { "tier": 3, "groep": 6, "multiplierMax": 12 },
+        { "tier": 4, "groep": 7, "multiplierMax": 12, "askMissingFactor": true }
+      ]
+    },
+    {
+      "id": "vermenigvuldigen_tafel_12",
+      "name": "Tafel van 12",
+      "category": "Tafels",
+      "domain": "bewerkingen",
+      "description": "De tafel van 12, tot en met 12 × 12 (extra, D21).",
+      "exerciseType": "tafel",
+      "table": 12,
+      "implemented": true,
+      "groepen": [5, 8],
+      "prerequisites": ["vermenigvuldigen_tafel_6", "vermenigvuldigen_tafel_7", "vermenigvuldigen_tafel_8", "vermenigvuldigen_tafel_9"],
+      "onlyWhenPrerequisitesGoWell": true,
+      "tiers": [
+        { "tier": 1, "groep": 5, "multiplierMax": 5 },
+        { "tier": 2, "groep": 5, "multiplierMax": 10 },
+        { "tier": 3, "groep": 6, "multiplierMax": 12 },
+        { "tier": 4, "groep": 7, "multiplierMax": 12, "askMissingFactor": true }
       ]
     },
     {

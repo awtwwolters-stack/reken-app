@@ -24,6 +24,11 @@ const TEMPO_KEPT_ROUNDS = 20;
 // The tafels of 2 to 10, times 2 to 10: × 1 is no test of a tafel.
 const TEMPO_FACTOR_MIN = 2;
 const TEMPO_FACTOR_MAX = 10;
+// The extra tafels of 11 and 12 (BACKLOG D21) join once the child practises them up to × 12 in the
+// normal session (that level), so no child gets a sum against the clock before learning it.
+const TEMPO_EXTRA_TABLES = [11, 12];
+const TEMPO_EXTRA_FACTOR_MAX = 12;
+const TEMPO_EXTRA_FROM_TIER = 3;
 
 const TEMPO_FORMS = ['tafels', 'omgekeerd', 'deeltafels'];
 // In the order they open.
@@ -38,14 +43,30 @@ function offersTempo(profile) {
   return canPractise(profile) && practiceGroep(profile) >= TEMPO_MIN_GROEP;
 }
 
-// One sum of this kind, written as in the normal session (js/exercises/tafel.js and
-// delen_zonder_rest.js), and never the same sum twice in a row.
-function tempoSum(kindId, previousPrompt) {
+// The tafels this child gets in a Tempo-ronde: 2 to 10, and 11 and 12 once practised up to × 12.
+function tempoTables(profile) {
+  const skills = (profile && profile.skills) || {};
+  const tables = [];
+  for (let t = TEMPO_FACTOR_MIN; t <= TEMPO_FACTOR_MAX; t++) tables.push(t);
+  TEMPO_EXTRA_TABLES.forEach((t) => {
+    const skill = skills[`vermenigvuldigen_tafel_${t}`];
+    if (skill && skill.tier >= TEMPO_EXTRA_FROM_TIER) tables.push(t);
+  });
+  return tables;
+}
+
+function tempoMultiplierMax(table) {
+  return TEMPO_EXTRA_TABLES.includes(table) ? TEMPO_EXTRA_FACTOR_MAX : TEMPO_FACTOR_MAX;
+}
+
+// One sum of this kind from these tafels, written as in the normal session (js/exercises/tafel.js
+// and delen_zonder_rest.js), and never the same sum twice in a row.
+function tempoSum(kindId, previousPrompt, tables = tempoTables(null)) {
   let sum;
   do {
     const form = kindId === 'mix' ? pickRandom(TEMPO_FORMS) : kindId;
-    const table = randomInt(TEMPO_FACTOR_MIN, TEMPO_FACTOR_MAX);
-    const multiplier = randomInt(TEMPO_FACTOR_MIN, TEMPO_FACTOR_MAX);
+    const table = pickRandom(tables);
+    const multiplier = randomInt(TEMPO_FACTOR_MIN, tempoMultiplierMax(table));
     const product = table * multiplier;
     const [prompt, answer] = {
       tafels: [`${multiplier} × ${table} = ?`, product],
