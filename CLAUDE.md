@@ -19,7 +19,9 @@ A playful, adaptive Dutch maths practice app for one family's own children (groe
 ## How the app is built
 - Plain HTML/CSS/JS with global scripts, no build step, hosted on GitHub Pages. `js/cloud.js` is the one ES module (Firebase from Google's CDN).
 - **Curriculum is data:** `curriculum/*.js` define skills with `groepen: [from, to]` and `tiers` labelled with the groep they fit at the start of the school year. Generators live in `js/exercises/`, hints in `js/hints.js`, level rules in `js/mastery.js`.
-- **Level rules** (see `js/mastery.js`): a new skill starts one level below the groep estimate; a child climbs at most one groep above their own; a slow right answer doesn't count towards moving up.
+- **Level rules** (see `js/mastery.js`): a new skill starts one level below the groep estimate; a child climbs at most one groep above their own; a slow right answer doesn't count towards moving up. Confidence before climbing (D15): the quick start (3 right in a row) stops at the own-groep level, a needed worked solution lowers the level by one, and a session opens with two sums the child does well. A mastered skill comes up once per session (D16); a struggling or unseen skill opens with a worked example (D17).
+- **Levels are stored by number:** inserting a level in a skill's `tiers` silently shifts every child above it one step. Only do it with a migration or when no child is above it.
+- **Sessions:** 8 minutes, 5 for groep 3 (`js/profiles.js`). Next to the session: Mijn park (`js/park.js`, D18) and the Tempo-ronde (D19).
 - **Offline-first:** localStorage is the working copy; `js/cloud.js` syncs changed children and sessions.
 
 ## Rules learned the hard way
@@ -39,6 +41,7 @@ A playful, adaptive Dutch maths practice app for one family's own children (groe
 6. Add the decision and any real-use lesson to `BACKLOG.md`.
 
 ## Working method
+- **Start every chat with `git pull`.** Several chats work on this app and push to `main`; a chat that started earlier works on an old copy. Two chats once both took the same version number; when that happens, take the higher number + 1.
 - Bigger changes: plan mode first, with the choices put to the parent. Small fixes: just do them and report.
 - Run the local server through the preview tool (config `reken-app`), not through the shell.
 - Report honestly what was tested and what could not be (a real iPad never can be, from here).

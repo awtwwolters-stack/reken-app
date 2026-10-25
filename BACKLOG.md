@@ -1,14 +1,18 @@
 # Reken App — Backlog
 
-_Last updated: 2026-10-11 · Status: see "Now" below._
+_Last updated: 2026-10-25 · Status: see "Now" below._
 
 Size: **S** = small change · **M** = one focused build session · **L** = several sessions
 
 ---
 
-## Now (2026-10-11)
+## Now (2026-10-25)
 
-**Version 2026-10-11.33 (Tempo-ronde, D19).** Three children (groep 3, 5 and 6) practise on shared iPads, synced through the family's own Firebase project (D12).
+**Version 2026-10-11.33 (Tempo-ronde, D19).** Three children (groep 3, 5 and 6) practise on shared iPads, synced through the family's own Firebase project (D12). Since 2026-10-11 nothing was changed; D15–D19 have now had two weeks of real use that nobody has looked at yet.
+
+**First step of the next phase: a backup pasted in chat** (Ouder overzicht → Kopieer back-up). It answers most of the open checks below at once: do sessions get finished again, do levels stay put, is the park used or does it distract, are tempo-rondes played. Decide the next phase from that, not from the list.
+
+**Open choice for the parent:** a needed worked solution lowers a level every time (D15), so three failed sums in one skill can drop three levels in one session. Proposal: at most one such drop per skill per session. Check the backup for drops of more than one level first.
 
 **Open checks (need a real iPad or real use):**
 - **Tempo-ronde (D19):** one round on the old iPad (iOS 15): does the keyboard come up on "Start!" and stay up between the sums, in portrait and landscape? After the first rounds: is 30 right in 2 minutes a sensible threshold for typing on an iPad (the method's 40 is on paper)? Does the groep-6 child finish rounds, or stop after a slow one? Which edition of the method does the school use (the weektaak says "Speed"/"Power" in edition 5)?
@@ -27,9 +31,10 @@ Size: **S** = small change · **M** = one focused build session · **L** = sever
    - ~~Groep-5 child: a mastered skill once per session~~ ✅ (D16)
    - ~~A topic opens with a worked example~~ ✅ (D17)
 4. ~~Motivation: the animals in a story, spending stars (M-02)~~ ✅ Mijn park (D18)
-5. Later, when the class and the data say so: tijdsduur (groep 6), kommagetallen (B-05), a hint "reken onder elkaar" for big plus/min sums, the rest of breuken step 2 (B-03b), geld, the youngest child (S-04).
+5. Small leftovers from the code review of 2026-10-11 (only if the data shows they matter): the quick-start correction only looks at the last level change, so an older quick-start climb followed by a ceiling change is never corrected; keyboard-mashing isn't written in the session log; "Gemiddeld niveau nu" in the overview averages level numbers of skills with different numbers of levels.
+6. Later, when the class and the data say so: tijdsduur (groep 6), kommagetallen (B-05), a hint "reken onder elkaar" for big plus/min sums, the rest of breuken step 2 (B-03b), geld, the youngest child (S-04).
 
-The sections "Where we are: V1" and "Roadmap (confirmed 2026-09-23)" below are history; decisions D9–D18 replaced that order.
+The sections "Where we are: V1" and "Roadmap (confirmed 2026-09-23)" below are history; decisions D9–D19 replaced that order.
 
 ---
 
