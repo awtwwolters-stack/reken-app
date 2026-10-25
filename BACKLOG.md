@@ -12,7 +12,7 @@ Size: **S** = small change · **M** = one focused build session · **L** = sever
 
 **What the backup of 2026-10-25 showed** (two weeks of D15–D19):
 - Sessions get finished again: the groep-6 child 8 of 11 since 11 October (2 of 10 before), stops right after a worked solution 1 (was 5). Groep-3 child 11 of 17, groep-5 child 3 of 4 (but practised less).
-- Tempo-rondes are played: groep-5 child 4 rounds (best 35, passed twice), groep-6 child 3. Park: used by every child, no sign it keeps them from practising; the groep-3 child collects far more than they spend (1.127 ★ left).
+- Tempo-rondes are played: groep-5 child 4 rounds (best 35, passed twice), groep-6 child 3. Park: used by every child, no sign it keeps them from practising; the groep-3 child has earned 1.127 ★ and spent 751 (376 in the spaarpot), so they spend most of what they earn.
 - **Two sync bugs** changed progress without anyone noticing → fixed in D20, with a one-time repair (groep-6 child +39 ★ and the 21 October practice day back; groep-8 child's minus level 5 → 4).
 - **The groep-3 child's minus level 2 (only the starting dots, D16) doesn't work:** 18% right first time; in 46 of 75 wrong answers the child typed the first number of the sum (9 − 2 → "9"): they count the dots. The level went 1 ↔ 2 nineteen times. Splitsen with starting dots works (no counting).
 - Drops of more than one level in one session: 5 times since 11 October, worst 3 levels in klokkijken (groep-6 child).
