@@ -15,12 +15,21 @@ function singleAnswer(value) {
 
 // "dots" on a tier: true = the full picture shows with the question; "start" = only the starting
 // number as plain dots (the child does the taking away or splitting in their head) and the full
-// picture comes as the first hint; absent = no picture until the first hint. "start" is the step
-// between "always with dots" and "never", which proved too big in one go.
-function withDots(tierConfig, visual, startVisual) {
+// picture comes as the first hint; "cross" = the starting dots, of which the child taps `crossable`
+// away themselves (wegstrepen, BACKLOG D22), the full picture again the first hint; absent = no
+// picture until the first hint. "start" and "cross" are steps between "always with dots" and
+// "never", which proved too big in one go.
+function withDots(tierConfig, visual, startVisual, crossable) {
   if (tierConfig.dots === true) return { visual };
   if (tierConfig.dots === 'start' && startVisual) return { visual: startVisual, hintVisual: visual };
+  if (tierConfig.dots === 'cross' && startVisual && crossable) {
+    return { visual: Object.assign({}, startVisual, { crossable }), hintVisual: visual };
+  }
   return { hintVisual: visual };
+}
+
+function stippen(n) {
+  return `${n} ${n === 1 ? 'stip' : 'stippen'}`;
 }
 
 Exercises.tellen = function (tierConfig, skill) {
@@ -132,15 +141,25 @@ Exercises.plus_tot_20 = function (tierConfig, skill) {
   };
 };
 
+// Typing the first number (9 for 9 - 2) means counting all the dots, or not taking away at all:
+// that answer gets its own tip instead of the first hint (BACKLOG D22). It still counts as wrong.
 Exercises.min_tot_20 = function (tierConfig, skill) {
   const [a, b] = minNumbers(tierConfig.range);
+  const cross = tierConfig.dots === 'cross';
+  const dotsShown = tierConfig.dots === true || cross;
   return {
     skillId: skill.id,
     exerciseType: 'min_tot_20',
     prompt: `${a} - ${b} = ?`,
-    speech: `Hoeveel is ${a} min ${b}?`,
-    ...withDots(tierConfig, dotsVisual({ count: a - b, kind: 'a' }, { count: b, kind: 'gone' }), dotsVisual({ count: a, kind: 'a' })),
+    speech: `Hoeveel is ${a} min ${b}?${cross ? ` Tik ${stippen(b)} weg.` : ''}`,
+    ...withDots(tierConfig, dotsVisual({ count: a - b, kind: 'a' }, { count: b, kind: 'gone' }), dotsVisual({ count: a, kind: 'a' }), b),
     ...singleAnswer(a - b),
+    startNumberTip: {
+      value: a,
+      text: dotsShown
+        ? `Je telde alle stippen. Er gaan er ${b} weg.`
+        : `${a} is het getal waar je mee begint. Er gaan er ${b} af.`
+    },
     hintContext: { a, b }
   };
 };

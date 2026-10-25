@@ -84,7 +84,7 @@ CURRICULUM.skills.push(
     "prerequisites": [],
     "tiers": [
       { "tier": 1, "groep": 3, "range": "tot10", "dots": true },
-      { "tier": 2, "groep": 4, "range": "tot10", "dots": "start" },
+      { "tier": 2, "groep": 4, "range": "tot10", "dots": "cross" },
       { "tier": 3, "groep": 4, "range": "tot10" },
       { "tier": 4, "groep": 4, "range": "tot20" },
       { "tier": 5, "groep": 4, "range": "over10" }

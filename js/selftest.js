@@ -19,6 +19,7 @@ function pictureProblem(visual) {
     } else if (v.type === 'dots') {
       const total = v.parts.reduce((n, p) => n + p.count, 0);
       if (!v.parts.every((p) => isWholeNumber(p.count) && ['a', 'b', 'gone', 'hidden'].includes(p.kind)) || total > 20) return 'stippen kloppen niet';
+      if (v.crossable !== undefined && !(isWholeNumber(v.crossable) && v.crossable >= 1 && v.crossable <= total)) return 'weg te tikken stippen kloppen niet';
     } else if (v.type === 'clock') {
       if (!(isWholeNumber(v.hour) && v.hour >= 1 && v.hour <= 12 && isWholeNumber(v.minute) && v.minute <= 59)) return 'klok klopt niet';
     } else if (v.type === 'splits') {
@@ -325,6 +326,30 @@ function syncProblems(now = new Date(2026, 9, 25, 12).getTime()) {
   return problems;
 }
 
+// Minsommen tot 20 (D22): level 2 shows the starting dots to tap away, the full picture as the first
+// hint; every level has the tip for typing the starting number.
+function minusProblems() {
+  const problems = [];
+  const skill = CURRICULUM.skills.find((s) => s.id === 'min_tot_20');
+  if (!skill) return ['Minsommen: staan niet in het curriculum'];
+  skill.tiers.forEach((tier) => {
+    for (let i = 0; i < 50; i++) {
+      const ex = Exercises.min_tot_20(tier, skill);
+      const [a, b] = ex.prompt.match(/\d+/g).map(Number);
+      const fail = (text) => problems.push(`Minsommen niveau ${tier.tier}: ${text} bij "${ex.prompt}"`);
+      if (!ex.startNumberTip || ex.startNumberTip.value !== a || !ex.startNumberTip.text.includes(`${b} `)) { fail('de tip voor het begingetal klopt niet'); break; }
+      if (tier.dots === 'cross') {
+        const shown = ex.visual && ex.visual.parts;
+        if (!shown || shown.length !== 1 || shown[0].count !== a || shown[0].kind !== 'a' || ex.visual.crossable !== b) { fail('niet de beginstippen om weg te tikken'); break; }
+        if (!ex.hintVisual || !ex.hintVisual.parts.some((p) => p.kind === 'gone' && p.count === b)) { fail('de hint toont niet het hele plaatje'); break; }
+        if (!ex.speech.includes(`Tik ${b} `)) { fail('voorlezen zegt niet hoeveel weg te tikken'); break; }
+      } else if (ex.visual && ex.visual.crossable) { fail('stippen om weg te tikken op het verkeerde niveau'); break; }
+    }
+  });
+  if (!skill.tiers.some((t) => t.dots === 'cross')) problems.push('Minsommen: er is geen niveau met wegstrepen');
+  return problems;
+}
+
 // The tafels of 11 and 12 (D21) only while the tafels 6-9 go well, also after they have started.
 function extraTafelProblems() {
   const problems = [];
@@ -358,7 +383,7 @@ function deviceReport() {
 
 // Returns { skills, levels, sums, problems: ['Tafel van 6 niveau 2: ...'], device: [...] }.
 function runSelfTest() {
-  const problems = timeWordsProblems().concat(parkProblems(), tempoProblems(), syncProblems(), extraTafelProblems());
+  const problems = timeWordsProblems().concat(parkProblems(), tempoProblems(), syncProblems(), extraTafelProblems(), minusProblems());
   let levels = 0;
   let sums = 0;
   const skills = CURRICULUM.skills.filter((s) => s.implemented);

@@ -265,7 +265,8 @@ body.in-session.wide-short .answer-fields { margin: 6px 0; }
 body.in-session.wide-short .answer-input-field { font-size: max(16px, calc(1.6rem * var(--fit))); padding: calc(8px * var(--fit)); }
 body.in-session.wide-short .feedback { font-size: calc(1rem * var(--fit)); }
 /* Two pictures (split picture + dots) side by side instead of stacked. */
-body.in-session.wide-short #exercise-visual { display: flex; align-items: center; justify-content: center; gap: 12px; }
+body.in-session.wide-short #exercise-visual { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 12px; }
+body.in-session.wide-short #exercise-visual .dots-caption { flex-basis: 100%; margin: 0; }
 body.in-session.wide-short #exercise-visual .splits { margin: 0; flex: none; width: calc(160px * var(--fit)); }
 body.in-session.wide-short #exercise-visual .dots { flex: 1; min-width: 0; }
 
@@ -313,6 +314,10 @@ body.in-session.wide-short #exercise-visual .dots { flex: 1; min-width: 0; }
 .dot-gone { fill: #c9d6d2; }
 .dot-hidden { fill: none; stroke: var(--primary); stroke-width: 2.5; stroke-dasharray: 4 3; }
 .dot-cross { stroke: var(--solution-text); stroke-width: 3; stroke-linecap: round; }
+/* Wegstrepen (D22): dots the child taps away. No double-tap zoom, no grey flash. */
+.dots.crossable { touch-action: manipulation; -webkit-tap-highlight-color: transparent; -webkit-user-select: none; user-select: none; }
+.dot-tap { cursor: pointer; }
+.dots-caption { margin: 4px 0 0; text-align: center; color: #789; font-size: calc(0.95rem * var(--fit, 1)); }
 
 /* Split picture (splitsen, groep 3): whole on top, two parts below, the missing one open. */
 .splits { width: 100%; max-width: 200px; height: auto; display: block; margin: 0 auto 10px; }

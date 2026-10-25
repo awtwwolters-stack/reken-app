@@ -918,6 +918,8 @@ function renderVisual(visual) {
   if (!visual) return;
   [].concat(visual).forEach((v) => {
     if (VISUAL_RENDERERS[v.type]) container.appendChild(VISUAL_RENDERERS[v.type](v));
+    // Wegstrepen (D22): what to do, for a reader nearby; the child hears it with 🔊.
+    if (v.crossable) container.appendChild(Object.assign(document.createElement('p'), { className: 'dots-caption', textContent: `Tik ${stippen(v.crossable)} weg` }));
   });
 }
 
@@ -986,24 +988,56 @@ function dotsSvg(visual) {
   const frameWidth = 5 * DOT_CELL;
   const width = frames * frameWidth + (frames - 1) * FRAME_GAP;
   const height = 2 * DOT_CELL;
-  const svg = svgNode('svg', { viewBox: `-2 -2 ${width + 4} ${height + 4}`, class: 'dots', role: 'img' });
+  const svg = svgNode('svg', { viewBox: `-2 -2 ${width + 4} ${height + 4}`, class: visual.crossable ? 'dots crossable' : 'dots', role: 'img' });
   svg.setAttribute('aria-label', `${kinds.length} stippen`);
   for (let i = 0; i < frames * 10; i++) {
     const frame = Math.floor(i / 10);
     const x = frame * (frameWidth + FRAME_GAP) + (i % 5) * DOT_CELL;
     const y = Math.floor((i % 10) / 5) * DOT_CELL;
-    svg.appendChild(svgNode('rect', { x, y, width: DOT_CELL, height: DOT_CELL, class: 'dot-cell' }));
     const kind = kinds[i];
+    // A dot the child may tap away is one group with its whole cell, so a tap near it counts too.
+    const holder = visual.crossable && kind ? svg.appendChild(svgNode('g', { class: 'dot-tap' })) : svg;
+    holder.appendChild(svgNode('rect', { x, y, width: DOT_CELL, height: DOT_CELL, class: 'dot-cell' }));
     if (!kind) continue;
     const cx = x + DOT_CELL / 2;
     const cy = y + DOT_CELL / 2;
-    svg.appendChild(svgNode('circle', { cx, cy, r: DOT_CELL * 0.36, class: `dot dot-${kind}` }));
-    if (kind === 'gone') {
-      const d = DOT_CELL * 0.3;
-      svg.appendChild(svgNode('path', { d: `M${cx - d} ${cy - d}L${cx + d} ${cy + d}M${cx + d} ${cy - d}L${cx - d} ${cy + d}`, class: 'dot-cross' }));
-    }
+    holder.appendChild(svgNode('circle', { cx, cy, r: DOT_CELL * 0.36, class: `dot dot-${kind}` }));
+    if (kind === 'gone') holder.appendChild(dotCross(cx, cy));
   }
+  if (visual.crossable) makeCrossable(svg);
   return svg;
+}
+
+function dotCross(cx, cy) {
+  const d = DOT_CELL * 0.3;
+  return svgNode('path', { d: `M${cx - d} ${cy - d}L${cx + d} ${cy + d}M${cx + d} ${cy - d}L${cx - d} ${cy + d}`, class: 'dot-cross' });
+}
+
+// Wegstrepen (D22): a tap crosses a dot out, a second tap brings it back. The answer box keeps the
+// focus (the iPad keyboard must stay up, see CLAUDE.md): the touch or mouse press is cancelled
+// before it can move the focus, and the box is focused again in case a browser moved it anyway.
+// How many dots are crossed out is kept on the sum, for the session log.
+function makeCrossable(svg) {
+  currentExercise.crossed = 0;
+  const toggle = (event) => {
+    event.preventDefault();
+    const group = event.target.closest && event.target.closest('.dot-tap');
+    if (group) {
+      const circle = group.querySelector('circle');
+      const crossed = group.classList.toggle('crossed');
+      circle.classList.toggle('dot-a', !crossed);
+      circle.classList.toggle('dot-gone', crossed);
+      const cross = group.querySelector('.dot-cross');
+      if (crossed) group.appendChild(dotCross(Number(circle.getAttribute('cx')), Number(circle.getAttribute('cy'))));
+      else if (cross) cross.remove();
+      currentExercise.crossed = svg.querySelectorAll('.dot-tap.crossed').length;
+    }
+    if (!activeInputs().includes(document.activeElement)) answerInputs[0].focus();
+  };
+  // A touch is handled as a touch only: cancelling it also stops the mouse events a browser makes
+  // from it, so one tap never toggles twice.
+  svg.addEventListener('touchstart', toggle, { passive: false });
+  svg.addEventListener('mousedown', toggle);
 }
 
 // A strook (bar) split into equal parts, the first `coloured` parts filled - the classroom breukenkast.
@@ -1163,6 +1197,8 @@ function onSubmit() {
   }
 
   currentExercise.answersGiven.push(formatAnswer(values));
+  // Wegstrepen (D22): how many dots were crossed out at the first answer, for the session log.
+  if (currentExercise.answersGiven.length === 1 && currentExercise.crossed !== undefined) currentExercise.crossedAtAnswer = currentExercise.crossed;
   if (isCorrect(values)) {
     concludeExercise(true);
   } else {
@@ -1171,7 +1207,10 @@ function onSubmit() {
     if (session.hintLevel >= MAX_HINT_LEVEL) {
       concludeExercise(false);
     } else {
-      showHint();
+      // The starting number typed as the first answer (9 for 9 - 2): a tip about exactly that (D22).
+      // A second time the usual next hint follows (count back), which helps more than the tip again.
+      const tip = currentExercise.startNumberTip;
+      showHint(tip && session.hintLevel === 1 && values.antwoord === tip.value ? tip.text : null);
     }
   }
 }
@@ -1183,8 +1222,9 @@ function looksLikeMashing(values) {
   return numbers(values).some((v) => v >= limit);
 }
 
-function showHint() {
-  const hintText = getHint(currentExercise.exerciseType, session.hintLevel, currentExercise.hintContext);
+// `text`: instead of the usual hint for this level (a tip about the mistake just made).
+function showHint(text = null) {
+  const hintText = text || getHint(currentExercise.exerciseType, session.hintLevel, currentExercise.hintContext);
   el('feedback').textContent = hintText;
   el('feedback').className = 'feedback feedback-hint';
   // For a child who can't read yet, the picture is the real hint.
@@ -1240,7 +1280,8 @@ function concludeExercise(solved) {
     solutionShown: !solved,
     seconds: Math.round(spentMs / 1000),
     reason: currentExercise.pickReason,
-    levelChange: [currentExercise.ceilingChange, levelChange].filter(Boolean).join('; ') || null
+    levelChange: [currentExercise.ceilingChange, levelChange].filter(Boolean).join('; ') || null,
+    ...(currentExercise.crossedAtAnswer !== undefined ? { crossed: currentExercise.crossedAtAnswer } : {})
   });
   session.record.activeSeconds = Math.round(session.activeMs / 1000);
   saveState(appState);
