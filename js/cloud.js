@@ -7,12 +7,16 @@
 //
 // Data: families/{parent's user id}/profiles/{profileId} - one document per child, so children
 // practising on different iPads never overwrite each other - and families/{uid}/sessions/{id}.
+// A child is written in one server step that first combines it with the cloud's copy
+// (mergeProfile, js/storage.js), so an iPad that was signed out or offline can't undo progress
+// made elsewhere (BACKLOG D20).
 // The Firestore security rule (set in the Firebase console) lets only that signed-in parent read
 // or write it; the web config in the public repository is not a secret.
 
 const SDK = 'https://www.gstatic.com/firebasejs/12.19.0';
 const LINKED_KEY = 'reken-app-cloud-linked'; // the account this iPad's data has been merged with
 const SYNCED_KEY = 'reken-app-cloud-synced'; // what the cloud has, per document, as last seen here
+const BASE_KEY = 'reken-app-cloud-base'; // per child: the cloud's version as last seen here
 const MAX_WRITES_PER_BATCH = 450; // Firestore allows 500 per batch
 
 let A = null; // firebase-auth module
@@ -22,18 +26,16 @@ let db = null;
 let uid = null;
 let refs = null; // { profile: collection, session: collection }
 let synced = {}; // 'profile/p123' -> signature of the cloud's version
+let bases = {}; // 'p123' -> the cloud's version of that child as last seen here (to combine from)
+const writing = {}; // 'p123' -> true while this iPad's server step for that child runs
+const writeAgain = {}; // 'p123' -> { overwrite }: send once more when the running step is done
+const heldBack = {}; // 'p123' -> what the cloud sent for that child during the running step
 let remoteIds = { profile: new Set(), session: new Set() };
 let unsubscribers = [];
 
-// Profiles are small: their content is the signature (keys sorted, so field order can't matter).
-// Sessions only grow, so a few numbers tell whether one changed.
-function stableStringify(value) {
-  if (Array.isArray(value)) return `[${value.map(stableStringify).join(',')}]`;
-  if (value && typeof value === 'object') {
-    return `{${Object.keys(value).sort().map((k) => `${JSON.stringify(k)}:${stableStringify(value[k])}`).join(',')}}`;
-  }
-  return JSON.stringify(value);
-}
+// Profiles are small: their content is the signature (stableStringify in js/storage.js: keys
+// sorted, so field order can't matter). Sessions only grow, so a few numbers tell whether one
+// changed.
 
 function signature(kind, data) {
   if (kind === 'profile') return stableStringify(data);
@@ -55,6 +57,135 @@ function saveSynced() {
   } catch (e) {
     // Without it, the next start just re-sends a little more than needed.
   }
+}
+
+function loadBases() {
+  try {
+    const stored = JSON.parse(localStorage.getItem(BASE_KEY) || 'null');
+    return stored && stored.uid === uid ? stored.docs : {};
+  } catch (e) {
+    return {};
+  }
+}
+
+function saveBases() {
+  try {
+    localStorage.setItem(BASE_KEY, JSON.stringify({ uid, docs: bases }));
+  } catch (e) {
+    // Without it, combining falls back to the signature below or, failing that, to the safest choice.
+  }
+}
+
+// The cloud's version of a child as last seen here. iPads from before D20 only kept the
+// signature, which for a child is the content itself.
+function baseOf(id) {
+  if (bases[id]) return bases[id];
+  const sig = synced[`profile/${id}`];
+  if (!sig) return null;
+  try {
+    return JSON.parse(sig);
+  } catch (e) {
+    return null;
+  }
+}
+
+// `save` false: the caller saves once after a whole batch of changes.
+function rememberBase(id, data, save = true) {
+  if (data) {
+    bases[id] = copyData(data);
+    synced[`profile/${id}`] = signature('profile', data);
+  } else {
+    delete bases[id];
+    delete synced[`profile/${id}`];
+  }
+  if (!save) return;
+  saveBases();
+  saveSynced();
+}
+
+function handToPage(changes) {
+  if (changes.length && Cloud.hooks) Cloud.hooks.remoteChanges(changes);
+}
+
+function sessionsOf(state, id) {
+  return state.sessions.filter((record) => record.profileId === id);
+}
+
+// Network trouble: the child is simply sent again later. Anything else is shown.
+const RETRY_LATER = ['unavailable', 'failed-precondition', 'aborted', 'deadline-exceeded', 'cancelled'];
+
+// One child goes up in one server step (a transaction): read the cloud's copy; if it is no longer
+// what this iPad last saw, combine the two (mergeProfile); with `repair`, apply the one-time
+// repairs (repairProfile); write. Offline the step fails instead of queueing a write that would
+// land later over newer progress: the child is sent again on the next save, or when the internet is
+// back. `overwrite` (restoring a backup) writes this iPad's copy as it is.
+async function sendProfile(id, { overwrite = false, repair = false } = {}) {
+  if (writing[id]) {
+    const again = writeAgain[id] || {};
+    writeAgain[id] = { overwrite: overwrite || !!again.overwrite, repair: repair || !!again.repair };
+    return;
+  }
+  writing[id] = true;
+  let sent = null; // this iPad's copy as the step read it
+  let read; // the cloud's copy as the step read it
+  let removedElsewhere = false;
+  try {
+    const written = await F.runTransaction(db, async (tx) => {
+      const ref = F.doc(refs.profile, id);
+      const snap = await tx.get(ref);
+      const state = Cloud.hooks.getState();
+      sent = copyData(state.profiles[id]);
+      read = snap.exists() ? snap.data() : null;
+      if (!sent) return null;
+      // Gone from the cloud although this iPad has seen it there: removed on another iPad.
+      if (!read && !overwrite && baseOf(id)) {
+        removedElsewhere = true;
+        return null;
+      }
+      let next = sent;
+      if (!overwrite && read && signature('profile', read) !== synced[`profile/${id}`]) {
+        next = mergeProfile(baseOf(id), sent, read);
+      }
+      if (repair && !overwrite) next = repairProfile(next, sessionsOf(state, id)) || next;
+      tx.set(ref, next);
+      return next;
+    });
+    if (removedElsewhere) {
+      rememberBase(id, null);
+      handToPage([{ kind: 'profile', id, data: null }]);
+    } else if (written) {
+      rememberBase(id, written);
+      // The cloud now has more than this iPad had: take it in, combined with anything done here
+      // while the step ran.
+      if (!sameData(written, sent)) handToPage([{ kind: 'profile', id, data: written, base: sent }]);
+    }
+  } catch (e) {
+    if (!RETRY_LATER.includes(e.code)) setState('failed', `Opslaan in de cloud lukte niet (${e.code || e.message}).`);
+  } finally {
+    writing[id] = false;
+    if (id in heldBack) {
+      // What the cloud sent meanwhile, unless it was the copy the step already combined or wrote.
+      const held = heldBack[id];
+      delete heldBack[id];
+      const sig = held ? signature('profile', held) : undefined;
+      if (sig !== synced[`profile/${id}`] && !(held && read && sig === signature('profile', read))) {
+        const base = baseOf(id);
+        rememberBase(id, held);
+        handToPage([{ kind: 'profile', id, data: held, base }]);
+      }
+    }
+    const again = writeAgain[id];
+    delete writeAgain[id];
+    if (again) sendProfile(id, again);
+  }
+}
+
+// After signing in: children whose progress needs a one-time repair (repairProfile) are sent, so
+// the repair is made on the cloud's copy, once for the whole family.
+function repairWhereNeeded(state) {
+  syncedProfiles(state).forEach(([id, profile]) => {
+    if (repairProfile(profile, sessionsOf(state, id))) sendProfile(id, { repair: true });
+  });
 }
 
 function setState(state, problem = null) {
@@ -83,19 +214,17 @@ function commitInBatches(operations, keys = []) {
   }
 }
 
-// Sends the children and sessions whose content differs from what the cloud has.
-function push(state) {
+// Sends the children and sessions whose content differs from what the cloud has. Children go one
+// by one through sendProfile; sessions (one document each, never written by two iPads) in batches.
+function push(state, options = {}) {
   if (Cloud.state !== 'on') return;
   const operations = [];
   const keys = [];
   const named = new Set();
   syncedProfiles(state).forEach(([id, profile]) => {
     named.add(id);
-    const sig = signature('profile', profile);
-    if (synced[`profile/${id}`] === sig) return;
-    synced[`profile/${id}`] = sig;
-    keys.push(`profile/${id}`);
-    operations.push((batch) => batch.set(F.doc(refs.profile, id), profile));
+    if (!options.overwrite && synced[`profile/${id}`] === signature('profile', profile)) return;
+    sendProfile(id, { overwrite: !!options.overwrite });
   });
   state.sessions.forEach((record) => {
     if (!named.has(record.profileId)) return;
@@ -120,18 +249,34 @@ function subscribe() {
     snap.docChanges().forEach((change) => {
       // This iPad's own write that the server hasn't confirmed yet: nothing new.
       if (change.doc.metadata.hasPendingWrites) return;
-      const key = `${kind}/${change.doc.id}`;
+      const id = change.doc.id;
+      const key = `${kind}/${id}`;
       const data = change.type === 'removed' ? null : change.doc.data();
+      // While this iPad's own step for a child runs, what comes in waits for it (sendProfile).
+      if (kind === 'profile' && writing[id]) {
+        heldBack[id] = data;
+        return;
+      }
       const sig = data ? signature(kind, data) : undefined;
       if (synced[key] === sig) return;
+      if (kind === 'profile') {
+        const base = baseOf(id);
+        rememberBase(id, data, false);
+        changes.push({ kind, id, data, base });
+        return;
+      }
       if (data) synced[key] = sig;
       else delete synced[key];
-      changes.push({ kind, id: change.doc.id, data });
+      changes.push({ kind, id, data });
     });
+    const wasOnline = Cloud.online;
     Cloud.online = !snap.metadata.fromCache;
     if (Cloud.online) Cloud.lastSyncAt = Date.now();
     saveSynced();
-    if (changes.length && Cloud.hooks) Cloud.hooks.remoteChanges(changes);
+    saveBases();
+    handToPage(changes);
+    // Back online: children that couldn't go up while offline are sent now.
+    if (Cloud.online && !wasOnline && Cloud.hooks) push(Cloud.hooks.getState());
     setState('on', Cloud.ruleOpen ? Cloud.problem : null);
   }, (e) => setState('failed', e.code === 'permission-denied'
     ? 'Geen toegang tot de cloud: controleer de beveiligingsregel in Firebase.'
@@ -159,6 +304,7 @@ async function connect(user) {
     session: F.collection(db, 'families', uid, 'sessions')
   };
   synced = loadSynced();
+  bases = loadBases();
   if (localStorage.getItem(LINKED_KEY) !== uid) {
     // First time on this iPad: merge with the family's cloud copy as the server has it.
     setState('linking');
@@ -175,7 +321,9 @@ async function connect(user) {
     const cloudProfiles = {};
     const cloudSessions = [];
     synced = {};
-    profileDocs.forEach((d) => { cloudProfiles[d.id] = d.data(); synced[`profile/${d.id}`] = signature('profile', d.data()); });
+    bases = {};
+    profileDocs.forEach((d) => { cloudProfiles[d.id] = d.data(); rememberBase(d.id, d.data(), false); });
+    saveBases();
     sessionDocs.forEach((d) => { cloudSessions.push(d.data()); synced[`session/${d.id}`] = signature('session', d.data()); });
     const local = Cloud.hooks.getState();
     keepPreCloudBackup(local);
@@ -185,9 +333,11 @@ async function connect(user) {
     Cloud.hooks.replaceState(merged); // saving it sends what this iPad adds
   } else {
     setState('on');
-    // Progress made here while the cloud wasn't running goes up before anything comes down.
+    // Progress made here while the cloud wasn't running goes up, combined with what the other
+    // iPads did meanwhile (sendProfile).
     push(Cloud.hooks.getState());
   }
+  repairWhereNeeded(Cloud.hooks.getState());
   subscribe();
   if ((await checkRuleIsLocked()) === false) {
     Cloud.ruleOpen = true;
@@ -256,8 +406,9 @@ const Cloud = {
     connect(auth.currentUser);
   },
 
+  // This iPad stays linked to the account: signing in again with it combines each child with
+  // the cloud's copy from where this iPad left off (D20). Another account merges by name.
   async signOut() {
-    localStorage.removeItem(LINKED_KEY); // signing in again merges again (by name, so no doubles)
     await A.signOut(auth);
   },
 
@@ -265,7 +416,7 @@ const Cloud = {
   deleteProfile(profileId, sessionIds) {
     if (this.state !== 'on') return;
     const operations = [(batch) => batch.delete(F.doc(refs.profile, profileId))];
-    delete synced[`profile/${profileId}`];
+    rememberBase(profileId, null);
     sessionIds.forEach((id) => {
       operations.push((batch) => batch.delete(F.doc(refs.session, String(id))));
       delete synced[`session/${id}`];
@@ -281,7 +432,7 @@ const Cloud = {
     const keepSessions = new Set(state.sessions.map((s) => String(s.id)));
     const operations = [];
     remoteIds.profile.forEach((id) => {
-      if (!keepProfiles.has(id)) { operations.push((batch) => batch.delete(F.doc(refs.profile, id))); delete synced[`profile/${id}`]; }
+      if (!keepProfiles.has(id)) { operations.push((batch) => batch.delete(F.doc(refs.profile, id))); rememberBase(id, null); }
     });
     remoteIds.session.forEach((id) => {
       if (!keepSessions.has(id)) { operations.push((batch) => batch.delete(F.doc(refs.session, id))); delete synced[`session/${id}`]; }
@@ -303,4 +454,7 @@ const Cloud = {
 };
 
 window.Cloud = Cloud;
-window.addEventListener('online', () => { if (Cloud.state === 'failed') Cloud.retry(); });
+window.addEventListener('online', () => {
+  if (Cloud.state === 'failed') Cloud.retry();
+  else if (Cloud.state === 'on' && Cloud.hooks) push(Cloud.hooks.getState());
+});

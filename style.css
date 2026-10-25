@@ -104,6 +104,7 @@ h3 { font-size: 1.1rem; color: var(--primary-dark); margin-bottom: 8px; }
 }
 
 .muted { color: #789; font-size: 0.9rem; }
+.sync-warning { max-width: 30rem; margin: 0.5rem auto 1rem; padding: 0.5rem 0.75rem; border-radius: 10px; background: #fff4d6; color: #6b4a00; font-size: 0.9rem; }
 
 .link-button {
   background: none;

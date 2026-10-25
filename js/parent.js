@@ -373,7 +373,11 @@ function restoreFromText(text) {
   if (!confirm(`Dit vervangt alle huidige voortgang${everywhere} door de back-up van ${when}. Doorgaan?`)) return;
 
   imported = migrateState(imported);
-  saveState(imported);
+  // The backup replaces the children everywhere, also on an iPad that is signed out right now
+  // (mergeProfile lets the latest restore win).
+  const restoredAt = Date.now();
+  Object.values(imported.profiles).forEach((profile) => { profile.restoredAt = restoredAt; });
+  saveState(imported, { overwrite: true });
   if (window.Cloud) window.Cloud.removeMissing(imported);
   renderParentView();
   showBackupMessage('Back-up teruggezet.');

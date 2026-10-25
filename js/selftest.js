@@ -200,6 +200,116 @@ function parkProblems(today = new Date()) {
   return problems;
 }
 
+// Combining two iPads' copies of a child and the one-time repairs (js/storage.js, BACKLOG D20), on
+// a made-up child. The first case is what happened in October 2026: one iPad was signed out, and
+// the child practised on both.
+function syncProblems(now = new Date(2026, 9, 25, 12).getTime()) {
+  const problems = [];
+  const fail = (text) => problems.push(`Samenvoegen: ${text}`);
+  const at = (day, hour = 17, minute = 0) => new Date(2026, 9, day, hour, minute).getTime();
+  const skill = (tier, attempts, practisedAt, extra = {}) => Object.assign(
+    { tier, recentResults: [true], totalAttempts: attempts, lastPracticed: practisedAt, calibrationDone: true, lastTierChange: null }, extra);
+  const base = {
+    name: 'Test', groep: 6, groepSchoolYear: 2026, stars: 100, weekGoal: 2, practiceDays: ['2026-10-16'],
+    skills: { a: skill(2, 20, at(16)), b: skill(1, 10, at(16)) },
+    park: { items: [{ id: 'tulp', price: 3, tile: 4 }], animalTiles: { 0: 0 }, storyRead: 3, saveFor: 'reuzenrad' },
+    tempo: { tafels: { best: 29, passes: 0, rounds: [{ at: '2026-10-15T16:45:03.000Z', score: 29, wrong: 1 }] } }
+  };
+  // iPad A, signed in: 39 stars, a level up in a, a bench bought.
+  const a = copyData(base);
+  a.stars = 139;
+  a.practiceDays.push('2026-10-21');
+  a.skills.a = skill(3, 51, at(21));
+  a.park.items.push({ id: 'bankje', price: 10, tile: 5 });
+  // iPad B, signed out with the old copy: 21 stars, a level up in b, a tulip bought (same tile),
+  // the first tulip moved, a tempo round.
+  const b = copyData(base);
+  b.stars = 121;
+  b.practiceDays.push('2026-10-22');
+  b.skills.b = skill(2, 31, at(22));
+  b.park.items[0].tile = 7;
+  b.park.items.push({ id: 'tulp', price: 3, tile: 5 });
+  b.tempo.tafels = { best: 32, passes: 1, rounds: b.tempo.tafels.rounds.concat({ at: '2026-10-22T16:00:00.000Z', score: 32, wrong: 0 }) };
+
+  // B signs in again and combines with the cloud, which has A's copy.
+  const m = mergeProfile(base, b, a);
+  if (m.stars !== 160) fail(`${m.stars} sterren in plaats van 160`);
+  if ((m.practiceDays || []).join() !== '2026-10-16,2026-10-21,2026-10-22') fail('oefendagen gaan verloren');
+  if (m.skills.a.tier !== 3 || m.skills.a.totalAttempts !== 51) fail('wat op de ene iPad geoefend is gaat verloren');
+  if (m.skills.b.tier !== 2 || m.skills.b.totalAttempts !== 31) fail('wat op de andere iPad geoefend is gaat verloren');
+  if (m.park.items.map((item) => item.id).join() !== 'tulp,bankje,tulp') fail('gekochte dingen gaan verloren');
+  if (m.park.items[0].tile !== 7) fail('een verplaatst ding staat weer op de oude plek');
+  if (walletStars(m) !== 160 - 16) fail('de spaarpot klopt niet');
+  if (parkLayout(m).filter(Boolean).length !== m.park.items.length + animalsInPark(m)) fail('in het park heeft niet alles een plek');
+  if (m.tempo.tafels.rounds.length !== 2 || m.tempo.tafels.best !== 32 || m.tempo.tafels.passes !== 1) fail('tempo-rondes gaan verloren');
+  const other = mergeProfile(base, a, b);
+  if (other.stars !== 160 || other.skills.a.tier !== 3 || other.skills.b.tier !== 2 || other.park.items.length !== 3) fail('het maakt uit welke iPad eerst is');
+  if (!sameData(mergeProfile(base, m, m), m)) fail('nog een keer samenvoegen verandert iets');
+  if (!sameData(mergeProfile(base, base, a), a) || !sameData(mergeProfile(base, b, base), b)) fail('een kant zonder wijzigingen telt toch mee');
+
+  // Both iPads practised the same skill: the latest level, every sum counted.
+  const c = copyData(base);
+  c.skills.a = skill(3, 25, at(21));
+  const d = copyData(base);
+  d.skills.a = skill(1, 28, at(22));
+  const both = mergeProfile(base, c, d).skills.a;
+  if (both.tier !== 1 || both.totalAttempts !== 33) fail(`dezelfde vaardigheid op twee iPads: niveau ${both.tier}, ${both.totalAttempts} sommen`);
+
+  // A restored backup wins whole, even though it has fewer stars.
+  const restored = Object.assign(copyData(base), { stars: 50, restoredAt: at(23) });
+  if (mergeProfile(base, b, restored).stars !== 50 || mergeProfile(base, restored, a).stars !== 50) fail('een teruggezette back-up wordt weer overschreven');
+
+  // No common start (an iPad's first sign-in): the most stars, per skill the copy with most sums.
+  const first = mergeProfile(null, a, b);
+  if (first.stars !== 139 || first.skills.a.tier !== 3 || first.skills.b.tier !== 2) fail('de eerste keer inloggen voegt niet goed samen');
+
+  // Coming in while the child practises: the same skill objects, with the new content.
+  const target = copyData(base);
+  const held = target.skills.a;
+  replaceProfileInPlace(target, m);
+  if (target.skills.a !== held || held.tier !== 3 || target.stars !== 160) fail('bijwerken tijdens het oefenen vervangt de vaardigheid');
+  const state = { profiles: { p: copyData(b) }, sessions: [] };
+  applyRemoteChange(state, { kind: 'profile', id: 'p', data: copyData(a), base: copyData(base) });
+  if (state.profiles.p.stars !== 160) fail('een wijziging van een andere iPad wordt niet samengevoegd');
+  const unchanged = { profiles: { p: copyData(base) }, sessions: [] };
+  applyRemoteChange(unchanged, { kind: 'profile', id: 'p', data: copyData(a), base: copyData(base) });
+  if (!sameData(unchanged.profiles.p, a)) fail('een iPad zonder eigen wijzigingen neemt de cloud niet over');
+
+  // A fresh iPad has every conversion done, so cloud data is never converted twice.
+  const fresh = freshState();
+  if (!MIGRATIONS.every((name) => fresh.migrations[name] === true)) fail('een nieuwe iPad zet niveaus nog een keer om');
+  const converted = migrateState({ profiles: { p: { skills: { optellen_tot_100000: skill(4, 5, at(16)) } } }, sessions: [], migrations: fresh.migrations });
+  if (converted.profiles.p.skills.optellen_tot_100000.tier !== 4) fail('een nieuwe iPad verhoogt een niveau');
+
+  // Repair 1: a finished session the child's progress lost. 30 solved, 1 shown, 1 level up: 38 stars.
+  const record = {
+    id: 1, profileId: 'p', completed: true,
+    exercises: Array.from({ length: 31 }, (_, i) => ({
+      at: new Date(at(21, 17, i)).toISOString(), skillId: 'a', solutionShown: i === 0,
+      levelChange: i === 30 ? 'niveau 2 → 3: laatste 8 antwoorden 100% goed, vlot' : null
+    }))
+  };
+  const fixed = repairProfile(copyData(base), [record], now);
+  if (!fixed || fixed.stars !== 138 || !fixed.practiceDays.includes('2026-10-21') || fixed.skills.a.totalAttempts !== 31) {
+    fail(`een verloren sessie wordt niet goed hersteld (${fixed ? `${fixed.stars} sterren` : 'niets'})`);
+  }
+  if (fixed && repairProfile(fixed, [record], now)) fail('een verloren sessie wordt twee keer hersteld');
+  const later = Object.assign(copyData(record), { exercises: record.exercises.map((e) => Object.assign({}, e, { at: e.at.replace('2026-10-21', '2026-10-27') })) });
+  if (repairProfile(copyData(base), [later], now + 3 * 86400000)) fail('een sessie van na deze versie telt als verloren');
+  const midnight = Object.assign(copyData(record), { exercises: [Object.assign({}, record.exercises[0], { at: new Date(2026, 9, 20, 23, 58).toISOString() })] });
+  if (repairProfile(Object.assign(copyData(base), { practiceDays: ['2026-10-16', '2026-10-21'] }), [midnight], now)) fail('een sessie over middernacht telt als verloren');
+
+  // Repair 2: a minus level converted twice (3 before the conversion, 5 now; 4 is right).
+  const twice = { skills: { aftrekken_tot_100000: skill(5, 4, at(16), { lastTierChange: { at: new Date(2026, 8, 24).getTime(), from: 4, to: 3, reason: 'test' } }) } };
+  const lowered = repairProfile(twice, [], now);
+  if (!lowered || lowered.skills.aftrekken_tot_100000.tier !== 4) fail('een twee keer omgezet niveau wordt niet hersteld');
+  if (lowered && repairProfile(lowered, [], now)) fail('een niveau wordt twee keer hersteld');
+  const once = copyData(twice);
+  once.skills.aftrekken_tot_100000.tier = 4;
+  if (repairProfile(once, [], now)) fail('een goed niveau wordt verlaagd');
+  return problems;
+}
+
 function deviceReport() {
   const report = [];
   const speech = 'speechSynthesis' in window;
@@ -215,7 +325,7 @@ function deviceReport() {
 
 // Returns { skills, levels, sums, problems: ['Tafel van 6 niveau 2: ...'], device: [...] }.
 function runSelfTest() {
-  const problems = timeWordsProblems().concat(parkProblems(), tempoProblems());
+  const problems = timeWordsProblems().concat(parkProblems(), tempoProblems(), syncProblems());
   let levels = 0;
   let sums = 0;
   const skills = CURRICULUM.skills.filter((s) => s.implemented);

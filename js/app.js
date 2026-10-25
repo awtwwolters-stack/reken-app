@@ -183,8 +183,9 @@ function startCloudSync() {
   });
 }
 
-// The child practising on this iPad right now keeps this iPad's version; everything else follows
-// the other iPads.
+// What other iPads did comes in here, combined with this iPad's own changes (applyRemoteChange). The
+// child practising right now is updated in place, so their running session goes on undisturbed;
+// only that session's own record stays this iPad's.
 function onCloudChanges(changes) {
   const practising = session && !session.record.completed
     ? { profileId: activeProfileId, sessionId: String(session.record.id) }
@@ -225,6 +226,10 @@ function renderFetchChildren() {
   const cloud = window.Cloud;
   const offer = !!cloud && listProfiles(appState).length === 0 && ['signedOut', 'linking', 'failed'].includes(cloud.state);
   el('fetch-children').classList.toggle('hidden', !offer);
+  // Children here, but not sharing: what they practise stays on this iPad until a parent signs in
+  // again (then it is combined with the other iPads, D20).
+  const notSharing = !!cloud && !offer && listProfiles(appState).length > 0 && ['signedOut', 'failed'].includes(cloud.state);
+  el('sync-warning').classList.toggle('hidden', !notSharing);
   if (!offer) return;
   el('fetch-children-button').classList.toggle('hidden', cloud.state === 'linking');
   el('fetch-children-status').textContent = cloud.state === 'signedOut' && !cloud.problem
@@ -1204,6 +1209,9 @@ function concludeExercise(solved) {
   session.previousSkillId = skillId;
 
   const skillState = currentSkillState(skill);
+  // Compared with the level just before this answer: a level changed on another iPad meanwhile
+  // (merged in, D20) is not a level up earned here.
+  const tierBefore = skillState.tier;
   // Right but slow (pauses excluded): counts as right, but not towards a level up. Not for word
   // problems: reading the story takes time too.
   const slow = recordedCorrect && spentMs > SLOW_ANSWER_MS && currentExercise.prompt.length <= LONG_PROMPT_CHARS;
@@ -1212,7 +1220,7 @@ function concludeExercise(solved) {
     solutionShown: !solved
   });
   session.justStruggled = !solved;
-  if (skillState.tier > currentExercise.tier) session.levelUps.push(skill.category);
+  if (skillState.tier > tierBefore) session.levelUps.push(skill.category);
   // A star for every sum finished correctly, also after a hint: getting there counts.
   if (solved) {
     activeProfile().stars = (activeProfile().stars || 0) + 1;
