@@ -209,9 +209,26 @@ Hints.delen_zonder_rest = function (level, ctx) {
     if (level === 2) return `${dividend / unit} : ${divisor} = ${quotient / unit}. Zet er nu ${'0'.repeat(zeros)} achter.`;
     return `${formatNumberNL(dividend)} : ${divisor} = ${formatNumberNL(quotient)}`;
   }
+  if (ctx.splitsen) {
+    // 72 : 3 by splitsen, as in the rekenboek: 60 : 3 = 20 and 12 : 3 = 4 (deelSplitsing).
+    const { tensPart, rest, tensAnswer, restAnswer } = deelSplitsing(dividend, divisor);
+    if (level === 1) return `Splits ${dividend} in ${tensPart} en ${rest}.`;
+    if (level === 2) return `${tensPart} : ${divisor} = ${tensAnswer} en ${rest} : ${divisor} = ${restAnswer}.`;
+    return `${dividend} : ${divisor} = ${tensAnswer} + ${restAnswer} = ${quotient}`;
+  }
   if (level === 1) return `Welke tafel van ${divisor} kun je gebruiken?`;
   if (level === 2) return `Zoek het getal waarmee je ${divisor} moet vermenigvuldigen om bij ${formatNumberNL(dividend)} uit te komen.`;
   return `${formatNumberNL(dividend)} : ${divisor} = ${quotient}`;
+};
+
+// Rekenen met nullen (js/exercises/nullen.js): the small sum first, then the zeros back.
+Hints.nullen = function (level, ctx) {
+  const { bigText, answer, smallText, smallAnswer } = ctx;
+  const zeros = trailingZeros(answer) - trailingZeros(smallAnswer);
+  const small = `${smallText} = ${formatNumberNL(smallAnswer)}`;
+  if (level === 1) return `Reken eerst de kleine som: ${smallText}.`;
+  if (level === 2) return `${small}. Zet er nu ${zeros === 1 ? 'een 0' : `${zeros} nullen`} achter.`;
+  return `${small}, dus ${bigText} = ${formatNumberNL(answer)}.`;
 };
 
 Hints.delen_met_rest = function (level, ctx) {

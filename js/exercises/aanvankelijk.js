@@ -154,12 +154,12 @@ Exercises.min_tot_20 = function (tierConfig, skill) {
     speech: `Hoeveel is ${a} min ${b}?${cross ? ` Tik ${stippen(b)} weg.` : ''}`,
     ...withDots(tierConfig, dotsVisual({ count: a - b, kind: 'a' }, { count: b, kind: 'gone' }), dotsVisual({ count: a, kind: 'a' }), b),
     ...singleAnswer(a - b),
-    startNumberTip: {
-      value: a,
+    mistakeTips: [{
+      match: (values) => values.antwoord === a,
       text: dotsShown
         ? `Je telde alle stippen. Er gaan er ${b} weg.`
         : `${a} is het getal waar je mee begint. Er gaan er ${b} af.`
-    },
+    }],
     hintContext: { a, b }
   };
 };

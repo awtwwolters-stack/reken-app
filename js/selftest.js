@@ -54,7 +54,43 @@ function exerciseProblem(exercise) {
       : answers.every((value) => namesNumber(hint, value));
     if (level === 3 && !named) return `de uitleg noemt het goede antwoord niet ("${hint}")`;
   }
-  return timeProblem(exercise) || pictureProblem(exercise.visual) || pictureProblem(exercise.hintVisual);
+  return timeProblem(exercise) || tipProblem(exercise) || helpSumProblem(exercise)
+    || pictureProblem(exercise.visual) || pictureProblem(exercise.hintVisual);
+}
+
+// "4.500 : 9 = ?" -> 500: a sum read back from its text and recalculated, or NaN.
+function computeSum(text) {
+  const parts = text.match(/^([\d.]+) ([×:]) ([\d.]+) = \?$/);
+  if (!parts) return NaN;
+  const [a, b] = [parseDutchInteger(parts[1]), parseDutchInteger(parts[3])];
+  return parts[2] === '×' ? a * b : a / b;
+}
+
+// Mistake tips (D22, D23): never for a right answer (also the other dagdeel of a clock time
+// without one), and readable.
+function tipProblem(exercise) {
+  const tips = exercise.mistakeTips || [];
+  const right = [exercise.correctAnswer];
+  if (exercise.answerLayout === 'time') {
+    const other = { uur: (exercise.correctAnswer.uur + 12) % 24, minuten: exercise.correctAnswer.minuten };
+    if (exercise.checkAnswer(other)) right.push(other);
+  }
+  for (const tip of tips) {
+    if (typeof tip.match !== 'function' || typeof tip.text !== 'string' || /\b(undefined|NaN|null)\b/.test(tip.text)) return `een tip is niet goed gemaakt ("${tip.text}")`;
+    if (right.some((values) => tip.match(values))) return `een tip past op het goede antwoord ("${tip.text}")`;
+  }
+  return null;
+}
+
+// The hulpsom (D23): a smaller sum that is right itself, with a readable line after it.
+function helpSumProblem(exercise) {
+  const help = exercise.helpSum;
+  if (!help) return null;
+  if (!isWholeNumber(help.answer) || computeSum(help.prompt) !== help.answer) return `de hulpsom klopt niet ("${help.prompt}" met ${help.answer})`;
+  if (!(help.answer < exercise.correctAnswer.antwoord)) return 'de hulpsom is niet kleiner dan de som';
+  if (/\b(undefined|NaN|null)\b/.test(`${help.intro || ''} ${help.after}`)) return `de hulpsom-tekst bevat een fout ("${help.after}")`;
+  if (!namesNumber(help.after, help.answer)) return 'na de hulpsom staat het antwoord van de hulpsom er niet bij';
+  return null;
 }
 
 // Clock sums: the picture shows the asked time, and the right hours are accepted and no others
@@ -337,7 +373,8 @@ function minusProblems() {
       const ex = Exercises.min_tot_20(tier, skill);
       const [a, b] = ex.prompt.match(/\d+/g).map(Number);
       const fail = (text) => problems.push(`Minsommen niveau ${tier.tier}: ${text} bij "${ex.prompt}"`);
-      if (!ex.startNumberTip || ex.startNumberTip.value !== a || !ex.startNumberTip.text.includes(`${b} `)) { fail('de tip voor het begingetal klopt niet'); break; }
+      const tip = (ex.mistakeTips || [])[0];
+      if (!tip || !tip.match({ antwoord: a }) || tip.match({ antwoord: a - b }) || !tip.text.includes(`${b} `)) { fail('de tip voor het begingetal klopt niet'); break; }
       if (tier.dots === 'cross') {
         const shown = ex.visual && ex.visual.parts;
         if (!shown || shown.length !== 1 || shown[0].count !== a || shown[0].kind !== 'a' || ex.visual.crossable !== b) { fail('niet de beginstippen om weg te tikken'); break; }
@@ -368,6 +405,102 @@ function extraTafelProblems() {
   return problems;
 }
 
+// Rekenen met nullen (D23), also keersommen level 1 and delen level 4: the sum is right, the
+// hulpsom is the tafelsom with the answer 10, 100 or 1000 times smaller, the forgotten-zero answer
+// gets its tip, and hint 2 names the right number of zeros.
+function nullenProblems() {
+  const problems = [];
+  const cases = [['rekenen_met_nullen', null], ['vermenigvuldigen_grote_getallen', 1], ['delen_zonder_rest', 4]];
+  cases.forEach(([id, onlyTier]) => {
+    const skill = CURRICULUM.skills.find((s) => s.id === id);
+    if (!skill) { problems.push(`${id}: staat niet in het curriculum`); return; }
+    skill.tiers.filter((t) => onlyTier === null || t.tier === onlyTier).forEach((tier) => {
+      for (let i = 0; i < 100; i++) {
+        const ex = Exercises[skill.exerciseType](tier, skill);
+        const fail = (text) => problems.push(`${skill.name} niveau ${tier.tier}: ${text} bij "${ex.prompt}"`);
+        const answer = ex.correctAnswer.antwoord;
+        if (computeSum(ex.prompt) !== answer) { fail('de som klopt niet'); break; }
+        if (!ex.helpSum) { fail('geen hulpsom'); break; }
+        const factor = answer / ex.helpSum.answer;
+        if (![10, 100, 1000].includes(factor)) { fail(`het antwoord is ${factor} keer de hulpsom`); break; }
+        const tip = (ex.mistakeTips || []).find((t) => t.match({ antwoord: ex.helpSum.answer }));
+        if (!tip || !tip.text.includes('klopt')) { fail('geen tip als de nul vergeten is'); break; }
+        if (ex.exerciseType === 'nullen') {
+          const zeros = getHint('nullen', 2, ex.hintContext).match(/een 0|(\d+) nullen/);
+          const n = zeros && (zeros[1] ? Number(zeros[1]) : 1);
+          if (ex.helpSum.answer * 10 ** n !== answer) { fail('hint 2 noemt het verkeerde aantal nullen'); break; }
+        }
+      }
+    });
+  });
+  return problems;
+}
+
+// Delen door splitsen (D23): 72 : 3 splits in 60 (a multiple of 10 × 3) and 12, the parts add up,
+// the hulpsom is the first part, and the level also keeps deeltafels.
+function splitsenProblems() {
+  const problems = [];
+  const skill = CURRICULUM.skills.find((s) => s.id === 'delen_zonder_rest');
+  const tier = skill && skill.tiers.find((t) => t.splitsen);
+  if (!tier) return ['Delen: er is geen niveau met splitsen'];
+  let split = 0;
+  for (let i = 0; i < 300; i++) {
+    const ex = Exercises.delen_zonder_rest(tier, skill);
+    const fail = (text) => problems.push(`Delen door splitsen: ${text} bij "${ex.prompt}"`);
+    if (!ex.hintContext.splitsen) continue;
+    split += 1;
+    const { dividend, divisor, quotient } = ex.hintContext;
+    const s = deelSplitsing(dividend, divisor);
+    if (s.tensPart % (10 * divisor) !== 0 || s.tensPart + s.rest !== dividend || s.rest <= 0 || s.rest >= 10 * divisor) { fail('de splitsing klopt niet'); break; }
+    if (s.tensAnswer + s.restAnswer !== quotient || s.restAnswer * divisor !== s.rest) { fail('de delen tellen niet op'); break; }
+    if (ex.helpSum.answer !== s.tensAnswer || !ex.helpSum.intro.includes(`${s.tensPart} en ${s.rest}`)) { fail('de hulpsom is niet het eerste deel'); break; }
+    if (quotient <= 10 || quotient % 10 === 0 || dividend > 200) { fail('geen splitssom'); break; }
+  }
+  if (split === 0 || split === 300) problems.push(`Delen door splitsen: ${split} van de 300 sommen waren splitssommen`);
+  return problems;
+}
+
+// Kloktips (D23): each tip comes with the mistake it is meant for. Wrong tips for right answers are
+// checked for every clock sum in tipProblem.
+function klokTipProblems() {
+  const problems = [];
+  const tipFor = (tijd, inWords, values) => klokTips(tijd, inWords).find((t) => t.match(values));
+  const time = (uur12, minuten, uur24 = null, dagdeel = null) => ({ uur12, uur24, minuten, dagdeel });
+  const expect = (label, tijd, inWords, values, word) => {
+    const tip = tipFor(tijd, inWords, values);
+    if (!tip || !tip.text.includes(word)) problems.push(`Kloktip: ${label} geeft niet de tip ("${tip ? tip.text : 'geen tip'}")`);
+  };
+  expect('kwart voor 4 als 4:45', time(3, 45), true, { uur: 4, minuten: 45 }, 'nog geen 4 uur');
+  expect('half 4 als 4:30', time(3, 30), true, { uur: 4, minuten: 30 }, 'Het uur is dus 3');
+  expect('kwart voor 4 als 3:15', time(3, 45), true, { uur: 3, minuten: 15 }, '45');
+  expect('kwart over 4 als 4:45', time(4, 15), true, { uur: 4, minuten: 45 }, 'ná het hele uur');
+  expect('kwart over 4 als 14:15', time(4, 15), true, { uur: 14, minuten: 15 }, '4 + 12 = 16');
+  expect('wijzerklok 4:45 als 5:45', time(4, 45), false, { uur: 5, minuten: 45 }, 'bijna bij de 5');
+  expect('wijzerklok 2:45 als 2:15', time(2, 45), false, { uur: 2, minuten: 15 }, 'op de 9');
+  expect("'s middags 16:15 als 4:15", time(4, 15, 16, "'s middags"), false, { uur: 4, minuten: 15 }, '4 + 12 = 16');
+  if (tipFor(time(9, 15, 9, "'s ochtends"), false, { uur: 19, minuten: 15 })) problems.push("Kloktip: 's ochtends krijgt de tip voor de 24-uursklok");
+  return problems;
+}
+
+// The level rules of D23: "zwak" below 75% (5 of 8 is, 6 of 8 isn't), a worked example only below
+// 60%, and at most one level down per skill per session.
+function masteryRuleProblems() {
+  const problems = [];
+  const skill = CURRICULUM.skills.find((s) => s.id === 'vermenigvuldigen_grote_getallen');
+  const state = (results, tier = 2) => ({ tier, recentResults: results, totalAttempts: 30, lastPracticed: Date.now(), calibrationDone: true, lastTierChange: null, introSeen: true });
+  const ofEight = (right) => Array(8).fill(true).fill(false, right);
+  if (classifySkill(skill, state(ofEight(5)), {}).bucket !== 'zwak') problems.push('Keuzeregel: 5 van 8 goed is niet "zwak"');
+  if (classifySkill(skill, state(ofEight(6)), {}).bucket === 'zwak') problems.push('Keuzeregel: 6 van 8 goed is "zwak"');
+  if (needsExample(state([true, true, true, true, true, false, false]))) problems.push('Keuzeregel: een voorbeeld bij 71% goed');
+  const once = state(ofEight(8), 3);
+  recordAnswer(skill, once, false, 4, false, { solutionShown: true });
+  if (once.tier !== 2) problems.push('Keuzeregel: de uitleg verlaagt het niveau niet');
+  const twice = state(ofEight(8), 3);
+  recordAnswer(skill, twice, false, 4, false, { solutionShown: true, noDrop: true });
+  if (twice.tier !== 3) problems.push('Keuzeregel: een tweede daling in één sessie gaat toch door');
+  return problems;
+}
+
 function deviceReport() {
   const report = [];
   const speech = 'speechSynthesis' in window;
@@ -383,7 +516,8 @@ function deviceReport() {
 
 // Returns { skills, levels, sums, problems: ['Tafel van 6 niveau 2: ...'], device: [...] }.
 function runSelfTest() {
-  const problems = timeWordsProblems().concat(parkProblems(), tempoProblems(), syncProblems(), extraTafelProblems(), minusProblems());
+  const problems = timeWordsProblems().concat(parkProblems(), tempoProblems(), syncProblems(), extraTafelProblems(), minusProblems(),
+    nullenProblems(), splitsenProblems(), klokTipProblems(), masteryRuleProblems());
   let levels = 0;
   let sums = 0;
   const skills = CURRICULUM.skills.filter((s) => s.implemented);

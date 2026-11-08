@@ -22,6 +22,9 @@ const EXAMPLE_NEW = 'Kijk eerst even mee, zo gaat deze som:';
 const EXAMPLE_AGAIN = 'Even samen kijken, zo gaat deze som:';
 const EXAMPLE_BUTTON = 'Nu ik!';
 const MASH_MESSAGE = 'Dat zijn wel heel veel cijfers! Probeer het nog eens.';
+const REPEATED_MESSAGE = 'Dat antwoord had je net ook. Kijk nog eens:';
+const HELP_SUM_LABEL = 'Hulpsom:';
+const HELP_SUM_INTRO = 'Eerst de kleine som.';
 // Prompts longer than this are sentences (verhaalsommen) and get a smaller font.
 const LONG_PROMPT_CHARS = 30;
 // Text shrinks in these steps, down to this share of its normal size, until the card fits.
@@ -665,6 +668,7 @@ function startSession() {
     starsAtStart: activeProfile().stars || 0,
     starsEarned: 0,
     levelUps: [], // category names, for "Niveau omhoog: Tafels!"
+    droppedSkills: [], // skills that went down a level this session: at most once (D23)
     solvedWithHelp: 0,
     asked: new Set(), // exercises asked this session, to avoid repeats
     autoNextTimer: null,
@@ -1099,7 +1103,9 @@ function toSpeech(text) {
 
 function speakExercise() {
   if (!currentExercise || !('speechSynthesis' in window)) return;
-  const parts = [currentExercise.speech || toSpeech(currentExercise.prompt)];
+  const parts = [currentExercise.helpSumActive
+    ? toSpeech(`${HELP_SUM_LABEL} ${currentExercise.helpSum.prompt}`)
+    : currentExercise.speech || toSpeech(currentExercise.prompt)];
   const feedback = el('feedback');
   if (feedback.textContent && !feedback.classList.contains('feedback-correct')) parts.push(toSpeech(feedback.textContent));
   speakText(parts.join(' '));
@@ -1196,23 +1202,76 @@ function onSubmit() {
     return;
   }
 
-  currentExercise.answersGiven.push(formatAnswer(values));
+  if (currentExercise.helpSumActive) {
+    answerHelpSum(values);
+    return;
+  }
+
+  const answer = formatAnswer(values);
+  const correct = isCorrect(values);
+  // The same wrong answer straight again: the tip wasn't read. Once per sum it doesn't count as a
+  // try; the tip stays, lit up (D23). A second time it counts, so no child can get stuck here.
+  const previous = currentExercise.answersGiven[currentExercise.answersGiven.length - 1];
+  if (!correct && answer === previous && !currentExercise.repeated) {
+    currentExercise.repeated = true;
+    el('feedback').textContent = `${REPEATED_MESSAGE} ${currentExercise.lastHelpText || ''}`.trim();
+    el('feedback').className = 'feedback feedback-hint feedback-again';
+    clearAnswerFields();
+    fitSessionToScreen();
+    return;
+  }
+
+  currentExercise.answersGiven.push(answer);
   // Wegstrepen (D22): how many dots were crossed out at the first answer, for the session log.
   if (currentExercise.answersGiven.length === 1 && currentExercise.crossed !== undefined) currentExercise.crossedAtAnswer = currentExercise.crossed;
-  if (isCorrect(values)) {
+  if (correct) {
     concludeExercise(true);
   } else {
     session.hadMistake = true;
     session.hintLevel += 1;
     if (session.hintLevel >= MAX_HINT_LEVEL) {
       concludeExercise(false);
+    } else if (session.hintLevel === 1) {
+      // After the first wrong answer: a tip about exactly this mistake when the sum knows it (the
+      // starting number in 9 - 2, D22; a forgotten zero or a clock slip, D23), otherwise the
+      // hulpsom when the sum has one, otherwise the first hint. Later the usual hints follow,
+      // which help more than the same tip again.
+      const tip = (currentExercise.mistakeTips || []).find((t) => t.match(values));
+      if (tip) showHint(tip.text);
+      else if (currentExercise.helpSum) startHelpSum();
+      else showHint();
     } else {
-      // The starting number typed as the first answer (9 for 9 - 2): a tip about exactly that (D22).
-      // A second time the usual next hint follows (count back), which helps more than the tip again.
-      const tip = currentExercise.startNumberTip;
-      showHint(tip && session.hintLevel === 1 && values.antwoord === tip.value ? tip.text : null);
+      showHint();
     }
   }
+}
+
+// The hulpsom (D23): the small sum takes the big sum's place for a moment (5 × 9 instead of
+// 5 × 90), in the same answer box, so the keyboard stays up. It doesn't count as a try.
+function startHelpSum() {
+  const help = currentExercise.helpSum;
+  currentExercise.helpSumActive = true;
+  renderPrompt({ prompt: `${HELP_SUM_LABEL} ${help.prompt}` });
+  el('feedback').textContent = help.intro || HELP_SUM_INTRO;
+  el('feedback').className = 'feedback feedback-hint';
+  currentExercise.lastHelpText = el('feedback').textContent;
+  clearAnswerFields();
+  fitSessionToScreen();
+}
+
+// Right or wrong, the big sum comes back with what the small one gives: "5 × 9 = 45. Het antwoord
+// van 5 × 90 is tien keer zo veel." (that line also shows the small sum's answer when it was wrong).
+function answerHelpSum(values) {
+  const help = currentExercise.helpSum;
+  const right = values.antwoord === help.answer;
+  currentExercise.helpSumActive = false;
+  currentExercise.helpSumAnswer = formatAnswer(values);
+  renderPrompt(currentExercise);
+  el('feedback').textContent = right ? `${pickRandom(PRAISE_FIRST_TRY)} ${help.after}` : help.after;
+  el('feedback').className = 'feedback feedback-hint';
+  currentExercise.lastHelpText = help.after;
+  clearAnswerFields();
+  fitSessionToScreen();
 }
 
 // Far too many digits (a young child drumming on the keyboard) is not a wrong answer.
@@ -1227,6 +1286,7 @@ function showHint(text = null) {
   const hintText = text || getHint(currentExercise.exerciseType, session.hintLevel, currentExercise.hintContext);
   el('feedback').textContent = hintText;
   el('feedback').className = 'feedback feedback-hint';
+  currentExercise.lastHelpText = hintText;
   // For a child who can't read yet, the picture is the real hint.
   if (currentExercise.hintVisual) renderVisual(currentExercise.hintVisual);
   clearAnswerFields();
@@ -1257,10 +1317,12 @@ function concludeExercise(solved) {
   const slow = recordedCorrect && spentMs > SLOW_ANSWER_MS && currentExercise.prompt.length <= LONG_PROMPT_CHARS;
   const levelChange = recordAnswer(skill, skillState, recordedCorrect, groepCeilingTier(skill, session.groep), slow, {
     calibrationTop: groepStartTier(skill, session.groep),
-    solutionShown: !solved
+    solutionShown: !solved,
+    noDrop: session.droppedSkills.includes(skillId)
   });
   session.justStruggled = !solved;
   if (skillState.tier > tierBefore) session.levelUps.push(skill.category);
+  if (skillState.tier < tierBefore) session.droppedSkills.push(skillId);
   // A star for every sum finished correctly, also after a hint: getting there counts.
   if (solved) {
     activeProfile().stars = (activeProfile().stars || 0) + 1;
@@ -1281,7 +1343,10 @@ function concludeExercise(solved) {
     seconds: Math.round(spentMs / 1000),
     reason: currentExercise.pickReason,
     levelChange: [currentExercise.ceilingChange, levelChange].filter(Boolean).join('; ') || null,
-    ...(currentExercise.crossedAtAnswer !== undefined ? { crossed: currentExercise.crossedAtAnswer } : {})
+    ...(currentExercise.crossedAtAnswer !== undefined ? { crossed: currentExercise.crossedAtAnswer } : {}),
+    // D23: what the child answered to the hulpsom, and whether a wrong answer was typed twice.
+    ...(currentExercise.helpSumAnswer !== undefined ? { helpSum: currentExercise.helpSumAnswer } : {}),
+    ...(currentExercise.repeated ? { repeated: true } : {})
   });
   session.record.activeSeconds = Math.round(session.activeMs / 1000);
   saveState(appState);

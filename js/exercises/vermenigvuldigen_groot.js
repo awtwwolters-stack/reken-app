@@ -12,12 +12,15 @@ Exercises.vermenigvuldigen_groot = function (tierConfig, skill) {
     // Round tens belong to level 1; higher levels are always a real split (tens + units).
     do { b = randomInt(low, high); } while (b % 10 === 0);
   }
+  const bigText = `${a} × ${formatNumberNL(b)}`;
   return {
     skillId: skill.id,
     exerciseType: 'vermenigvuldigen_groot',
-    prompt: `${a} × ${formatNumberNL(b)} = ?`,
+    prompt: `${bigText} = ?`,
     answerFields: [{ key: 'antwoord', label: null }],
     correctAnswer: { antwoord: a * b },
+    // 5 × 90: the hulpsom 5 × 9 and a tip for a forgotten zero (js/exercises/nullen.js).
+    ...(tierConfig.roundTens ? nullenHelp(`${a} × ${b / 10}`, a * b / 10, bigText, a * b) : {}),
     hintContext: { a, b }
   };
 };

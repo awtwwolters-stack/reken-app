@@ -15,6 +15,10 @@ const STEADY_DOWN_MIN_ANSWERS = 6;
 const STEADY_DOWN_RATE = 0.5;
 const WEAK_MIN_ANSWERS = 5;
 const WEAK_RATE = 0.6;
+// Below the 75-85% the app aims for: such a skill gets extra practice ("zwak", D23). The lower
+// WEAK_RATE stays for what needs clear evidence: a worked example every session (D17) and a
+// prerequisite that holds a new skill back.
+const ZWAK_RATE = 0.75;
 const DAYS_UNTIL_DUE_FOR_REVIEW = 2;
 const MIN_SETTLED_SKILLS_FOR_PERSONAL_START = 3;
 // A new skill starts this many levels below the groep estimate: the first sums should feel doable
@@ -82,6 +86,8 @@ function isFastCorrect(result) {
 //   groepen up in ten minutes, met sums she couldn't do, and started quitting. Above the own
 //   groep only the steady rule (8 answers, 90% right and fast) moves up.
 // - solutionShown: the worked solution was needed, so the level goes down one at once.
+// - noDrop: this skill already went down a level this session; it doesn't go down again (D23). Real
+//   use: three worked solutions in one session took a clock skill from level 4 to 1.
 function recordAnswer(skill, skillState, wasCorrect, ceiling = maxTier(skill), slow = false, limits = {}) {
   const calibrating = isCalibrating(skillState);
   skillState.recentResults.push(wasCorrect && slow ? SLOW_CORRECT : wasCorrect);
@@ -118,6 +124,12 @@ function recordAnswer(skill, skillState, wasCorrect, ceiling = maxTier(skill), s
   } else if (results.length >= STEADY_DOWN_MIN_ANSWERS && rate < STEADY_DOWN_RATE) {
     direction = -1;
     why = `laatste ${results.length} antwoorden maar ${Math.round(rate * 100)}% goed`;
+  }
+
+  if (direction === -1 && limits.noDrop) {
+    // The level has been found already: calibration ends here too, as it would with the drop.
+    skillState.calibrationDone = true;
+    return null;
   }
 
   const from = skillState.tier;
@@ -166,7 +178,9 @@ function classifySkill(skill, skillState, allSkillStates) {
   if (skillState.recentResults.length < WEAK_MIN_ANSWERS) {
     return { bucket: 'kalibreren', reason: `niveau ${skillState.tier}, nog te weinig antwoorden om te beoordelen` };
   }
-  if (isClearlyStruggling(skillState)) {
+  // Extra practice beyond the method (the tafels of 11 and 12) only counts as "zwak" on clear
+  // evidence: it must not take the priority slots from the method's own skills.
+  if (rate < (skill.onlyWhenPrerequisitesGoWell ? WEAK_RATE : ZWAK_RATE)) {
     return { bucket: 'zwak', reason: `laag slagingspercentage (${Math.round(rate * 100)}%)` };
   }
   if (rate >= STEADY_UP_RATE && overdue) {

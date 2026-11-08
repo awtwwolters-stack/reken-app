@@ -65,6 +65,61 @@ function timeAnswer(tijd) {
   };
 }
 
+// Tips for the clock mistakes real use showed (BACKLOG D23): "kwart voor 4" typed as 4:45, a
+// wijzerklok at 4:45 read as 5:45, 15 and 45 swapped, and the 24-hour clock with 10 added instead
+// of 12 (4 -> 14). Like every mistake tip, only after a first wrong answer. `inWords`: the
+// question is a time in words (klok_woorden), not a wijzerklok.
+function klokTips(tijd, inWords) {
+  const { uur12, uur24, minuten, dagdeel } = tijd;
+  const next = uurOpKlok(uur12 + 1);
+  const sameHour = (uur, h) => uur % 12 === h % 12; // 3 or 15 for three o'clock
+  const tips = [];
+  // The 24-hour clock with 10 added: 4 -> 14. Not 's ochtends, where the hour stays, and not for
+  // 1 and 2, where 11 and 12 are more likely another slip.
+  if (uur12 >= 3 && uur12 <= 9 && (!dagdeel || uur24 !== uur12)) {
+    tips.push({
+      match: (v) => v.minuten === minuten && v.uur === uur12 + 10,
+      text: `Bij de 24-uursklok tel je 12 bij het uur: ${uur12} + 12 = ${uur12 + 12}.`
+    });
+  }
+  // The 12-hour time where the dagdeel asks for the 24-hour one.
+  if (dagdeel && uur24 !== uur12) {
+    tips.push({
+      match: (v) => v.minuten === minuten && v.uur === uur12,
+      text: `Het is ${dagdeel}: tel 12 bij het uur, ${uur12} + 12 = ${uur24}.`
+    });
+  }
+  // The next hour where the hour before is meant: "kwart voor 4", "half 4", or the small hand
+  // almost at the next number.
+  if (inWords ? minuten > 15 : minuten >= 30) {
+    const words = tijdInWoorden(uur12, minuten);
+    const text = !inWords
+      ? `De kleine wijzer is bijna bij de ${next}, maar nog niet: het uur is ${uur12}.`
+      : minuten >= 45
+        ? `"${words}" betekent: het is nog geen ${next} uur. Het uur is ${uur12}.`
+        : `Half ${next} is een half uur vóór ${next} uur. Het uur is dus ${uur12}.`;
+    tips.push({ match: (v) => v.minuten === minuten && sameHour(v.uur, next), text });
+  }
+  // Kwart over and kwart voor swapped.
+  if (minuten === 45) {
+    tips.push({
+      match: (v) => v.minuten === 15,
+      text: inWords
+        ? 'Kwart vóór is 15 minuten vóór het hele uur. De minuten zijn dan 60 - 15 = 45.'
+        : 'De grote wijzer staat op de 9: dat is 45 minuten (kwart vóór).'
+    });
+  }
+  if (minuten === 15) {
+    tips.push({
+      match: (v) => v.minuten === 45,
+      text: inWords
+        ? 'Kwart over is 15 minuten ná het hele uur. De minuten zijn 15.'
+        : 'De grote wijzer staat op de 3: dat is 15 minuten (kwart over).'
+    });
+  }
+  return tips;
+}
+
 // Groep 3: a whole hour, and only the hour to type.
 Exercises.klok_uur = function (tierConfig, skill) {
   const uur = randomInt(1, 12);
@@ -91,6 +146,7 @@ Exercises.klok = function (tierConfig, skill) {
     prompt: tijd.dagdeel ? `Het is ${tijd.dagdeel}. Hoe laat is het?` : 'Hoe laat is het?',
     visual: { type: 'clock', hour: tijd.uur12, minute: tijd.minuten },
     ...timeAnswer(tijd),
+    mistakeTips: klokTips(tijd, false),
     logPrompt: `Klok op ${tijdTekst(tijd.uur12, tijd.minuten)}${tijd.dagdeel ? ` ${tijd.dagdeel}` : ''}: hoe laat is het?`,
     hintContext: tijd
   };
@@ -106,6 +162,7 @@ Exercises.klok_woorden = function (tierConfig, skill) {
     prompt: woorden,
     hintVisual: { type: 'clock', hour: tijd.uur12, minute: tijd.minuten },
     ...timeAnswer(tijd),
+    mistakeTips: klokTips(tijd, true),
     hintContext: tijd
   };
 };

@@ -218,7 +218,7 @@ const CURRICULUM = {
       "name": "Delen zonder rest",
       "category": "Delen",
       "domain": "bewerkingen",
-      "description": "Deelsommen die precies uitkomen.",
+      "description": "Deelsommen die precies uitkomen; vanaf niveau 3 ook door splitsen (72 : 3 = 60 : 3 + 12 : 3).",
       "exerciseType": "delen_zonder_rest",
       "implemented": true,
       "groepen": [4, 8],
@@ -226,7 +226,7 @@ const CURRICULUM = {
       "tiers": [
         { "tier": 1, "groep": 4, "divisorMax": 5, "quotientMax": 10 },
         { "tier": 2, "groep": 5, "divisorMax": 10, "quotientMax": 10 },
-        { "tier": 3, "groep": 6, "divisorMax": 10, "quotientMax": 20 },
+        { "tier": 3, "groep": 6, "divisorMax": 10, "quotientMax": 10, "splitsen": true },
         { "tier": 4, "groep": 6, "divisorMax": 10, "quotientMax": 10, "zeros": true }
       ]
     },
@@ -245,6 +245,24 @@ const CURRICULUM = {
         { "tier": 2, "groep": 6, "divisorMax": 8, "quotientMax": 10 },
         { "tier": 3, "groep": 7, "divisorMax": 10, "quotientMax": 12 },
         { "tier": 4, "groep": 7, "divisorMax": 10, "quotientMax": 20 }
+      ]
+    },
+    {
+      "id": "rekenen_met_nullen",
+      "name": "Rekenen met nullen",
+      "category": "Rekenen met nullen",
+      "domain": "bewerkingen",
+      "description": "Naar analogie: 5 × 90 uit 5 × 9, 3 × 700, 4.500 : 9, 30 × 40 en 1.500 : 30 (BACKLOG D23).",
+      "exerciseType": "nullen",
+      "implemented": true,
+      "groepen": [6, 8],
+      "prerequisites": ["vermenigvuldigen_tafel_6", "vermenigvuldigen_tafel_7", "vermenigvuldigen_tafel_8", "vermenigvuldigen_tafel_9"],
+      "tiers": [
+        { "tier": 1, "groep": 5, "kinds": ["keerTientallen"] },
+        { "tier": 2, "groep": 6, "kinds": ["keerTientallen", "keerHonderdtallen"] },
+        { "tier": 3, "groep": 6, "kinds": ["keerHonderdtallen", "deelNullen"] },
+        { "tier": 4, "groep": 7, "kinds": ["tientallenKeerTientallen", "deelNullen"] },
+        { "tier": 5, "groep": 7, "kinds": ["tientallenKeerTientallen", "deelTientallen"] }
       ]
     },
     {
