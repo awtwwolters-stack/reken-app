@@ -28,7 +28,9 @@ function skillName(skillsById, id) {
 function helpText(ex) {
   if (ex.firstTryCorrect) return ex.slow ? 'meteen goed, maar traag (telt niet om omhoog te gaan)' : 'meteen goed';
   const hints = ex.hintsShown === 1 ? '1 hint' : `${ex.hintsShown} hints`;
-  return ex.solutionShown ? `${hints} + uitleg getoond` : `${hints}, toen goed`;
+  // D23: the hulpsom's answer, and a wrong answer typed twice (the tip wasn't read).
+  const extra = [ex.helpSum !== undefined ? `hulpsom: ${ex.helpSum}` : '', ex.repeated ? 'zelfde antwoord nog eens' : ''].filter(Boolean).join(', ');
+  return `${ex.solutionShown ? `${hints} + uitleg getoond` : `${hints}, toen goed`}${extra ? ` (${extra})` : ''}`;
 }
 
 const ALL_CHILDREN = 'all';
@@ -81,7 +83,8 @@ function renderOverview(state, skillsById) {
     tbody.appendChild(tableRow([
       profile.name,
       currentGroep(profile),
-      `${sessions.length} (${sessions.filter((s) => s.completed).length} afgerond)`,
+      // Thema-rondes (D24) are counted apart: they are extra, not the session.
+      `${sessions.filter((s) => s.kind !== 'thema').length} (${sessions.filter((s) => s.completed && s.kind !== 'thema').length} afgerond)${themeRounds(sessions)}`,
       Math.round(sessions.reduce((n, s) => n + (s.activeSeconds || 0), 0) / 60),
       exercises.length,
       exercises.length ? `${Math.round((firstTry / exercises.length) * 100)}%` : '-',
@@ -90,6 +93,11 @@ function renderOverview(state, skillsById) {
       `${profile.stars || 0} ★ verdiend, ${walletStars(profile)} ★ in de spaarpot`
     ]));
   });
+}
+
+function themeRounds(sessions) {
+  const n = sessions.filter((s) => s.kind === 'thema').length;
+  return n ? ` + ${n} thema-${n === 1 ? 'ronde' : 'rondes'}` : '';
 }
 
 function renderSessions(state, skillsById, profileId) {
@@ -119,6 +127,7 @@ function renderSessions(state, skillsById, profileId) {
     // The child's name first: with several children the list is scanned by who did what.
     const summary = node('summary', '');
     summary.appendChild(node('strong', childName(state, s.profileId)));
+    if (s.kind === 'thema') summary.appendChild(document.createTextNode(` — Thema-ronde: ${s.theme}`));
     summary.appendChild(document.createTextNode(` — ${formatDate(s.startedAt)} — ${minutes} min, ${exercises.length} ${exercises.length === 1 ? 'som' : 'sommen'}, ${pct}% meteen goed — `));
     summary.appendChild(s.completed ? node('span', 'afgerond') : node('strong', `gestopt na ${minutes} min`, 'stopped'));
     details.appendChild(summary);

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="nl" data-version="2026-11-08.39">
+<html lang="nl" data-version="2026-11-08.40">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
@@ -10,7 +10,7 @@
   <link rel="icon" type="image/png" href="icons/favicon.png">
   <meta name="apple-mobile-web-app-title" content="Rekenen">
   <meta name="theme-color" content="#2f9e83">
-  <link rel="stylesheet" href="style.css?v=2026-11-08.39">
+  <link rel="stylesheet" href="style.css?v=2026-11-08.40">
 </head>
 <body>
   <main class="card">
@@ -46,6 +46,8 @@
       <button id="start-button" class="big-button">Start mijn oefeningen</button>
       <!-- The tafels against the clock, from groep 5 (js/tempo.js, BACKLOG D19). -->
       <button id="tempo-button" class="park-button hidden" type="button">⏱ Tempo-ronde</button>
+      <!-- 10 sums from a theme the app suggests (BACKLOG D24). -->
+      <button id="theme-button" class="park-button hidden" type="button">🎯 Oefen een thema</button>
       <button id="park-button" class="park-button" type="button">🏞️ Mijn park <span id="park-badge" class="badge hidden">Nieuw hoofdstuk!</span></button>
       <button id="switch-profile-button" class="link-button" type="button">Ik ben iemand anders</button>
     </section>
@@ -196,6 +198,24 @@
       <button id="resume-button" class="big-button" type="button">Verder</button>
     </section>
 
+    <!-- Thema-ronde (BACKLOG D24): pick one of the suggested themes; the round runs in the session screen. -->
+    <section id="screen-theme" class="screen hidden">
+      <h1>Oefen een thema</h1>
+      <p>Kies een thema: 10 sommen, zonder klok.</p>
+      <div id="theme-choices" class="tempo-kinds"></div>
+      <button id="theme-back-button" class="big-button secondary" type="button">Terug</button>
+    </section>
+
+    <section id="screen-theme-result" class="screen hidden">
+      <h1 id="theme-result-title"></h1>
+      <p id="theme-score" class="summary-score"></p>
+      <p id="theme-stars" class="summary-stars"></p>
+      <ul id="theme-celebrations" class="celebrations"></ul>
+      <div id="theme-result-ladder" class="theme-result-ladder"></div>
+      <button id="theme-again-button" class="big-button" type="button">Nog een thema</button>
+      <button id="theme-done-button" class="big-button secondary" type="button">Terug</button>
+    </section>
+
     <section id="screen-summary" class="screen hidden">
       <h1>Goed gedaan!</h1>
       <p id="summary-count" class="summary-count"></p>
@@ -252,31 +272,31 @@
     })();
   </script>
 
-  <script src="js/utils.js?v=2026-11-08.39"></script>
-  <script src="js/storage.js?v=2026-11-08.39"></script>
-  <script src="js/profiles.js?v=2026-11-08.39"></script>
-  <script src="js/motivation.js?v=2026-11-08.39"></script>
-  <script src="js/park.js?v=2026-11-08.39"></script>
-  <script src="js/mastery.js?v=2026-11-08.39"></script>
-  <script src="js/tempo.js?v=2026-11-08.39"></script>
-  <script src="js/hints.js?v=2026-11-08.39"></script>
-  <script src="curriculum/group-6.js?v=2026-11-08.39"></script>
-  <script src="curriculum/group-3.js?v=2026-11-08.39"></script>
-  <script src="curriculum/klok.js?v=2026-11-08.39"></script>
-  <script src="js/exercises/optellen.js?v=2026-11-08.39"></script>
-  <script src="js/exercises/aftrekken.js?v=2026-11-08.39"></script>
-  <script src="js/exercises/tafel.js?v=2026-11-08.39"></script>
-  <script src="js/exercises/nullen.js?v=2026-11-08.39"></script>
-  <script src="js/exercises/vermenigvuldigen_groot.js?v=2026-11-08.39"></script>
-  <script src="js/exercises/delen_zonder_rest.js?v=2026-11-08.39"></script>
-  <script src="js/exercises/delen_met_rest.js?v=2026-11-08.39"></script>
-  <script src="js/exercises/getalbegrip.js?v=2026-11-08.39"></script>
-  <script src="js/exercises/verhaalsom.js?v=2026-11-08.39"></script>
-  <script src="js/exercises/breuken.js?v=2026-11-08.39"></script>
-  <script src="js/exercises/aanvankelijk.js?v=2026-11-08.39"></script>
-  <script src="js/exercises/klok.js?v=2026-11-08.39"></script>
-  <script src="js/app.js?v=2026-11-08.39"></script>
-  <script src="js/cloud-config.js?v=2026-11-08.39"></script>
-  <script type="module" src="js/cloud.js?v=2026-11-08.39"></script>
+  <script src="js/utils.js?v=2026-11-08.40"></script>
+  <script src="js/storage.js?v=2026-11-08.40"></script>
+  <script src="js/profiles.js?v=2026-11-08.40"></script>
+  <script src="js/motivation.js?v=2026-11-08.40"></script>
+  <script src="js/park.js?v=2026-11-08.40"></script>
+  <script src="js/mastery.js?v=2026-11-08.40"></script>
+  <script src="js/tempo.js?v=2026-11-08.40"></script>
+  <script src="js/hints.js?v=2026-11-08.40"></script>
+  <script src="curriculum/group-6.js?v=2026-11-08.40"></script>
+  <script src="curriculum/group-3.js?v=2026-11-08.40"></script>
+  <script src="curriculum/klok.js?v=2026-11-08.40"></script>
+  <script src="js/exercises/optellen.js?v=2026-11-08.40"></script>
+  <script src="js/exercises/aftrekken.js?v=2026-11-08.40"></script>
+  <script src="js/exercises/tafel.js?v=2026-11-08.40"></script>
+  <script src="js/exercises/nullen.js?v=2026-11-08.40"></script>
+  <script src="js/exercises/vermenigvuldigen_groot.js?v=2026-11-08.40"></script>
+  <script src="js/exercises/delen_zonder_rest.js?v=2026-11-08.40"></script>
+  <script src="js/exercises/delen_met_rest.js?v=2026-11-08.40"></script>
+  <script src="js/exercises/getalbegrip.js?v=2026-11-08.40"></script>
+  <script src="js/exercises/verhaalsom.js?v=2026-11-08.40"></script>
+  <script src="js/exercises/breuken.js?v=2026-11-08.40"></script>
+  <script src="js/exercises/aanvankelijk.js?v=2026-11-08.40"></script>
+  <script src="js/exercises/klok.js?v=2026-11-08.40"></script>
+  <script src="js/app.js?v=2026-11-08.40"></script>
+  <script src="js/cloud-config.js?v=2026-11-08.40"></script>
+  <script type="module" src="js/cloud.js?v=2026-11-08.40"></script>
 </body>
 </html>

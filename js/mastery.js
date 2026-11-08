@@ -312,6 +312,30 @@ function classifyAll(curriculumSkills, profileSkillStates, groep) {
     });
 }
 
+// Thema-ronde (D24): the themes (curriculum categories) the app offers the child, at most 3: first
+// one with a "zwak" skill, then the one furthest below the child's own groep level (only practised
+// skills count, so a theme isn't offered just for being new), then the longest not practised (a theme never practised last). Skills
+// that wait ("later", like the tafels of 11 and 12 before 6-9 go well) are left out of a theme.
+const THEMES_OFFERED = 3;
+
+function suggestThemes(curriculumSkills, profileSkillStates, groep) {
+  const byCategory = {};
+  classifyAll(curriculumSkills, profileSkillStates, groep)
+    .filter((e) => e.bucket !== 'later')
+    .forEach((e) => { (byCategory[e.skill.category] = byCategory[e.skill.category] || []).push(e); });
+  return Object.entries(byCategory)
+    .map(([category, entries]) => ({
+      category,
+      skillIds: entries.map((e) => e.skill.id),
+      weak: entries.some((e) => e.bucket === 'zwak'),
+      behind: Math.max(0, ...entries.filter((e) => e.state.totalAttempts > 0).map((e) => groepStartTier(e.skill, groep) - e.state.tier)),
+      // Never practised counts as just practised: new topics come through the normal session.
+      lastPracticed: Math.max(0, ...entries.map((e) => e.state.lastPracticed || 0)) || Infinity
+    }))
+    .sort((a, b) => (b.weak - a.weak) || (b.behind - a.behind) || (a.lastPracticed - b.lastPracticed))
+    .slice(0, THEMES_OFFERED);
+}
+
 // Chooses the 4-6 skills a session focuses on. Returns [{ skillId, bucket, reason }].
 function selectSessionSkills(curriculumSkills, profileSkillStates, groep) {
   const entries = classifyAll(curriculumSkills, profileSkillStates, groep);

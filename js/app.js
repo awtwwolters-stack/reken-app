@@ -21,6 +21,8 @@ const MASH_EXTRA_DIGITS = 2;
 const EXAMPLE_NEW = 'Kijk eerst even mee, zo gaat deze som:';
 const EXAMPLE_AGAIN = 'Even samen kijken, zo gaat deze som:';
 const EXAMPLE_BUTTON = 'Nu ik!';
+// Thema-ronde (D24): this many sums, no clock.
+const THEME_SUMS = 10;
 const MASH_MESSAGE = 'Dat zijn wel heel veel cijfers! Probeer het nog eens.';
 const REPEATED_MESSAGE = 'Dat antwoord had je net ook. Kijk nog eens:';
 const HELP_SUM_LABEL = 'Hulpsom:';
@@ -47,7 +49,7 @@ let currentExercise = null;
 let activeProfileId = null;
 let tempo = null; // a running Tempo-ronde (js/tempo.js); it uses the session screen
 
-const SCREENS = ['profiles', 'start', 'park', 'story', 'tempo', 'tempo-result', 'soon', 'setup', 'session', 'pause', 'summary'];
+const SCREENS = ['profiles', 'start', 'park', 'story', 'tempo', 'tempo-result', 'theme', 'theme-result', 'soon', 'setup', 'session', 'pause', 'summary'];
 
 function el(id) {
   return document.getElementById(id);
@@ -102,6 +104,10 @@ function init() {
   el('next-button').addEventListener('click', onNext);
   el('pause-button').addEventListener('click', pauseSession);
   el('tempo-button').addEventListener('click', showTempoMenu);
+  el('theme-button').addEventListener('click', showThemeMenu);
+  el('theme-back-button').addEventListener('click', showGreeting);
+  el('theme-again-button').addEventListener('click', showThemeMenu);
+  el('theme-done-button').addEventListener('click', showGreeting);
   el('tempo-back-button').addEventListener('click', showGreeting);
   el('tempo-stop-button').addEventListener('click', stopTempo);
   el('tempo-again-button').addEventListener('click', () => startTempo(el('tempo-again-button').dataset.kind));
@@ -323,6 +329,7 @@ function showGreeting() {
   else renderStarGoal(el('goal-fill'), el('goal-text'), stars);
   el('park-badge').classList.toggle('hidden', unreadChapters(profile) === 0);
   el('tempo-button').classList.toggle('hidden', !offersTempo(profile));
+  el('theme-button').classList.toggle('hidden', !offersThemes(profile));
   // The family goal counts earned stars: buying in the park doesn't move it further away.
   const goal = profile.familyGoal;
   el('family-goal').classList.toggle('hidden', !goal);
@@ -656,13 +663,23 @@ function tierConfigFor(skill, tier) {
 }
 
 function startSession() {
+  beginSession(null);
+}
+
+// `theme`: null for the normal session, or a thema-ronde (D24) { category, skillIds } from
+// suggestThemes: 10 sums from that theme's skills, ending on the count instead of the time.
+function beginSession(theme) {
   appState = loadState(); // pick up a backup restored in another tab since this page loaded
   const groep = practiceGroep(activeProfile());
-  const selection = selectSessionSkills(Object.values(childSkillsById), profileSkillStates(), groep);
+  const selection = theme
+    ? theme.skillIds.map((skillId) => ({ skillId, bucket: 'thema', reason: `thema-ronde ${theme.category}` }))
+    : selectSessionSkills(Object.values(childSkillsById), profileSkillStates(), groep);
   const record = startSessionRecord(appState, activeProfileId, selection);
+  if (theme) Object.assign(record, { kind: 'thema', theme: theme.category });
   saveState(appState);
   session = {
     record, // the stored log for the parent view, saved after every exercise
+    theme: theme ? theme.category : null,
     groep,
     targetMs: sessionMinutes(activeProfile()) * 60 * 1000,
     starsAtStart: activeProfile().stars || 0,
@@ -699,9 +716,11 @@ function nextExercise() {
   // Confidence first: a session opens with sums the child is good at, and right after a worked
   // solution comes one they can do. (Children quit after a sum that went wrong, most of all when
   // it was the first of the session.)
-  const warmingUp = session.exerciseCount < WARM_UP_SUMS;
+  // A thema-ronde stays within its theme: no warm-up sums from elsewhere (D24).
+  const warmingUp = session.exerciseCount < WARM_UP_SUMS && !session.theme;
   if (warmingUp || session.justStruggled) {
-    const confident = confidentSkillIds(profileSkillStates(), childSkillsById, [session.previousSkillId]);
+    const confident = confidentSkillIds(profileSkillStates(), childSkillsById, [session.previousSkillId])
+      .filter((id) => !session.theme || session.skillIds.includes(id));
     const choice = confident.slice(0, CONFIDENT_CHOICES);
     if (choice.length) {
       pick = {
@@ -1423,11 +1442,14 @@ function resumeSession() {
 }
 
 function sessionTimeReached() {
+  if (session.theme) return session.exerciseCount >= THEME_SUMS;
   return session.activeMs >= session.targetMs;
 }
 
 function updateProgress() {
-  const pct = Math.min(100, (session.activeMs / session.targetMs) * 100);
+  const pct = session.theme
+    ? Math.min(100, (session.exerciseCount / THEME_SUMS) * 100)
+    : Math.min(100, (session.activeMs / session.targetMs) * 100);
   el('progress-fill').style.width = `${pct}%`;
 }
 
@@ -1457,6 +1479,10 @@ function onNext() {
 function showSummary() {
   // A double tap on "Klaar!" must not pay out the session bonus twice.
   if (session.record.completed) return;
+  if (session.theme) {
+    showThemeResult();
+    return;
+  }
   let totalAttempts = 0;
   let totalCorrect = 0;
   const byCategory = {}; // "Tafels" -> { attempts, correctFirstTry }, instead of one line per times table
@@ -1704,3 +1730,76 @@ window.addEventListener('storage', (e) => {
 });
 
 window.addEventListener('DOMContentLoaded', init);
+
+// Thema-ronde (D24): the child picks one of the 3 themes the app suggests (suggestThemes) and does
+// 10 sums from it, with the usual hints, hulpsom and worked examples. Levels and stars count (a star
+// per sum, the bonus for a level up); it is no practice day for the weekdoel and pays no session
+// bonus, so the normal session stays the main thing (the parent's choices).
+const THEME_MIN_GROEP = 4;
+const THEME_LEVEL_UP_TEXT = 'Je bent een stap verder!';
+
+function offersThemes(profile) {
+  return canPractise(profile) && practiceGroep(profile) >= THEME_MIN_GROEP;
+}
+
+// One row of dots per skill of the theme: the level reached of the highest this child can reach.
+function themeLadder(skillIds) {
+  const groep = practiceGroep(activeProfile());
+  const ladder = document.createElement('span');
+  ladder.className = 'theme-ladder';
+  skillIds.forEach((id) => {
+    const skill = childSkillsById[id];
+    const state = stateOrNew(skill, profileSkillStates(), childSkillsById, groep);
+    const top = groepCeilingTier(skill, groep);
+    const row = Object.assign(document.createElement('span'), { className: 'theme-ladder-row' });
+    row.appendChild(Object.assign(document.createElement('span'), { className: 'theme-ladder-name', textContent: skill.name }));
+    const dots = Object.assign(document.createElement('span'), {
+      className: 'theme-ladder-dots',
+      textContent: '●'.repeat(Math.min(state.tier, top)) + '○'.repeat(Math.max(0, top - state.tier))
+    });
+    dots.setAttribute('aria-label', `niveau ${Math.min(state.tier, top)} van ${top}`); // for VoiceOver
+    row.appendChild(dots);
+    ladder.appendChild(row);
+  });
+  return ladder;
+}
+
+function showThemeMenu() {
+  if (!activeProfile()) { // the child was removed on another iPad meanwhile
+    showProfiles();
+    return;
+  }
+  appState = loadState();
+  const container = el('theme-choices');
+  container.innerHTML = '';
+  suggestThemes(Object.values(childSkillsById), profileSkillStates(), practiceGroep(activeProfile())).forEach((theme) => {
+    const button = Object.assign(document.createElement('button'), { type: 'button', className: 'theme-choice' });
+    button.appendChild(Object.assign(document.createElement('span'), { className: 'theme-choice-name', textContent: theme.category }));
+    button.appendChild(themeLadder(theme.skillIds));
+    button.addEventListener('click', () => beginSession(theme));
+    container.appendChild(button);
+  });
+  showScreen('theme');
+}
+
+function showThemeResult() {
+  let attempts = 0;
+  let correct = 0;
+  Object.values(session.results).forEach((r) => { attempts += r.attempts; correct += r.correctFirstTry; });
+  const profile = activeProfile();
+  const bonus = session.levelUps.length * STAR_BONUS.levelUp;
+  profile.stars = (profile.stars || 0) + bonus;
+  const celebrations = session.levelUps.length ? [THEME_LEVEL_UP_TEXT] : [];
+  celebrations.push(...starCelebrations(profile, session.starsAtStart));
+  session.record.completed = true;
+  saveState(appState);
+
+  el('theme-result-title').textContent = `Thema-ronde: ${session.theme}`;
+  el('theme-score').textContent = `${correct} van de ${attempts} goed`;
+  el('theme-stars').textContent = `+${session.starsEarned + bonus} ★ verdiend · ★ ${walletStars(profile)} in je spaarpot`;
+  renderCelebrations('theme-celebrations', celebrations);
+  const ladder = el('theme-result-ladder');
+  ladder.innerHTML = '';
+  ladder.appendChild(themeLadder(session.skillIds));
+  showScreen('theme-result');
+}

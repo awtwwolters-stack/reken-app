@@ -501,6 +501,30 @@ function masteryRuleProblems() {
   return problems;
 }
 
+// Thema-ronde (D24): at most 3 themes, each one category of the child's own skills, a theme with a
+// "zwak" skill first, and no waiting skill (the tafels of 11 and 12 before 6-9 go well) in a theme.
+function themeProblems() {
+  const problems = [];
+  const skills = skillsForGroep(CURRICULUM.skills, 6);
+  const byId = Object.fromEntries(skills.map((s) => [s.id, s]));
+  const state = (results, tier) => ({ tier, recentResults: results, totalAttempts: 20, lastPracticed: Date.now(), calibrationDone: true, lastTierChange: null, introSeen: true });
+  const good = Array(8).fill(true);
+  const states = {
+    vermenigvuldigen_tafel_6: state(good, 3), vermenigvuldigen_tafel_8: state(good, 3), vermenigvuldigen_tafel_9: state(good, 3),
+    vermenigvuldigen_tafel_7: state([true, false, true, false, true, true, false, true], 3),
+    klokkijken: state([true, true, true, true, true, false, false, false], 2),
+    optellen_tot_100000: state(good, 1)
+  };
+  const themes = suggestThemes(skills, states, 6);
+  if (themes.length === 0 || themes.length > 3) problems.push(`Thema-ronde: ${themes.length} thema's voorgesteld`);
+  if (!themes.length || themes[0].category !== 'Klok') problems.push(`Thema-ronde: het thema met een zwak onderwerp komt niet eerst (${themes.map((t) => t.category).join(', ')})`);
+  themes.forEach((t) => {
+    if (!t.skillIds.length || t.skillIds.some((id) => !byId[id] || byId[id].category !== t.category)) problems.push(`Thema-ronde: ${t.category} bevat onderwerpen van buiten het thema`);
+    if (t.skillIds.includes('vermenigvuldigen_tafel_12')) problems.push('Thema-ronde: de tafel van 12 zit in een thema terwijl de tafel van 7 niet goed gaat');
+  });
+  return problems;
+}
+
 function deviceReport() {
   const report = [];
   const speech = 'speechSynthesis' in window;
@@ -517,7 +541,7 @@ function deviceReport() {
 // Returns { skills, levels, sums, problems: ['Tafel van 6 niveau 2: ...'], device: [...] }.
 function runSelfTest() {
   const problems = timeWordsProblems().concat(parkProblems(), tempoProblems(), syncProblems(), extraTafelProblems(), minusProblems(),
-    nullenProblems(), splitsenProblems(), klokTipProblems(), masteryRuleProblems());
+    nullenProblems(), splitsenProblems(), klokTipProblems(), masteryRuleProblems(), themeProblems());
   let levels = 0;
   let sums = 0;
   const skills = CURRICULUM.skills.filter((s) => s.implemented);
