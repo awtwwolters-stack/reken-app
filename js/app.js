@@ -1600,13 +1600,15 @@ function startTempo(kindId) {
 
 // Before each round: a tap on Start. That tap is also what lets the iPad open the keyboard.
 function showTempoGetReady() {
-  const kind = TEMPO_KINDS.find((k) => k.id === tempo.kindId);
+  const kind = tempoKind(tempo.kindId);
+  // Plus en min: the round says which sums come (plussommen, then minsommen).
+  const what = kind.roundNames ? ` ${kind.roundNames[tempo.round - 1]}` : '';
   el('exercise-prompt').classList.remove('long');
   el('exercise-prompt').textContent = `${kind.name} · ronde ${tempo.round} van ${TEMPO_ROUNDS}`;
   renderVisual(null);
   el('feedback').textContent = tempo.round === 1
-    ? '1 minuut. Maak zoveel sommen als je kunt!'
-    : 'Even ademhalen. Dan nog 1 minuut!';
+    ? `1 minuut${what}. Maak zoveel sommen als je kunt!`
+    : what ? `Even ademhalen. Nu 1 minuut${what}!` : 'Even ademhalen. Dan nog 1 minuut!';
   el('feedback').className = 'feedback feedback-hint';
   el('progress-fill').style.width = '100%';
   el('answer-area').classList.add('hidden');
@@ -1640,7 +1642,7 @@ function tickTempo() {
 }
 
 function nextTempoSum() {
-  currentExercise = tempoSum(tempo.kindId, currentExercise && currentExercise.prompt, tempoTables(activeProfile()));
+  currentExercise = tempoSum(tempo.kindId, currentExercise && currentExercise.prompt, tempoTables(activeProfile()), tempo.round);
   tempo.sumStartedAt = Date.now();
   renderPrompt(currentExercise);
   answerInputs[0].value = '';

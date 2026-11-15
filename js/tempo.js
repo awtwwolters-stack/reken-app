@@ -1,6 +1,8 @@
 // Tempo-ronde: the tafels against the clock, apart from the normal session (BACKLOG D19). The form
 // is the tempotoets of De Wereld in Getallen: 2 opgaven of 1 minute each, the score is the total
 // number right. The child plays against their own record; there is no pass mark and no "failed".
+// Since D25 also plus and min over het tiental, the method's groep-5 tempotoets (1 minute of plus
+// sums, then 1 minute of min sums), open for every child from the start.
 // Only rules live here (no screen), so the self-check (js/selftest.js) can verify them.
 
 const TEMPO_ROUND_MS = 60 * 1000;
@@ -30,14 +32,25 @@ const TEMPO_EXTRA_TABLES = [11, 12];
 const TEMPO_EXTRA_FACTOR_MAX = 12;
 const TEMPO_EXTRA_FROM_TIER = 3;
 
+// Plus and min over het tiental (D25): both numbers 2 to 9 and together more than 10, as on the
+// method's tempotoets (9 + 5, 8 + 7; 16 - 9, 12 - 3). A min sum is a plus sum turned round.
+const TEMPO_PLUSMIN_MIN = 2;
+const TEMPO_PLUSMIN_MAX = 9;
+
 const TEMPO_FORMS = ['tafels', 'omgekeerd', 'deeltafels'];
-// In the order they open.
+// In the order they are shown. `after`: the kind whose good rounds open this one (below groep 6);
+// a kind without `after` is open from the start. `roundForms`: a different form for each round.
 const TEMPO_KINDS = [
+  { id: 'plusmin', name: 'Plus en min', example: '8 + 7 en 15 - 9', roundForms: ['plus', 'min'], roundNames: ['plussommen', 'minsommen'] },
   { id: 'tafels', name: 'Tafels', example: '7 × 6 = ?' },
-  { id: 'omgekeerd', name: 'Omgekeerd', example: '? × 6 = 42' },
-  { id: 'deeltafels', name: 'Deeltafels', example: '42 : 6 = ?' },
-  { id: 'mix', name: 'Door elkaar', example: 'alles door elkaar' }
+  { id: 'omgekeerd', name: 'Omgekeerd', example: '? × 6 = 42', after: 'tafels' },
+  { id: 'deeltafels', name: 'Deeltafels', example: '42 : 6 = ?', after: 'omgekeerd' },
+  { id: 'mix', name: 'Door elkaar', example: 'alles door elkaar', after: 'deeltafels' }
 ];
+
+function tempoKind(kindId) {
+  return TEMPO_KINDS.find((k) => k.id === kindId);
+}
 
 function offersTempo(profile) {
   return canPractise(profile) && practiceGroep(profile) >= TEMPO_MIN_GROEP;
@@ -59,20 +72,34 @@ function tempoMultiplierMax(table) {
   return TEMPO_EXTRA_TABLES.includes(table) ? TEMPO_EXTRA_FACTOR_MAX : TEMPO_FACTOR_MAX;
 }
 
-// One sum of this kind from these tafels, written as in the normal session (js/exercises/tafel.js
-// and delen_zonder_rest.js), and never the same sum twice in a row.
-function tempoSum(kindId, previousPrompt, tables = tempoTables(null)) {
+// One sum of this kind, written as in the normal session (js/exercises/tafel.js,
+// delen_zonder_rest.js and aanvankelijk.js), and never the same sum twice in a row. `round` (1 or 2)
+// picks the form of a kind with a form per round: plus sums first, then min sums.
+function tempoSum(kindId, previousPrompt, tables = tempoTables(null), round = 1) {
+  const kind = tempoKind(kindId);
   let sum;
   do {
-    const form = kindId === 'mix' ? pickRandom(TEMPO_FORMS) : kindId;
-    const table = pickRandom(tables);
-    const multiplier = randomInt(TEMPO_FACTOR_MIN, tempoMultiplierMax(table));
-    const product = table * multiplier;
-    const [prompt, answer] = {
-      tafels: [`${multiplier} × ${table} = ?`, product],
-      omgekeerd: [`? × ${table} = ${product}`, multiplier],
-      deeltafels: [`${product} : ${table} = ?`, multiplier]
-    }[form];
+    let prompt;
+    let answer;
+    if (kind && kind.roundForms) {
+      let a;
+      let b;
+      do {
+        a = randomInt(TEMPO_PLUSMIN_MIN, TEMPO_PLUSMIN_MAX);
+        b = randomInt(TEMPO_PLUSMIN_MIN, TEMPO_PLUSMIN_MAX);
+      } while (a + b <= 10);
+      [prompt, answer] = kind.roundForms[round - 1] === 'plus' ? [`${a} + ${b} = ?`, a + b] : [`${a + b} - ${b} = ?`, a];
+    } else {
+      const form = kindId === 'mix' ? pickRandom(TEMPO_FORMS) : kindId;
+      const table = pickRandom(tables);
+      const multiplier = randomInt(TEMPO_FACTOR_MIN, tempoMultiplierMax(table));
+      const product = table * multiplier;
+      [prompt, answer] = {
+        tafels: [`${multiplier} × ${table} = ?`, product],
+        omgekeerd: [`? × ${table} = ${product}`, multiplier],
+        deeltafels: [`${product} : ${table} = ?`, multiplier]
+      }[form];
+    }
     sum = {
       prompt,
       answerFields: [{ key: 'antwoord', label: null }],
@@ -90,9 +117,9 @@ function tempoEntry(profile, kindId) {
 // Every kind with the child's record and whether it is open; a closed one says what opens it.
 function tempoKindsFor(profile) {
   const allOpen = practiceGroep(profile) >= TEMPO_ALL_OPEN_GROEP;
-  return TEMPO_KINDS.map((kind, i) => {
+  return TEMPO_KINDS.map((kind) => {
     const entry = tempoEntry(profile, kind.id);
-    const before = i > 0 ? TEMPO_KINDS[i - 1] : null;
+    const before = kind.after ? tempoKind(kind.after) : null;
     const passes = before ? tempoEntry(profile, before.id).passes : 0;
     // A kind that was played stays open (e.g. after the parent corrects the groep downwards).
     const open = allOpen || !before || passes >= TEMPO_UNLOCK_TIMES || entry.rounds.length > 0;

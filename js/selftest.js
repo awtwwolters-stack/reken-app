@@ -129,9 +129,22 @@ function timeWordsProblems() {
 // Tempo-ronde (js/tempo.js): every sum is read back from its text and recalculated, and a
 // simulated child plays rounds to check the locks, the record and the stars.
 // `tables`: the tafels this child may get (tempoTables).
-function tempoSumProblem(sum, tables) {
+// `form`: 'plus' or 'min' for a round of Plus en min (D25), otherwise null (the tafels).
+function tempoSumProblem(sum, tables, form = null) {
   const answer = sum.correctAnswer.antwoord;
   const filled = sum.prompt.replace('?', answer);
+  if (form) {
+    const pm = filled.match(/^(\d+) ([+-]) (\d+) = (\d+)$/);
+    if (!pm || filled !== sum.solved) return 'de som is niet te lezen';
+    const [a, b, c] = [Number(pm[1]), Number(pm[3]), Number(pm[4])];
+    if ((pm[2] === '+') !== (form === 'plus')) return `een ${pm[2] === '+' ? 'plus' : 'min'}som in de ronde met ${form}sommen`;
+    if (pm[2] === '+' ? a + b !== c : a - b !== c) return `het antwoord ${answer} klopt niet`;
+    // The two small numbers: both 2 to 9, together over het tiental.
+    const [small1, small2, whole] = pm[2] === '+' ? [a, b, c] : [b, c, a];
+    const inRange = (n) => n >= TEMPO_PLUSMIN_MIN && n <= TEMPO_PLUSMIN_MAX;
+    if (!inRange(small1) || !inRange(small2) || whole <= 10) return 'de som gaat niet over het tiental of valt buiten 2 tot 9';
+    return null;
+  }
   const parts = filled.match(/^(\d+) ([×:]) (\d+) = (\d+)$/);
   if (!parts || filled !== sum.solved) return 'de som is niet te lezen';
   const [a, b, c] = [Number(parts[1]), Number(parts[3]), Number(parts[4])];
@@ -153,20 +166,29 @@ function tempoProblems() {
   if (!withExtra.includes(11) || !withExtra.includes(12)) problems.push('Tempo: de tafels van 11 en 12 komen niet na het oefenen');
   [plain, withExtra].forEach((tables) => {
     TEMPO_KINDS.forEach((kind) => {
-      let previous = null;
-      let found = null;
-      for (let i = 0; i < SELFTEST_SUMS_PER_LEVEL && !found; i++) {
-        try {
-          const sum = tempoSum(kind.id, previous, tables);
-          found = tempoSumProblem(sum, tables) || (sum.prompt === previous ? 'dezelfde som twee keer achter elkaar' : null);
-          if (found) found += ` bij "${sum.prompt}"`;
-          previous = sum.prompt;
-        } catch (e) {
-          found = `de som kan niet gemaakt worden (${e.message})`;
+      for (let round = 1; round <= TEMPO_ROUNDS; round++) {
+        const form = kind.roundForms ? kind.roundForms[round - 1] : null;
+        let previous = null;
+        let found = null;
+        for (let i = 0; i < SELFTEST_SUMS_PER_LEVEL && !found; i++) {
+          try {
+            const sum = tempoSum(kind.id, previous, tables, round);
+            found = tempoSumProblem(sum, tables, form) || (sum.prompt === previous ? 'dezelfde som twee keer achter elkaar' : null);
+            if (found) found += ` bij "${sum.prompt}"`;
+            previous = sum.prompt;
+          } catch (e) {
+            found = `de som kan niet gemaakt worden (${e.message})`;
+          }
         }
+        if (found) problems.push(`Tempo, ${kind.name}, ronde ${round}: ${found}`);
       }
-      if (found) problems.push(`Tempo, ${kind.name}: ${found}`);
     });
+  });
+  // Plus en min: every sum of the method's test can come up, in both rounds (36 plus, 36 min).
+  ['plus', 'min'].forEach((form, i) => {
+    const seen = new Set();
+    for (let n = 0; n < 5000; n++) seen.add(tempoSum('plusmin', null, plain, i + 1).prompt);
+    if (seen.size !== 36) problems.push(`Tempo, Plus en min: ${seen.size} van de 36 ${form}sommen komen voor`);
   });
   // With 11 and 12 practised, 12 × 12 can come up: the multiplier of those tafels goes to 12.
   let twelveTimesTwelve = false;
@@ -177,17 +199,24 @@ function tempoProblems() {
   const child = (groep) => ({ groep, groepSchoolYear: schoolYearOf(), stars: 0 });
   if (open(child(TEMPO_ALL_OPEN_GROEP)) !== TEMPO_KINDS.length) problems.push('Tempo: groep 6 heeft niet alle soorten open');
   const young = child(TEMPO_MIN_GROEP);
-  if (open(young) !== 1) problems.push('Tempo: groep 5 begint niet met alleen de tafels');
+  // Groep 5 starts with Plus en min and the tafels open (D25), the rest behind a lock.
+  const openIds = (profile) => tempoKindsFor(profile).filter((k) => k.open).map((k) => k.kind.id).join();
+  if (openIds(young) !== 'plusmin,tafels') problems.push(`Tempo: groep 5 begint niet met plus en min en de tafels (${openIds(young)})`);
   const first = recordTempoRound(young, 'tafels', TEMPO_UNLOCK_SCORE, 0);
   if (!first.first || first.isRecord || first.stars !== TEMPO_STARS.done) problems.push('Tempo: de eerste ronde telt als record of geeft verkeerde sterren');
-  if (open(young) !== 1) problems.push('Tempo: de volgende soort gaat te vroeg open');
+  if (open(young) !== 2) problems.push('Tempo: de volgende soort gaat te vroeg open');
   const lower = recordTempoRound(young, 'tafels', TEMPO_UNLOCK_SCORE - 1, 2);
   if (lower.isRecord || young.tempo.tafels.best !== TEMPO_UNLOCK_SCORE) problems.push('Tempo: een lagere score verandert het record');
-  if (open(young) !== 1) problems.push('Tempo: een score onder de drempel telt mee voor het slotje');
+  if (open(young) !== 2) problems.push('Tempo: een score onder de drempel telt mee voor het slotje');
+  // Good rounds of Plus en min open nothing: the tafels chain has its own locks.
+  recordTempoRound(young, 'plusmin', TEMPO_UNLOCK_SCORE + 5, 0);
+  recordTempoRound(young, 'plusmin', TEMPO_UNLOCK_SCORE + 6, 0);
+  if (open(young) !== 2) problems.push('Tempo: plus en min opent een soort van de tafels');
   const higher = recordTempoRound(young, 'tafels', TEMPO_UNLOCK_SCORE + 1, 0);
   if (!higher.isRecord || higher.stars !== TEMPO_STARS.done + TEMPO_STARS.record) problems.push('Tempo: een hogere score is geen record');
-  if (open(young) !== 2) problems.push('Tempo: de volgende soort gaat niet open na genoeg goede rondes');
-  if (young.stars !== 3 * TEMPO_STARS.done + TEMPO_STARS.record) problems.push(`Tempo: de sterren kloppen niet (${young.stars})`);
+  if (openIds(young) !== 'plusmin,tafels,omgekeerd') problems.push(`Tempo: de volgende soort gaat niet open na genoeg goede rondes (${openIds(young)})`);
+  // 3 tafel rounds (one a record) and 2 plus/min rounds (the second a record).
+  if (young.stars !== 5 * TEMPO_STARS.done + 2 * TEMPO_STARS.record) problems.push(`Tempo: de sterren kloppen niet (${young.stars})`);
   if (recordTempoRound(young, 'tafels', 0, 0).stars !== 0) problems.push('Tempo: een ronde zonder goede som geeft sterren');
   if ((young.practiceDays || []).length) problems.push('Tempo: een ronde telt als oefendag');
 
