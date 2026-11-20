@@ -1,6 +1,6 @@
 # Reken App — working notes for Claude
 
-A playful, adaptive Dutch maths practice app for one family's own children (groep 3, 5 and 6 now), in the spirit of apps like Squla but fitted to these children and their school method. They share several iPads and continue where they were on any of them. For each child it answers: "Wat zijn de nuttigste 10–15 minuten rekenen voor dit kind op dit moment?"
+A playful, adaptive Dutch maths practice app for one family's own children (groep 2, 3, 5 and 6 now), in the spirit of apps like Squla but fitted to these children and their school method. They share several iPads and continue where they were on any of them. For each child it answers: "Wat zijn de nuttigste 10–15 minuten rekenen voor dit kind op dit moment?"
 
 `BACKLOG.md` is the source of truth: read **"What we're building: goal and principles"** and **"Now"** first; it also holds the decisions (D1…), the feedback log and how the app matches the school method.
 
@@ -21,7 +21,8 @@ A playful, adaptive Dutch maths practice app for one family's own children (groe
 - **Curriculum is data:** `curriculum/*.js` define skills with `groepen: [from, to]` and `tiers` labelled with the groep they fit at the start of the school year. Generators live in `js/exercises/`, hints in `js/hints.js`, level rules in `js/mastery.js`.
 - **Level rules** (see `js/mastery.js`): a new skill starts one level below the groep estimate; a child climbs at most one groep above their own; a slow right answer doesn't count towards moving up. Confidence before climbing (D15): the quick start (3 right in a row) stops at the own-groep level, a needed worked solution lowers the level by one, and a session opens with two sums the child does well. A mastered skill comes up once per session (D16); a struggling or unseen skill opens with a worked example (D17).
 - **Levels are stored by number:** inserting a level in a skill's `tiers` silently shifts every child above it one step. Only do it with a migration or when no child is above it.
-- **Sessions:** 8 minutes, 5 for groep 3 (`js/profiles.js`). Next to the session: Mijn park (`js/park.js`, D18) and the Tempo-ronde (D19).
+- **Sessions:** 8 minutes, 5 for groep 3, 10 sums for groep 2 (`js/profiles.js`).
+- **Kleuters (groep 2, D26):** a sum with `answerMode` ('choices' or 'speak') has no answer box: cards or 🎤 instead, and everything is said aloud (`autoSpeak()` in `js/app.js`). Generators in `js/exercises/kleuter.js`. Next to the session: Mijn park (`js/park.js`, D18) and the Tempo-ronde (D19).
 - **Offline-first:** localStorage is the working copy; `js/cloud.js` syncs changed children and sessions.
 
 ## Rules learned the hard way

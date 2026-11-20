@@ -476,3 +476,33 @@ body.in-session.wide-short #exercise-visual .clock { flex: none; width: calc(170
 body.tempo-round .tempo-stop { display: block; }
 body.tempo-round #pause-button, body.tempo-round #speak-button { display: none; }
 body.tempo-round .progress-fill { background: #e0a800; transition: width 0.2s linear; }
+
+/* Kleuters (groep 2, BACKLOG D26): big cards to tap and a big 🎤, no keyboard. The cards stay at
+   least 80px, also when --fit shrinks the text, so a small finger can't miss. */
+.choice-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin: 14px 0 6px; }
+.choice-cards.four { grid-template-columns: repeat(2, 1fr); }
+.choice-card {
+  min-height: max(80px, calc(110px * var(--fit, 1))); border-radius: 20px; border: 3px solid var(--border);
+  background: #fff; color: var(--text); font-size: max(2.4rem, calc(3.4rem * var(--fit, 1))); font-weight: 700;
+  cursor: pointer; padding: 0; -webkit-tap-highlight-color: transparent; touch-action: manipulation;
+}
+.choice-card:active { transform: scale(0.96); }
+.choice-card.right { background: var(--correct-bg); border-color: var(--correct-text); color: var(--correct-text); }
+.choice-card.gone { opacity: 0.25; }
+.choice-card:disabled { cursor: default; }
+.choice-card.right:disabled { opacity: 1; }
+.choice-cards.four .choice-card { min-height: max(72px, calc(96px * var(--fit, 1))); }
+h2.prompt.prompt-number, body.in-session h2.prompt.prompt-number { font-size: calc(6rem * var(--fit, 1)); margin: 8px 0; }
+.speak-answer { margin: 12px 0 4px; }
+.mic-button, .self-button {
+  width: max(84px, calc(110px * var(--fit, 1))); height: max(84px, calc(110px * var(--fit, 1))); border-radius: 50%;
+  border: 3px solid var(--primary); background: #fff; font-size: max(2.2rem, calc(3rem * var(--fit, 1)));
+  cursor: pointer; padding: 0; touch-action: manipulation;
+}
+.mic-button.listening { background: var(--correct-bg); animation: listening 1s ease-in-out infinite alternate; }
+@keyframes listening { from { transform: scale(1); } to { transform: scale(1.08); } }
+.self-check { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+.self-check-verdict { display: flex; gap: 24px; justify-content: center; }
+.self-button { border-color: var(--border); }
+body.in-session.wide-short .choice-cards { margin: 6px 0; gap: 10px; }
+body.in-session.wide-short h2.prompt.prompt-number { font-size: calc(4.5rem * var(--fit, 1)); }

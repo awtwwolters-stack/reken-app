@@ -52,7 +52,7 @@ function practiceGroep(profile) {
   return Math.min(LAST_GROEP, currentGroep(profile));
 }
 
-// A child can practise once there are sums for their groep (not yet for kleuters), until they
+// A child can practise once there are sums for their groep (from groep 2, D26), until they
 // have finished groep 8.
 function canPractise(profile) {
   return !hasFinishedPrimarySchool(profile) && skillsForGroep(CURRICULUM.skills, practiceGroep(profile)).length > 0;
@@ -72,4 +72,18 @@ function sessionMinutes(profile) {
 
 function offersReadAloud(profile) {
   return practiceGroep(profile) <= YOUNG_READER_MAX_GROEP;
+}
+
+// Kleuters (groep 2, D26) can't read at all: everything is read aloud by itself, they answer by
+// tapping or speaking, and a session is 10 sums (a clock means nothing to them yet).
+const KLEUTER_MAX_GROEP = 2;
+const KLEUTER_SESSION_SUMS = 10;
+
+function isKleuter(profile) {
+  return practiceGroep(profile) <= KLEUTER_MAX_GROEP;
+}
+
+// The number of sums a session lasts, or null when it lasts sessionMinutes().
+function sessionSums(profile) {
+  return isKleuter(profile) ? KLEUTER_SESSION_SUMS : null;
 }

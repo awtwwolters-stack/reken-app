@@ -40,6 +40,15 @@ const INVALID_TIME_MESSAGE = 'Typ het uur in het eerste vakje en de minuten in h
 // After a tempo round ends, "Start!" appears where the child was just tapping: ignore taps this long.
 const TEMPO_START_GUARD_MS = 800;
 const INVALID_FRACTION_MESSAGE = 'Typ boven de streep een getal en onder de streep een getal.';
+// Kleuters (groep 2, D26): everything is said aloud, so the praise needs a moment to be heard.
+const KLEUTER_AUTO_NEXT_MS = 2200;
+// Zeg het getal: not understood this often, the child checks the sum herself (it then doesn't
+// count for her level). A first wrong number heard gets one more go: the iPad mishears too.
+const LISTEN_TRIES = 2;
+const LISTEN_TIMEOUT_MS = 8000;
+const NOT_HEARD_MESSAGE = 'Ik hoorde het niet goed. Tik op de microfoon en zeg het nog een keer.';
+const SELF_CHECK_MESSAGE = 'Zeg het getal hardop. Tik dan op de luidspreker en luister of het goed was.';
+const SELF_CHECK_VERDICT = 'Zei je het goed? Tik op het blije gezicht. Nog niet? Tik op het denkende gezicht.';
 
 let appState = null;
 let curriculumById = {};
@@ -48,6 +57,11 @@ let session = null;
 let currentExercise = null;
 let activeProfileId = null;
 let tempo = null; // a running Tempo-ronde (js/tempo.js); it uses the session screen
+// Listening for "Zeg het getal" (D26): Safari's speech recognition (the voice goes to Apple), not
+// on every iPad. A refused microphone turns it off for this page: the child checks herself then.
+const SpeechRecognizer = window.SpeechRecognition || window.webkitSpeechRecognition || null;
+let listenRefused = false;
+let recognition = null; // the one listening now, if any
 
 const SCREENS = ['profiles', 'start', 'park', 'story', 'tempo', 'tempo-result', 'theme', 'theme-result', 'soon', 'setup', 'session', 'pause', 'summary'];
 
@@ -125,7 +139,12 @@ function init() {
       window.speechSynthesis.addEventListener('voiceschanged', updateSpeakButton);
     }
   });
-  ['submit-button', 'next-button', 'speak-button', 'tempo-stop-button'].forEach((id) => el(id).addEventListener('mousedown', (e) => e.preventDefault()));
+  el('mic-button').addEventListener('click', onMicButton);
+  el('hear-answer-button').addEventListener('click', onHearAnswer);
+  el('self-good-button').addEventListener('click', () => onSelfCheck(true));
+  el('self-not-yet-button').addEventListener('click', () => onSelfCheck(false));
+  ['submit-button', 'next-button', 'speak-button', 'tempo-stop-button', 'mic-button', 'hear-answer-button', 'self-good-button', 'self-not-yet-button']
+    .forEach((id) => el(id).addEventListener('mousedown', (e) => e.preventDefault()));
   optionalFeature(() => {
     if (!window.visualViewport) return;
     // When the keyboard opens or the iPad turns: question back at the top, and resized to fit.
@@ -226,7 +245,9 @@ function refreshAfterSync() {
 function renderDiagnostics() {
   const cloud = window.Cloud;
   const cloudText = !cloud ? 'niet geladen' : cloud.state + (cloud.email ? ` (${cloud.email})` : '') + (cloud.problem ? `: ${cloud.problem}` : '');
-  el('diag-info').textContent = `versie ${APP_VERSION} · ${listProfiles(appState).length} kinderen op deze iPad · cloud: ${cloudText}`;
+  // spraak: whether this iPad can listen for "Zeg het getal" (D26); "uit" after a refused microphone.
+  const listenText = !SpeechRecognizer ? 'nee' : listenRefused ? 'uit' : 'ja';
+  el('diag-info').textContent = `versie ${APP_VERSION} · ${listProfiles(appState).length} kinderen op deze iPad · cloud: ${cloudText} · spraak: ${listenText}`;
 }
 
 // On an iPad without children yet, signing in is offered right on the first screen.
@@ -682,6 +703,8 @@ function beginSession(theme) {
     theme: theme ? theme.category : null,
     groep,
     targetMs: sessionMinutes(activeProfile()) * 60 * 1000,
+    targetSums: theme ? null : sessionSums(activeProfile()), // kleuters: 10 sums instead of minutes (D26)
+    kleuter: isKleuter(activeProfile()),
     starsAtStart: activeProfile().stars || 0,
     starsEarned: 0,
     levelUps: [], // category names, for "Niveau omhoog: Tafels!"
@@ -767,12 +790,19 @@ function showExample(pick, skillState) {
   const solution = getHint(currentExercise.exerciseType, MAX_HINT_LEVEL, currentExercise.hintContext);
   el('feedback').textContent = `${firstTime ? EXAMPLE_NEW : EXAMPLE_AGAIN} ${solution}`;
   el('feedback').className = 'feedback feedback-hint'; // the hint colour: nothing went wrong here
-  el('answer-area').classList.add('hidden');
+  // Cards (kleuters, D26): shown with the right one lit, so the example shows where to tap.
+  const showCards = currentExercise.answerMode === 'choices';
+  el('answer-area').classList.toggle('hidden', !showCards);
+  if (showCards) {
+    layoutAnswerFields();
+    showChoiceSolution();
+  }
   el('next-button').textContent = EXAMPLE_BUTTON;
   el('next-button').classList.remove('hidden');
   el('next-button').focus();
   window.scrollTo(0, 0);
   fitSessionToScreen();
+  autoSpeak(el('feedback').textContent);
 }
 
 function renderExercise(pick) {
@@ -799,18 +829,45 @@ function renderExercise(pick) {
 
   session.awaitingNext = false;
   el('answer-area').classList.remove('hidden');
-  el('submit-button').classList.remove('hidden');
   el('next-button').classList.add('hidden');
-  // Focus the first box before hiding any unused box: if the focused box were hidden first, the iPad
-  // closes the keyboard, and it can't reopen it when this runs from the auto-continue timer.
-  answerInputs[0].focus();
+  if (typesAnswer()) {
+    el('submit-button').classList.remove('hidden');
+    // Still hidden after a kleuter's sum (cards, D26): a hidden box can't take the focus.
+    el('answer-fields').classList.remove('hidden');
+    // Focus the first box before hiding any unused box: if the focused box were hidden first, the iPad
+    // closes the keyboard, and it can't reopen it when this runs from the auto-continue timer.
+    answerInputs[0].focus();
+  } else if (document.activeElement && document.activeElement.blur) {
+    document.activeElement.blur(); // cards or 🎤: no keyboard over them
+  }
   layoutAnswerFields();
   window.scrollTo(0, 0);
   fitSessionToScreen();
+  if (session.kleuter) speakExercise();
 }
 
-// The boxes this sum needs, emptied: one, or two with a breukstreep or a ":" between them.
+// Typed answers (everyone but the kleuters): the answer boxes and the iPad keyboard.
+function typesAnswer() {
+  return !currentExercise.answerMode;
+}
+
+// A kleuter's sum (D26) is said aloud by itself: the question, a hint, the praise.
+function autoSpeak(text) {
+  if (session && session.kleuter && !tempo && canSpeakDutch()) speakText(toSpeech(text));
+}
+
+// The boxes this sum needs, emptied: one, or two with a breukstreep or a ":" between them. A kleuter's
+// sum (D26) has cards to tap or the 🎤 instead.
 function layoutAnswerFields() {
+  const mode = currentExercise.answerMode;
+  el('answer-fields').classList.toggle('hidden', !!mode);
+  if (mode) el('submit-button').classList.add('hidden');
+  el('choice-cards').classList.toggle('hidden', mode !== 'choices');
+  el('speak-answer').classList.toggle('hidden', mode !== 'speak');
+  stopListening();
+  if (mode === 'choices') renderChoiceCards();
+  if (mode === 'speak') resetSpeakAnswer();
+  if (mode) return;
   const isFraction = currentExercise.answerLayout === 'fraction';
   const isTime = currentExercise.answerLayout === 'time';
   el('answer-fields').classList.toggle('fraction', isFraction);
@@ -909,6 +966,7 @@ function renderPrompt(exercise) {
   const promptEl = el('exercise-prompt');
   // Verhaalsommen are sentences, not sums: they start smaller.
   promptEl.classList.toggle('long', exercise.prompt.length > LONG_PROMPT_CHARS);
+  promptEl.classList.toggle('prompt-number', exercise.promptClass === 'prompt-number'); // Zeg het getal: one big number
   if (!exercise.promptParts) {
     promptEl.textContent = exercise.prompt;
     return;
@@ -1220,7 +1278,11 @@ function onSubmit() {
     fitSessionToScreen();
     return;
   }
+  submitValues(values);
+}
 
+// An answer, typed, tapped on a card or said (D26): the same way on to hints, tips and the result.
+function submitValues(values) {
   if (currentExercise.helpSumActive) {
     answerHelpSum(values);
     return;
@@ -1237,6 +1299,7 @@ function onSubmit() {
     el('feedback').className = 'feedback feedback-hint feedback-again';
     clearAnswerFields();
     fitSessionToScreen();
+    autoSpeak(el('feedback').textContent);
     return;
   }
 
@@ -1310,11 +1373,176 @@ function showHint(text = null) {
   if (currentExercise.hintVisual) renderVisual(currentExercise.hintVisual);
   clearAnswerFields();
   fitSessionToScreen();
+  autoSpeak(hintText);
 }
 
 function clearAnswerFields() {
+  if (!typesAnswer()) return;
   activeInputs().forEach((i) => { i.value = ''; });
   answerInputs[0].focus();
+}
+
+// Kleuters (D26): the cards to tap. A wrong card fades away (and can't be tapped again), so with
+// every try there is less to choose from; after the solution the right card lights up.
+function renderChoiceCards() {
+  const container = el('choice-cards');
+  container.innerHTML = '';
+  container.classList.toggle('four', currentExercise.choices.length >= 4);
+  currentExercise.choices.forEach((value) => {
+    const card = Object.assign(document.createElement('button'), {
+      type: 'button', className: 'choice-card', textContent: String(value), tabIndex: -1
+    });
+    card.dataset.value = String(value);
+    card.addEventListener('mousedown', (e) => e.preventDefault()); // no focus: see CLAUDE.md
+    card.addEventListener('click', () => onChoice(value, card));
+    container.appendChild(card);
+  });
+}
+
+function onChoice(value, card) {
+  if (!session || session.awaitingNext || session.pendingPick || card.disabled) return;
+  const correct = value === currentExercise.correctAnswer.antwoord;
+  card.classList.add(correct ? 'right' : 'gone');
+  if (!correct) card.disabled = true;
+  submitValues({ antwoord: value });
+}
+
+function showChoiceSolution() {
+  el('choice-cards').querySelectorAll('.choice-card').forEach((card) => {
+    const right = Number(card.dataset.value) === currentExercise.correctAnswer.antwoord;
+    card.disabled = true;
+    card.classList.toggle('right', right);
+    card.classList.toggle('gone', !right);
+  });
+}
+
+// Zeg het getal (D26): 🎤 listens once. Not understood → try again (doesn't count); after
+// LISTEN_TRIES, or when this iPad can't listen, the child checks it herself.
+function resetSpeakAnswer() {
+  currentExercise.notHeard = 0;
+  currentExercise.heard = []; // the numbers the iPad heard (null: nothing understood), for the log
+  const selfCheck = !SpeechRecognizer || listenRefused;
+  el('mic-button').classList.toggle('hidden', selfCheck);
+  el('mic-button').classList.remove('listening');
+  el('self-check').classList.toggle('hidden', !selfCheck);
+  el('self-check-verdict').classList.add('hidden');
+  if (selfCheck) {
+    currentExercise.selfChecked = true;
+    currentExercise.speech = `Welk getal is dit? ${SELF_CHECK_MESSAGE}`; // no 🎤 to tap on this iPad
+  }
+}
+
+function startSelfCheck() {
+  currentExercise.selfChecked = true;
+  el('mic-button').classList.add('hidden');
+  el('self-check').classList.remove('hidden');
+  el('self-check-verdict').classList.add('hidden');
+  showSpokenMessage(SELF_CHECK_MESSAGE);
+}
+
+function showSpokenMessage(text) {
+  el('feedback').textContent = text;
+  el('feedback').className = 'feedback feedback-hint';
+  fitSessionToScreen();
+  autoSpeak(text);
+}
+
+function onMicButton() {
+  if (!session || session.awaitingNext || session.pendingPick || recognition) return;
+  stopSpeaking(); // the app's own voice must not be heard as the answer
+  let rec;
+  try {
+    rec = new SpeechRecognizer();
+    rec.lang = 'nl-NL';
+    rec.interimResults = false;
+    rec.continuous = false;
+    rec.maxAlternatives = 5;
+  } catch (e) {
+    listenRefused = true;
+    startSelfCheck();
+    return;
+  }
+  const exercise = currentExercise;
+  let settled = false;
+  // Exactly one outcome per listen, whatever order the browser sends result, error and end in.
+  const settle = (outcome) => {
+    if (settled) return;
+    settled = true;
+    clearTimeout(timer);
+    if (rec.cancelled) return; // stopped by the app (pause, next sum): not a try
+    if (recognition === rec) recognition = null;
+    el('mic-button').classList.remove('listening');
+    if (exercise === currentExercise && !session.awaitingNext) onHeard(outcome);
+  };
+  const timer = setTimeout(() => { try { rec.abort(); } catch (e) { /* already stopped */ } settle({ alternatives: [] }); }, LISTEN_TIMEOUT_MS);
+  rec.onresult = (event) => {
+    const result = event.results[0];
+    const alternatives = [];
+    for (let i = 0; result && i < result.length; i++) alternatives.push(result[i].transcript);
+    settle({ alternatives });
+  };
+  rec.onerror = (event) => {
+    const refused = ['not-allowed', 'service-not-allowed', 'audio-capture'].includes(event.error);
+    settle({ alternatives: [], refused });
+  };
+  rec.onend = () => settle({ alternatives: [] });
+  recognition = rec;
+  el('mic-button').classList.add('listening');
+  try {
+    rec.start();
+  } catch (e) {
+    settle({ alternatives: [], refused: true });
+  }
+}
+
+function stopListening() {
+  if (!recognition) return;
+  const rec = recognition;
+  recognition = null;
+  rec.cancelled = true;
+  el('mic-button').classList.remove('listening');
+  try { rec.abort(); } catch (e) { /* already stopped */ }
+}
+
+function onHeard({ alternatives, refused }) {
+  if (refused) {
+    listenRefused = true;
+    renderDiagnostics();
+    startSelfCheck();
+    return;
+  }
+  const expected = currentExercise.correctAnswer.antwoord;
+  const number = heardNumber(alternatives, expected);
+  currentExercise.heard.push(number);
+  if (number === null) {
+    currentExercise.notHeard += 1;
+    if (currentExercise.notHeard >= LISTEN_TRIES) startSelfCheck();
+    else showSpokenMessage(NOT_HEARD_MESSAGE);
+    return;
+  }
+  // The first wrong number: one more go before it counts (a child's voice is easily misheard).
+  if (number !== expected && !currentExercise.misheardOnce) {
+    currentExercise.misheardOnce = true;
+    showSpokenMessage(`Ik hoorde ${numberWord(number)}. Kijk nog eens goed en zeg het nog een keer.`);
+    return;
+  }
+  submitValues({ antwoord: number });
+}
+
+// Self-check: 🔊 says the number, then 😊 (I said it right) or 🤔 (not yet). Practice, but it
+// doesn't count for the level: a child's own verdict isn't reliable enough for that.
+function onHearAnswer() {
+  if (!session || session.awaitingNext || session.pendingPick) return;
+  speakText(`${numberWord(currentExercise.correctAnswer.antwoord)}. ${SELF_CHECK_VERDICT}`);
+  el('self-check-verdict').classList.remove('hidden');
+  fitSessionToScreen();
+}
+
+function onSelfCheck(good) {
+  if (!session || session.awaitingNext || session.pendingPick) return;
+  currentExercise.answersGiven.push(good ? 'goed' : 'nog niet');
+  if (!good) session.hadMistake = true;
+  concludeExercise(good);
 }
 
 function concludeExercise(solved) {
@@ -1333,8 +1561,11 @@ function concludeExercise(solved) {
   const tierBefore = skillState.tier;
   // Right but slow (pauses excluded): counts as right, but not towards a level up. Not for word
   // problems: reading the story takes time too.
-  const slow = recordedCorrect && spentMs > SLOW_ANSWER_MS && currentExercise.prompt.length <= LONG_PROMPT_CHARS;
-  const levelChange = recordAnswer(skill, skillState, recordedCorrect, groepCeilingTier(skill, session.groep), slow, {
+  // Not for kleuters either (D26): listening to the question and saying the number take time.
+  const slow = recordedCorrect && !session.kleuter && spentMs > SLOW_ANSWER_MS && currentExercise.prompt.length <= LONG_PROMPT_CHARS;
+  // A sum the child checked herself (Zeg het getal without listening, D26) is practice only: her
+  // own verdict doesn't move her level.
+  const levelChange = currentExercise.selfChecked ? null : recordAnswer(skill, skillState, recordedCorrect, groepCeilingTier(skill, session.groep), slow, {
     calibrationTop: groepStartTier(skill, session.groep),
     solutionShown: !solved,
     noDrop: session.droppedSkills.includes(skillId)
@@ -1355,7 +1586,8 @@ function concludeExercise(solved) {
     // Picture sums all ask the same question: the log also says what the picture showed.
     prompt: currentExercise.logPrompt || currentExercise.prompt,
     answers: currentExercise.answersGiven,
-    firstTryCorrect: recordedCorrect,
+    // A self-checked sum (D26) is never "meteen goed": the child's own verdict, not counted.
+    firstTryCorrect: recordedCorrect && !currentExercise.selfChecked,
     slow,
     hintsShown: Math.min(session.hintLevel, MAX_HINT_LEVEL - 1),
     solutionShown: !solved,
@@ -1365,14 +1597,17 @@ function concludeExercise(solved) {
     ...(currentExercise.crossedAtAnswer !== undefined ? { crossed: currentExercise.crossedAtAnswer } : {}),
     // D23: what the child answered to the hulpsom, and whether a wrong answer was typed twice.
     ...(currentExercise.helpSumAnswer !== undefined ? { helpSum: currentExercise.helpSumAnswer } : {}),
-    ...(currentExercise.repeated ? { repeated: true } : {})
+    ...(currentExercise.repeated ? { repeated: true } : {}),
+    // D26: the numbers the iPad heard (null = not understood), and a sum checked by the child herself.
+    ...(currentExercise.heard && currentExercise.heard.length ? { heard: currentExercise.heard } : {}),
+    ...(currentExercise.selfChecked ? { selfChecked: true } : {})
   });
   session.record.activeSeconds = Math.round(session.activeMs / 1000);
   saveState(appState);
 
   if (!session.results[skillId]) session.results[skillId] = { attempts: 0, correctFirstTry: 0 };
   session.results[skillId].attempts += 1;
-  if (recordedCorrect) session.results[skillId].correctFirstTry += 1;
+  if (recordedCorrect && !currentExercise.selfChecked) session.results[skillId].correctFirstTry += 1;
 
   if (!solved && !session.followUpQueued.has(skillId)) {
     // Never got it right, even with hints: check understanding again later with a fresh exercise.
@@ -1385,11 +1620,13 @@ function concludeExercise(solved) {
     const praise = session.hadMistake ? pickRandom(PRAISE_WITH_HELP) : pickRandom(PRAISE_FIRST_TRY);
     feedbackEl.textContent = `${praise}  +1 ★`;
     feedbackEl.className = 'feedback feedback-correct';
+    autoSpeak(praise);
   } else {
     const solution = getHint(currentExercise.exerciseType, MAX_HINT_LEVEL, currentExercise.hintContext);
     feedbackEl.textContent = `Bijna! Zo los je hem op: ${solution}`;
     feedbackEl.className = 'feedback feedback-solution';
     if (currentExercise.hintVisual) renderVisual(currentExercise.hintVisual);
+    autoSpeak(`Bijna! ${solution}`);
   }
 
   updateProgress();
@@ -1400,7 +1637,10 @@ function concludeExercise(solved) {
     // up) and the next sum follows by itself. "Volgende" remains for an impatient tap.
     session.awaitingNext = true;
     el('submit-button').classList.add('hidden');
-    session.autoNextTimer = setTimeout(onNext, AUTO_NEXT_MS);
+    session.autoNextTimer = setTimeout(onNext, session.kleuter ? KLEUTER_AUTO_NEXT_MS : AUTO_NEXT_MS);
+  } else if (currentExercise.answerMode === 'choices') {
+    showChoiceSolution(); // the cards stay, the right one lit
+    el('next-button').focus();
   } else {
     // After a shown solution the child taps on, so it gets read (the keyboard goes down meanwhile).
     el('answer-area').classList.add('hidden');
@@ -1421,6 +1661,7 @@ function pauseSession() {
   session.autoNextTimer = null;
   session.pausedAt = Date.now();
   if (document.activeElement) document.activeElement.blur(); // keyboard down
+  stopListening();
   showScreen('pause');
 }
 
@@ -1433,7 +1674,7 @@ function resumeSession() {
   // This tap is what lets the iPad open the keyboard again, so focus now, not later.
   if (session.awaitingNext) {
     onNext(); // paused during "Goed!": straight on to the next sum
-  } else if (!el('answer-area').classList.contains('hidden')) {
+  } else if (!el('answer-area').classList.contains('hidden') && typesAnswer()) {
     answerInputs[0].focus();
   } else {
     el('next-button').focus();
@@ -1441,14 +1682,19 @@ function resumeSession() {
   fitSessionToScreen();
 }
 
+// A session ends on a number of sums (thema-ronde, kleuters) or on the time.
+function sessionSumsTarget() {
+  return session.theme ? THEME_SUMS : session.targetSums;
+}
+
 function sessionTimeReached() {
-  if (session.theme) return session.exerciseCount >= THEME_SUMS;
+  if (sessionSumsTarget()) return session.exerciseCount >= sessionSumsTarget();
   return session.activeMs >= session.targetMs;
 }
 
 function updateProgress() {
-  const pct = session.theme
-    ? Math.min(100, (session.exerciseCount / THEME_SUMS) * 100)
+  const pct = sessionSumsTarget()
+    ? Math.min(100, (session.exerciseCount / sessionSumsTarget()) * 100)
     : Math.min(100, (session.activeMs / session.targetMs) * 100);
   el('progress-fill').style.width = `${pct}%`;
 }
@@ -1531,6 +1777,8 @@ function showSummary() {
   renderWeek(el('summary-week-dots'), el('summary-week-message'), profile);
 
   showScreen('summary');
+  // Kleuters (D26) hear how it went; the star sign stays unread.
+  autoSpeak(`Klaar! Je hebt ${session.starsEarned + bonus} sterren verdiend. ${celebrations.join(' ').replace(/★/g, 'sterren')}`);
 }
 
 // What the stars earned since `starsBefore` brought: a new animal in the park, the family goal.
@@ -1627,6 +1875,7 @@ function startTempoRound() {
   el('next-button').classList.add('hidden');
   el('answer-area').classList.remove('hidden');
   el('submit-button').classList.remove('hidden');
+  el('answer-fields').classList.remove('hidden'); // hidden after a kleuter's sum (D26): unfocusable
   nextTempoSum();
   answerInputs[0].focus();
   layoutAnswerFields();

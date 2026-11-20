@@ -26,6 +26,14 @@ function skillName(skillsById, id) {
 }
 
 function helpText(ex) {
+  // Zeg het getal (D26): what the iPad heard, and a sum the child checked herself (not counted).
+  const heard = ex.heard ? ` · gehoord: ${ex.heard.map((n) => (n === null ? '?' : n)).join(', ')}` : '';
+  if (ex.selfChecked) return `zelf nagekeken: ${ex.answers[ex.answers.length - 1] || '-'} (telt niet mee)${heard}`;
+  if (heard) return `${helpTextTyped(ex)}${heard}`;
+  return helpTextTyped(ex);
+}
+
+function helpTextTyped(ex) {
   if (ex.firstTryCorrect) return ex.slow ? 'meteen goed, maar traag (telt niet om omhoog te gaan)' : 'meteen goed';
   const hints = ex.hintsShown === 1 ? '1 hint' : `${ex.hintsShown} hints`;
   // D23: the hulpsom's answer, and a wrong answer typed twice (the tip wasn't read).

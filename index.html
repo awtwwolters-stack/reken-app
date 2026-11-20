@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="nl" data-version="2026-11-15.41">
+<html lang="nl" data-version="2026-11-20.42">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
@@ -10,7 +10,7 @@
   <link rel="icon" type="image/png" href="icons/favicon.png">
   <meta name="apple-mobile-web-app-title" content="Rekenen">
   <meta name="theme-color" content="#2f9e83">
-  <link rel="stylesheet" href="style.css?v=2026-11-15.41">
+  <link rel="stylesheet" href="style.css?v=2026-11-20.42">
 </head>
 <body>
   <main class="card">
@@ -187,6 +187,19 @@
       <div id="answer-area">
         <div id="answer-fields" class="answer-fields"></div>
         <button id="submit-button" class="big-button">Controleer</button>
+        <!-- Kleuters (groep 2, BACKLOG D26): big cards to tap, or 🎤 to say the number. -->
+        <div id="choice-cards" class="choice-cards hidden"></div>
+        <div id="speak-answer" class="speak-answer hidden">
+          <button id="mic-button" class="mic-button" type="button" aria-label="Zeg het getal">🎤</button>
+          <!-- When this iPad can't listen: hear the number, then say whether you said it right. -->
+          <div id="self-check" class="self-check hidden">
+            <button id="hear-answer-button" class="mic-button" type="button" aria-label="Luister naar het getal">🔊</button>
+            <div id="self-check-verdict" class="self-check-verdict hidden">
+              <button id="self-good-button" class="self-button" type="button" aria-label="Ik zei het goed">😊</button>
+              <button id="self-not-yet-button" class="self-button" type="button" aria-label="Nog niet">🤔</button>
+            </div>
+          </div>
+        </div>
       </div>
 
       <button id="next-button" class="big-button hidden">Volgende</button>
@@ -272,31 +285,33 @@
     })();
   </script>
 
-  <script src="js/utils.js?v=2026-11-15.41"></script>
-  <script src="js/storage.js?v=2026-11-15.41"></script>
-  <script src="js/profiles.js?v=2026-11-15.41"></script>
-  <script src="js/motivation.js?v=2026-11-15.41"></script>
-  <script src="js/park.js?v=2026-11-15.41"></script>
-  <script src="js/mastery.js?v=2026-11-15.41"></script>
-  <script src="js/tempo.js?v=2026-11-15.41"></script>
-  <script src="js/hints.js?v=2026-11-15.41"></script>
-  <script src="curriculum/group-6.js?v=2026-11-15.41"></script>
-  <script src="curriculum/group-3.js?v=2026-11-15.41"></script>
-  <script src="curriculum/klok.js?v=2026-11-15.41"></script>
-  <script src="js/exercises/optellen.js?v=2026-11-15.41"></script>
-  <script src="js/exercises/aftrekken.js?v=2026-11-15.41"></script>
-  <script src="js/exercises/tafel.js?v=2026-11-15.41"></script>
-  <script src="js/exercises/nullen.js?v=2026-11-15.41"></script>
-  <script src="js/exercises/vermenigvuldigen_groot.js?v=2026-11-15.41"></script>
-  <script src="js/exercises/delen_zonder_rest.js?v=2026-11-15.41"></script>
-  <script src="js/exercises/delen_met_rest.js?v=2026-11-15.41"></script>
-  <script src="js/exercises/getalbegrip.js?v=2026-11-15.41"></script>
-  <script src="js/exercises/verhaalsom.js?v=2026-11-15.41"></script>
-  <script src="js/exercises/breuken.js?v=2026-11-15.41"></script>
-  <script src="js/exercises/aanvankelijk.js?v=2026-11-15.41"></script>
-  <script src="js/exercises/klok.js?v=2026-11-15.41"></script>
-  <script src="js/app.js?v=2026-11-15.41"></script>
-  <script src="js/cloud-config.js?v=2026-11-15.41"></script>
-  <script type="module" src="js/cloud.js?v=2026-11-15.41"></script>
+  <script src="js/utils.js?v=2026-11-20.42"></script>
+  <script src="js/storage.js?v=2026-11-20.42"></script>
+  <script src="js/profiles.js?v=2026-11-20.42"></script>
+  <script src="js/motivation.js?v=2026-11-20.42"></script>
+  <script src="js/park.js?v=2026-11-20.42"></script>
+  <script src="js/mastery.js?v=2026-11-20.42"></script>
+  <script src="js/tempo.js?v=2026-11-20.42"></script>
+  <script src="js/hints.js?v=2026-11-20.42"></script>
+  <script src="curriculum/group-6.js?v=2026-11-20.42"></script>
+  <script src="curriculum/group-3.js?v=2026-11-20.42"></script>
+  <script src="curriculum/group-2.js?v=2026-11-20.42"></script>
+  <script src="curriculum/klok.js?v=2026-11-20.42"></script>
+  <script src="js/exercises/optellen.js?v=2026-11-20.42"></script>
+  <script src="js/exercises/aftrekken.js?v=2026-11-20.42"></script>
+  <script src="js/exercises/tafel.js?v=2026-11-20.42"></script>
+  <script src="js/exercises/nullen.js?v=2026-11-20.42"></script>
+  <script src="js/exercises/vermenigvuldigen_groot.js?v=2026-11-20.42"></script>
+  <script src="js/exercises/delen_zonder_rest.js?v=2026-11-20.42"></script>
+  <script src="js/exercises/delen_met_rest.js?v=2026-11-20.42"></script>
+  <script src="js/exercises/getalbegrip.js?v=2026-11-20.42"></script>
+  <script src="js/exercises/verhaalsom.js?v=2026-11-20.42"></script>
+  <script src="js/exercises/breuken.js?v=2026-11-20.42"></script>
+  <script src="js/exercises/aanvankelijk.js?v=2026-11-20.42"></script>
+  <script src="js/exercises/kleuter.js?v=2026-11-20.42"></script>
+  <script src="js/exercises/klok.js?v=2026-11-20.42"></script>
+  <script src="js/app.js?v=2026-11-20.42"></script>
+  <script src="js/cloud-config.js?v=2026-11-20.42"></script>
+  <script type="module" src="js/cloud.js?v=2026-11-20.42"></script>
 </body>
 </html>

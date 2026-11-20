@@ -554,12 +554,68 @@ function themeProblems() {
   return problems;
 }
 
+// Kleuters (D26): what is wrong with a sum's cards, or null. Every card different, whole, 0 to
+// 20, the answer among them, as many as the level says; the answer within the level's numbers.
+function choiceProblem(exercise, tier) {
+  const answer = exercise.correctAnswer.antwoord;
+  const low = tier.min !== undefined ? tier.min : 0;
+  if (answer < low || answer > tier.max) return `antwoord ${answer} valt buiten het niveau`;
+  if (exercise.answerMode === 'speak') {
+    if (numbersInSpeech(exercise.speech).includes(answer)) return 'het voorlezen verraadt het getal';
+    return null;
+  }
+  const cards = exercise.choices || [];
+  if (exercise.answerMode !== 'choices') return 'geen kaartjes';
+  if (cards.length !== tier.choices) return `${cards.length} kaartjes in plaats van ${tier.choices}`;
+  if (new Set(cards).size !== cards.length) return 'twee dezelfde kaartjes';
+  if (!cards.every((c) => isWholeNumber(c) && c <= 20)) return 'een kaartje is geen getal van 0 tot 20';
+  if (!cards.includes(answer)) return 'het goede kaartje ontbreekt';
+  if (exercise.exerciseType === 'getal_kiezen' && !numbersInSpeech(exercise.speech).includes(answer)) return 'het voorlezen noemt het getal niet';
+  if (namesNumber(exercise.prompt, answer) && exercise.exerciseType !== 'stippen_kiezen') return 'de vraag verraadt het antwoord';
+  return null;
+}
+
+function kleuterProblems() {
+  const problems = [];
+  const skills = CURRICULUM.skills.filter((s) => s.groepen && s.groepen[0] === 2);
+  if (skills.length !== 4) problems.push(`Kleuters: ${skills.length} onderwerpen in plaats van 4`);
+  skills.forEach((skill) => skill.tiers.forEach((tier) => {
+    let mixUpSeen = false;
+    for (let i = 0; i < 300; i++) {
+      const ex = Exercises[skill.exerciseType](tier, skill);
+      const problem = choiceProblem(ex, tier);
+      if (problem) { problems.push(`${skill.name} niveau ${tier.tier}: ${problem} bij "${ex.logPrompt}"`); break; }
+      const n = ex.correctAnswer.antwoord;
+      if (tier.tricky && n >= 13 && n <= 19 && ex.choices.includes(n - 10)) mixUpSeen = true;
+    }
+    if (tier.tricky && !mixUpSeen) problems.push(`${skill.name} niveau ${tier.tier}: nooit 4 naast 14 als lastig kaartje`);
+  }));
+  // The check itself must catch a broken sum: the right card left out.
+  const skill = skills.find((s) => s.exerciseType === 'getal_kiezen');
+  if (skill) {
+    const tier = skill.tiers[0];
+    const ex = Exercises.getal_kiezen(tier, skill);
+    const broken = Object.assign({}, ex, { choices: ex.choices.map((c) => (c === ex.correctAnswer.antwoord ? c + 50 : c)) });
+    if (!choiceProblem(broken, tier)) problems.push('Kleuters: de controle ziet een ontbrekend goed kaartje niet');
+  }
+  // What the iPad hears, to the number the child said.
+  [[['veertien'], 14, 14], [['Eén'], 1, 1], [['14'], 14, 14], [['hallo'], 3, null], [['vier', 'veertien'], 14, 4], [['hallo', 'veertien'], 14, 14], [['Vijf tien'], 15, 15], [['een tien'], 1, 1],
+    [['vier'], 14, 4], [['Achttien.'], 18, 18], [['tweede'], 2, null], [['nul'], 0, 0], [[], 5, null]]
+    .forEach(([heard, expected, want]) => {
+      const got = heardNumber(heard, expected);
+      if (got !== want) problems.push(`Kleuters: "${heard.join(' / ')}" wordt ${got} in plaats van ${want}`);
+    });
+  return problems;
+}
+
 function deviceReport() {
   const report = [];
   const speech = 'speechSynthesis' in window;
   const dutch = speech && window.speechSynthesis.getVoices().some((v) => v.lang.replace('_', '-').toLowerCase().startsWith('nl'));
   report.push(speech ? `voorlezen: ja${dutch ? ', Nederlandse stem gevonden' : ' (Nederlandse stem nog niet zichtbaar)'}` : 'voorlezen: niet beschikbaar op dit apparaat');
   report.push(window.visualViewport ? 'passend maken boven het toetsenbord: ja' : 'passend maken boven het toetsenbord: niet beschikbaar');
+  report.push(window.SpeechRecognition || window.webkitSpeechRecognition
+    ? 'luisteren (Zeg het getal, groep 2): ja' : 'luisteren (Zeg het getal, groep 2): niet beschikbaar, het kind kijkt zelf na');
   let storage = false;
   try { localStorage.setItem('reken-app-selftest', '1'); localStorage.removeItem('reken-app-selftest'); storage = true; } catch (e) { storage = false; }
   report.push(storage ? 'voortgang bewaren: ja' : 'voortgang bewaren: LUKT NIET (privémodus?)');
@@ -570,7 +626,7 @@ function deviceReport() {
 // Returns { skills, levels, sums, problems: ['Tafel van 6 niveau 2: ...'], device: [...] }.
 function runSelfTest() {
   const problems = timeWordsProblems().concat(parkProblems(), tempoProblems(), syncProblems(), extraTafelProblems(), minusProblems(),
-    nullenProblems(), splitsenProblems(), klokTipProblems(), masteryRuleProblems(), themeProblems());
+    nullenProblems(), splitsenProblems(), klokTipProblems(), masteryRuleProblems(), themeProblems(), kleuterProblems());
   let levels = 0;
   let sums = 0;
   const skills = CURRICULUM.skills.filter((s) => s.implemented);

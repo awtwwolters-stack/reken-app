@@ -305,6 +305,41 @@ Hints.tellen = function (level, ctx) {
   return `Het zijn er ${n}.`;
 };
 
+// Groep 2 (D26): read aloud by themselves, so short spoken sentences. numberWord() is in
+// exercises/kleuter.js. The first hint comes with the dot picture where the sum has one.
+function teenHint(n) {
+  const word = numberWord(n).charAt(0).toUpperCase() + numberWord(n).slice(1);
+  if (n >= 13 && n <= 19) return `${word}: eerst een 1, dan een ${n - 10}.`;
+  if (n >= 10) return `${word} begint met een ${String(n)[0]}.`;
+  if (n === 0) return 'Nul: er is niets, geen enkele stip.';
+  return `${word}. Tel de stippen maar: 1, 2, 3, …`;
+}
+
+Hints.getal_kiezen = function (level, ctx) {
+  const { n } = ctx;
+  if (level === 1) return `Luister goed: ${numberWord(n)}. Zoveel stippen zijn het.`;
+  if (level === 2) return teenHint(n);
+  return `Dit is ${n}: ${numberWord(n)}.`;
+};
+
+Hints.stippen_kiezen = function (level, ctx) {
+  return Hints.tellen(level, ctx);
+};
+
+Hints.rij_gat = function (level, ctx) {
+  const { row, gapIndex, answer } = ctx;
+  if (level === 1) return `Tel mee vanaf ${row[0]}: ${row.slice(0, gapIndex).join(', ')}, …`;
+  if (level === 2) return `Welk getal komt na ${row[gapIndex - 1]}?`;
+  return `${row.join(', ')}. Het getal ${answer} miste.`;
+};
+
+Hints.getal_zeggen = function (level, ctx) {
+  const { n } = ctx;
+  if (level === 1) return n > 10 ? 'Kijk goed. Een vol vak is 10, tel verder vanaf 10.' : 'Tel de stippen.';
+  if (level === 2) return teenHint(n);
+  return `Dit is ${n}: ${numberWord(n)}. Zeg het maar na.`;
+};
+
 Hints.rijtjes = function (level, ctx) {
   const { shown, step, backward, answer } = ctx;
   const last = shown[shown.length - 1];
