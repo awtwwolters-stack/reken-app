@@ -8,6 +8,8 @@ Size: **S** = small change · **M** = one focused build session · **L** = sever
 
 ## Now (2026-11-20)
 
+**Version 2026-11-20.43, after the first real use:** the voice no longer says a number twice ("Dit is 5: vijf" → "Dit is 5"). The microphone didn't work on the first try on the new iPad (cause unknown): the listening time now starts only once the iPad really listens (the first time Safari first asks permission), a busy microphone no longer switches listening off, and the diagnostics line shows what the last listen did ("spraak: ja (laatste: …)"), also kept per sum in the log (codes only). Next: a photo of that line after a failed try.
+
 **Version 2026-11-20.42: the groep-2 child practises too (D26): getallen tot en met 20 herkennen.** Four kinds of sums with big cards to tap, everything read aloud, 10 sums a round, and "Zeg het getal" with the iPad's speech recognition. Open checks: (1) on every iPad, try "Zeg het getal" once: does it hear the child (the log shows what it heard), and does the old iPad (iOS 15) listen at all (diagnostics line "spraak: ja/nee/uit")? (2) Does the automatic voice start on a real iPad after the Start tap? (3) After a week: keep speech recognition, or self-check only?
 
 Previous: **version 2026-11-15.41: Tempo-ronde "Plus en min" (D25).** Open checks: does the groep-5 child play it, and how do their scores grow (start somewhere near 10–20)? A photo of the WIG 5.1 tempotoets would confirm the sums. Still open for the parent: theme rounds instead of normal sessions (see below), and groep 3 hoeveelheden zien zonder tellen.

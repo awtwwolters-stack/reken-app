@@ -27,7 +27,8 @@ function skillName(skillsById, id) {
 
 function helpText(ex) {
   // Zeg het getal (D26): what the iPad heard, and a sum the child checked herself (not counted).
-  const heard = ex.heard ? ` · gehoord: ${ex.heard.map((n) => (n === null ? '?' : n)).join(', ')}` : '';
+  const heard = (ex.heard ? ` · gehoord: ${ex.heard.map((n) => (n === null ? '?' : n)).join(', ')}` : '')
+    + (ex.listen ? ` · microfoon: ${ex.listen.join(', ')}` : '');
   if (ex.selfChecked) return `zelf nagekeken: ${ex.answers[ex.answers.length - 1] || '-'} (telt niet mee)${heard}`;
   if (heard) return `${helpTextTyped(ex)}${heard}`;
   return helpTextTyped(ex);

@@ -46,6 +46,7 @@ const KLEUTER_AUTO_NEXT_MS = 2200;
 // count for her level). A first wrong number heard gets one more go: the iPad mishears too.
 const LISTEN_TRIES = 2;
 const LISTEN_TIMEOUT_MS = 8000;
+const LISTEN_START_TIMEOUT_MS = 30000; // waiting for the microphone permission question
 const NOT_HEARD_MESSAGE = 'Ik hoorde het niet goed. Tik op de microfoon en zeg het nog een keer.';
 const SELF_CHECK_MESSAGE = 'Zeg het getal hardop. Tik dan op de luidspreker en luister of het goed was.';
 const SELF_CHECK_VERDICT = 'Zei je het goed? Tik op het blije gezicht. Nog niet? Tik op het denkende gezicht.';
@@ -62,6 +63,7 @@ let tempo = null; // a running Tempo-ronde (js/tempo.js); it uses the session sc
 const SpeechRecognizer = window.SpeechRecognition || window.webkitSpeechRecognition || null;
 let listenRefused = false;
 let recognition = null; // the one listening now, if any
+let lastListen = ''; // what the last listen did, for the diagnostics line (see noteListen)
 
 const SCREENS = ['profiles', 'start', 'park', 'story', 'tempo', 'tempo-result', 'theme', 'theme-result', 'soon', 'setup', 'session', 'pause', 'summary'];
 
@@ -246,7 +248,7 @@ function renderDiagnostics() {
   const cloud = window.Cloud;
   const cloudText = !cloud ? 'niet geladen' : cloud.state + (cloud.email ? ` (${cloud.email})` : '') + (cloud.problem ? `: ${cloud.problem}` : '');
   // spraak: whether this iPad can listen for "Zeg het getal" (D26); "uit" after a refused microphone.
-  const listenText = !SpeechRecognizer ? 'nee' : listenRefused ? 'uit' : 'ja';
+  const listenText = (!SpeechRecognizer ? 'nee' : listenRefused ? 'uit' : 'ja') + (lastListen ? ` (laatste: ${lastListen})` : '');
   el('diag-info').textContent = `versie ${APP_VERSION} · ${listProfiles(appState).length} kinderen op deze iPad · cloud: ${cloudText} · spraak: ${listenText}`;
 }
 
@@ -1464,6 +1466,8 @@ function onMicButton() {
   }
   const exercise = currentExercise;
   let settled = false;
+  let timer = null;
+  const giveUp = (why) => { try { rec.abort(); } catch (e) { /* already stopped */ } settle({ alternatives: [], why }); };
   // Exactly one outcome per listen, whatever order the browser sends result, error and end in.
   const settle = (outcome) => {
     if (settled) return;
@@ -1472,27 +1476,44 @@ function onMicButton() {
     if (rec.cancelled) return; // stopped by the app (pause, next sum): not a try
     if (recognition === rec) recognition = null;
     el('mic-button').classList.remove('listening');
+    noteListen(outcome, exercise);
     if (exercise === currentExercise && !session.awaitingNext) onHeard(outcome);
   };
-  const timer = setTimeout(() => { try { rec.abort(); } catch (e) { /* already stopped */ } settle({ alternatives: [] }); }, LISTEN_TIMEOUT_MS);
+  // The listening time starts once the iPad really listens: the first time Safari first asks
+  // permission for the microphone, and that question may take a child (or parent) a while.
+  timer = setTimeout(() => giveUp('geen start'), LISTEN_START_TIMEOUT_MS);
+  rec.onstart = () => {
+    clearTimeout(timer);
+    timer = setTimeout(() => giveUp('te lang stil'), LISTEN_TIMEOUT_MS);
+  };
   rec.onresult = (event) => {
     const result = event.results[0];
     const alternatives = [];
     for (let i = 0; result && i < result.length; i++) alternatives.push(result[i].transcript);
-    settle({ alternatives });
+    settle({ alternatives, why: 'resultaat' });
   };
   rec.onerror = (event) => {
-    const refused = ['not-allowed', 'service-not-allowed', 'audio-capture'].includes(event.error);
-    settle({ alternatives: [], refused });
+    // Only a refusal turns listening off for this page; a busy microphone ('audio-capture') may
+    // work on the next tap.
+    const refused = ['not-allowed', 'service-not-allowed'].includes(event.error);
+    settle({ alternatives: [], refused, why: event.error || 'fout' });
   };
-  rec.onend = () => settle({ alternatives: [] });
+  rec.onend = () => settle({ alternatives: [], why: 'gestopt zonder resultaat' });
   recognition = rec;
   el('mic-button').classList.add('listening');
   try {
     rec.start();
   } catch (e) {
-    settle({ alternatives: [], refused: true });
+    settle({ alternatives: [], refused: true, why: `start mislukt: ${e.message}` });
   }
+}
+
+// What the last listen did, in the diagnostics line (a photo tells why the 🎤 didn't work) and,
+// as a code without anything the child said, in the session log.
+function noteListen({ alternatives, why }, exercise) {
+  lastListen = why === 'resultaat' ? `gehoord "${alternatives[0] || ''}"` : why;
+  (exercise.listenLog = exercise.listenLog || []).push(why); // the sum this listen belonged to
+  renderDiagnostics();
 }
 
 function stopListening() {
@@ -1600,7 +1621,8 @@ function concludeExercise(solved) {
     ...(currentExercise.repeated ? { repeated: true } : {}),
     // D26: the numbers the iPad heard (null = not understood), and a sum checked by the child herself.
     ...(currentExercise.heard && currentExercise.heard.length ? { heard: currentExercise.heard } : {}),
-    ...(currentExercise.selfChecked ? { selfChecked: true } : {})
+    ...(currentExercise.selfChecked ? { selfChecked: true } : {}),
+    ...(currentExercise.listenLog ? { listen: currentExercise.listenLog } : {})
   });
   session.record.activeSeconds = Math.round(session.activeMs / 1000);
   saveState(appState);
